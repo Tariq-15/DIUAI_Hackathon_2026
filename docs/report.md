@@ -30,25 +30,31 @@ action, measured by recovery, time-to-action and handling time.*
 
 ## 3. Implemented solution
 
+- **Ferot Guard (before sending):** while the customer is on the confirm screen, a LightGBM scam model and an
+  anomaly score check the receiving wallet, and a keypad check catches likely typos ("Did you mean…?"). Warnings
+  are in plain Bangla with reasons; the riskiest transfers get a 30-second pause. The customer always decides.
 - **Customer app (Bangla/English):** pick the transfer, describe it, read a consent notice (purpose, retention,
   who sees it, how to withdraw) and the customer's responsibilities, get a case number, a 10-working-day deadline
   and the route to Bangladesh Bank; contest an outcome for a human-only review.
-- **Agent console:** queue sorted by taka at risk with SLA chips; case view with the complaint, extracted fields,
-  ledger facts, money-trail graph, intended-number diff, class probabilities with reasons, recoverability curve,
+- **Agent console:** queue sorted by taka at risk with deadlines; case file with the "taka drain" (money still
+  holdable from the transfer to the complaint, then the model's estimate), a four-part case report (what happened,
+  why, next step, limits), the ring of complainants and cash-out agents around the receiving wallet, extracted
+  fields, ledger facts, intended-number diff, class probabilities with TreeSHAP reasons,
   rule-based recommendation with the cited procedure, editable drafts, approve / edit / override, masked numbers
   with logged reveals, export for compliance, and a hash-chained audit trail.
-- **Analyst view:** model evidence against baselines, queue simulation, mule clusters, AML queue and a monthly
-  dispute report for Bangladesh Bank (§16.3).
-- **Engineering:** FastAPI + React, one Docker image, 108 automated tests, CI with secret scanning.
+- **Evidence view:** alerting metrics, confusion matrix, baselines, queue simulation, fairness by customer group,
+  mule clusters, AML queue, Guard warnings and a monthly dispute report for Bangladesh Bank (§16.3).
+- **Engineering:** FastAPI + React, one Docker image, 117 automated tests, CI with secret scanning.
 
 ## 4. Key features and AI approach
 
 | Component | Approach | Result (synthetic test window) |
 | --- | --- | --- |
+| Ferot Guard | LightGBM P(scam) + IsolationForest, bands from validation percentiles; keypad typo check | 98.8% of scam sends warned; 0.44 ordinary sends in 100 interrupted; all typos caught |
 | M1 extraction | Rules (Bangla digits, number words, patterns) + optional Claude on masked text, fixed JSON schema | 24/24 hand-written complaints |
 | M2 matching | Score claimant's recent transfers | top-1 0.95 |
 | M3 intended number | Keypad-weighted edit distance over sender history | 0.98 on genuine typos |
-| M4 case type | LightGBM on ledger, graph and text features; TreeSHAP reasons | macro-F1 0.96 vs 0.55 keyword, 0.50 text-only |
+| M4 case type | LightGBM on ledger, graph and text features; TreeSHAP reasons | macro-F1 0.96 vs 0.55 keyword, 0.50 text-only; scams held at P ≥ 0.45: recall 0.85, precision 1.00 |
 | M5 recoverability | LightGBM per horizon (1–72 h) | Brier 0.072 vs 0.099 baseline (6 h) |
 | M6 priority | Taka lost by waiting + vulnerability + SLA floor | +4.2% holdable money vs first-come-first-served |
 | M7 clusters | Wallets named by many complainants, linked by transfers | Leads for the AML team |
@@ -69,6 +75,8 @@ each traced to code and a test (`docs/compliance.md`).
 
 ## 5. Real-life impact
 
+- **Fewer wrong sends in the first place:** a "Did you mean" prompt at the confirm screen stops the most common
+  mistake before any dispute exists, at a cost of under one interruption per 100 ordinary transfers.
 - **More money recovered:** ranking by money at risk keeps more of it holdable when an agent acts (+4.2% in
   simulation, 95% CI 3.8–4.6%; the perfect-foresight ceiling is +6.7%).
 - **Faster, consistent handling:** a pre-built case file and drafted Bangla replies replace manual look-ups.
@@ -77,7 +85,9 @@ each traced to code and a test (`docs/compliance.md`).
 - **Fraud intelligence:** complaints become mule-wallet leads for the AML/CFT team.
 - **Regulatory fit:** SLA timer, dispute log, 6-year records and the §16.3 report come built in.
 
-Honest limits: synthetic data; ordering alone performs like a "largest-first" rule; see `docs/error_analysis.md`.
+Honest limits: synthetic data with a cleaner scam pattern than real fraud; ordering alone performs like a
+"largest-first" rule; phone complaints are 3.8 points less accurate than app complaints; Guard warns USSD users
+about twice as often as app users. See `docs/error_analysis.md`.
 
 ## 6. Next steps
 

@@ -3,6 +3,24 @@
 All models are trained and evaluated on synthetic data only (rule R16). Owner: Team Ferot. Version:
 `ferot-2026.10.01`. Metrics: `reports/metrics.json` (test window days 75–90).
 
+## Ferot Guard (pre-send check)
+- **Purpose:** warn the customer before a transfer that is likely a typo or a scam. It never blocks.
+- **Data:** 7,000 ordinary transfers plus every scam and typo transfer in the synthetic ledger, split by time
+  (train, validation, test). Features are computed as of the moment of sending: relationship with the recipient
+  (first-ever, earlier transfers, typo distance to a frequent contact), receiving-wallet behaviour (age, distinct and
+  first-time senders in 7 days, pass-through and inbound in 30 days, earlier complaints), amount versus the sender's
+  usual, hour.
+- **Method:** LightGBM (`scale_pos_weight` 20, early stopping) for P(scam), plus an IsolationForest anomaly score on
+  amount versus usual, unusual hour, first-time payee and amount. The fusion weight is chosen on validation (it chose the model alone, weight 1.0). Bands: warn
+  above the 99th percentile and pause above the 99.9th percentile of ordinary validation transfers, mapped to a
+  0–100 risk (warn at 30, review at 70). A separate keypad check warns on a first-time number within keypad distance
+  1.6 of a contact paid at least twice (`config/guard.yaml`).
+- **Results (test):** PR-AUC 0.997; 98.8% of scam transfers warned (precision 94.4%); 0.44 ordinary transfers in
+  100 warned, none paused; typos caught 100%.
+- **Fairness:** ordinary transfers warned per 100: app 0.34, USSD 0.78; rural 0.39, urban 0.54; by age 0–1.13.
+- **Limits:** the synthetic scam drop wallets are cleaner than real ones. Reasons are built only from feature values
+  (tested). Guard cannot see who called the customer.
+
 ## M1 Complaint extractor
 - **Purpose:** read amount, number (or last 4 digits), relative time, TrxID and scam cues from Bangla, Banglish or English.
 - **Method:** rules first (Bangla digits, number words such as "pach hajar" / "৫ হাজার" / "5k", phone and TrxID
@@ -27,7 +45,10 @@ All models are trained and evaluated on synthetic data only (rule R16). Owner: T
 - **Method:** LightGBM (balanced classes, early stopping) on 33 as-of features: relationship, timing, recipient
   graph behaviour, return flows, claimant history, system events, text cues. Reasons from TreeSHAP contributions.
 - **Results:** macro-F1 0.96 (keyword rules 0.55, text-only 0.50); scam recall 0.88; unseen job-offer scams 0.90;
-  ECE 0.08.
+  ECE 0.08. At the hold threshold P(scam) ≥ 0.45: recall 0.85, precision 1.00, 1 wrongful rejection among 219 victims
+  (the threshold was 0.60, recall 0.70).
+- **Fairness (accuracy by group):** language gap 1.3 points; channel 3.8 (app 98.4%, phone 94.6%); age 4.4; area
+  0.5; KYC 1.7. Scam recall is lower for phone complaints (81.4%), limited KYC (80.0%) and ages 25–34 (78.3%).
 - **Limits:** see `docs/error_analysis.md`. Never acts alone: the policy engine and a human decide.
 
 ## M5 Recoverability

@@ -17,6 +17,11 @@ case into five types, estimates how much money is still holdable over the next h
 risk, and recommends the next step with drafted replies. **Ferot never moves money: a named human approves every
 action.**
 
+**Ferot Guard** works one step earlier. While the customer is still on the confirm screen, it checks the transfer:
+is the number one keypad slip from someone they pay often ("Did you mean 01012345678?"), or does the receiving
+wallet look like a scam drop? It explains any warning in plain Bangla and adds a 30-second pause for the riskiest
+transfers. It never blocks: the customer always decides.
+
 **Purpose.** Recover more customer money, cut handling time, stop false and double-recovery claims, turn
 complaints into mule-wallet intelligence for the AML team, and meet Bangladesh Bank's dispute rules by design.
 
@@ -24,6 +29,7 @@ complaints into mule-wallet intelligence for the AML team, and meet Bangladesh B
 
 | Feature | How AI is used |
 | --- | --- |
+| **Ferot Guard** (before the money leaves) | LightGBM P(scam) on transfer features fused with an IsolationForest anomaly score; warn and pause bands set on validation data; keypad "Did you mean" check; reasons in Bangla and English built only from feature values; never blocks |
 | Customer intake (Bangla/English) with consent notice | — (rules: notice, responsibilities, 10-working-day timeline, escalation route) |
 | **M1** Complaint extraction | Rules for numbers, TrxIDs, Bangla digits and number words; optional LLM (Claude) on **masked** text fills gaps; disagreements flagged |
 | **M2** Transaction matching | Scores the claimant's recent transfers on amount, number, time and TrxID (95% top-1) |
@@ -34,8 +40,8 @@ complaints into mule-wallet intelligence for the AML team, and meet Bangladesh B
 | **M7** Mule clusters | Wallets named by many complainants, linked by onward transfers |
 | Policy engine | Versioned YAML business rules choose the action; hold capped at the disputed amount and balance; cites the procedure followed |
 | **M8** Drafted replies | Bangla and English templates with slot-filled numbers; optional LLM polish; every draft checked: grounded, no refund promise, no tipping off |
-| Agent console | Queue, case view with Facts / Prediction / Generated labels, masked numbers, approve / edit / override, audit trail |
-| Analyst view | Model evidence vs baselines, queue simulation, mule clusters, AML queue, monthly dispute report CSV |
+| Agent console | Queue ranked by money at risk; case file with the "taka drain" (money still holdable, ledger facts then the M5 estimate), a four-part case report (what happened, evidence, next step, limits), TreeSHAP reasons, the ring of complainants and cash-out agents around the receiving wallet, provenance labels on every panel, masked numbers, approve / edit / override, audit trail |
+| Evidence view | Alerting metrics (PR-AUC, precision and recall at the policy threshold, false alarms per 100 innocent customers), confusion matrix, baselines, queue simulation with 95% CIs, fairness by language, channel, age, area and KYC, mule clusters, AML queue, Guard warnings, monthly dispute report CSV |
 | Compliance | Hash-chained audit log, role checks, export only via compliance on a verified request, 6-year retention setting |
 
 ## Results (synthetic data, held-out test window: days 75–90)
@@ -44,6 +50,11 @@ complaints into mule-wallet intelligence for the AML team, and meet Bangladesh B
 | --- | --- | --- |
 | Case-type macro-F1 (M4) | **0.96** | keyword rules 0.55 · text-only model 0.50 |
 | Scam-victim recall | 0.88 (0.90 on a scam type never seen in training) | — |
+| Scams held at the policy threshold, P(scam) ≥ 0.45 | recall **0.85**, precision 1.00, 1 wrongful rejection in 219 victims | 0.70 at the old 0.60 threshold |
+| Guard: scam transfers warned before sending | **98.8%** (PR-AUC 0.997, 85 scams in 1,223 test transfers) | — |
+| Guard: ordinary transfers interrupted | **0.44 per 100** (none paused) | — |
+| Guard: typos caught by "Did you mean" | 100% | — |
+| Fairness: largest accuracy gap between groups | 3.8 points (app 98.4% vs phone call 94.6%) | — |
 | Transaction match top-1 (M2) | 0.95 | — |
 | Intended number found on genuine typos (M3) | 0.98 | — |
 | Recoverability Brier at 6 h (M5, lower is better) | **0.072** | "balance now" 0.099 |
@@ -52,7 +63,9 @@ complaints into mule-wallet intelligence for the AML team, and meet Bangladesh B
 The numbers above come from the default 4,000-customer build. The Docker image builds a 2,500-customer world so it fits a 512 MB host; its results are similar (macro-F1 0.97) and the hosted analyst page shows that build's own numbers.
 
 Honest notes: the data is synthetic, so these numbers show the method works on planted patterns, not real-world
-accuracy. Ferot's ordering matches the strong "largest amount first" heuristic; its extra value is the case file,
+accuracy. Scores near 1.0 (Guard PR-AUC, scam PR-AUC) mean the synthetic scam pattern is cleaner than real fraud.
+Guard warns USSD users more often than app users (0.78 vs 0.34 per 100 ordinary transfers); both are low, and the
+gap is reported. Ferot's ordering matches the strong "largest amount first" heuristic; its extra value is the case file,
 the explanation and the compliance controls. See [docs/error_analysis.md](docs/error_analysis.md). Full numbers:
 [reports/metrics.json](reports/metrics.json) and [reports/simulation.json](reports/simulation.json).
 
@@ -63,7 +76,7 @@ the explanation and the compliance controls. See [docs/error_analysis.md](docs/e
 - **ML:** LightGBM, scikit-learn (metrics), TreeSHAP via LightGBM `pred_contrib`
 - **LLM (optional):** Anthropic Claude via the official `anthropic` Python SDK, default model `claude-opus-5-5`,
   structured JSON outputs, server-side refusal fallback; behind a swappable provider interface. **Off by default.**
-- **Frontend:** React 19, Vite, Tailwind CSS 4, React Flow (`@xyflow/react`)
+- **Frontend:** React 19, Vite, Tailwind CSS 4; charts and graphs are hand-written SVG; fonts Anek Bangla and Hind Siliguri
 - **Ops:** Docker, GitHub Actions (pytest, web build, gitleaks), Render blueprint
 
 ## Requirements
@@ -136,17 +149,20 @@ Any Docker host works: `docker build -t ferot . && docker run -p 8000:8000 -e PO
 
 ```bash
 cd backend
-python -m pytest          # 108 tests: rules R1–R20, data, extraction, models, policy, drafts, audit, API, injection
+python -m pytest          # 117 tests: rules R1–R20, data, extraction, models, Guard, policy, drafts, audit, API, injection
 ```
 
-Manual check of the demo (about 3 minutes):
-1. **Customer app** → choose *Rahim* → *ভুল নম্বরে টাকা গেছে* → pick the ৳5,000 transfer to …5687 → *Next* → tick the
+Manual check of the demo (about 4 minutes):
+0. **Customer app → Send money (Ferot Guard)** → choose *Rahim* → *ভাইকে নিয়মিত পাঠানো টাকা* → *Next*: no warning.
+   Pick *যে লেনদেনটি ভুল হয়েছিল* → *Next*: "Did you mean 01012345678?" with the swapped digits; *Use this number* sends
+   to the right one. Then *Shirin* → *Next*: a red warning with three reasons and a 30-second pause on *Send anyway*.
+1. **Customer app → Report a problem** → choose *Rahim* → *ভুল নম্বরে টাকা গেছে* → pick the ৳5,000 transfer to …5687 → *Next* → tick the
    notice → submit. You get a case number and a 10-working-day deadline.
 2. **Agent console** → sign in as an agent → open Rahim's case: *Genuine wrong-send*, digits 9–10 swapped against his
    brother's number (paid 11 times), ৳4,200 holdable, rule `R-GEN-01`. Approve; the audit trail updates.
 3. Back in the customer app, submit *Shirin*'s complaint: same kind of words, but Ferot says *Scam victim*: a
    23-day-old wallet that 14 other customers complained about, money gone in minutes.
-4. **Analyst & evidence** → model results vs baselines, simulation, mule clusters, dispute report CSV.
+4. **Evidence** → alerting metrics, confusion matrix, baselines, simulation, fairness, mule clusters, Guard warnings, dispute report CSV.
 5. Sign in as an agent and try to approve a `R-FALSE-01` or `R-DBL-01` case: it needs a supervisor (R6).
 
 ## Other configuration
@@ -175,7 +191,7 @@ As required by the rulebook (§4.4, §9.2):
   with the team. Commits carry a `Co-Authored-By` line. The team reviewed the design and can explain every component.
 - **External API (optional, off by default):** Anthropic Claude API for complaint extraction and draft polishing.
 - **Open-source libraries:** FastAPI, Uvicorn, pandas, NumPy, PyArrow, LightGBM, scikit-learn, PyYAML, React, Vite,
-  Tailwind CSS, React Flow (`@xyflow/react`), Playwright (screenshots only, not shipped).
+  Tailwind CSS, Playwright (screenshots only, not shipped). Fonts: Anek Bangla and Hind Siliguri (Google Fonts, OFL).
 - **Data:** entirely synthetic, generated by `backend/ferot/datagen`. No real customer data. Phone numbers use the 010
   prefix. Public facts used: upay's published limits and fees, and Bangladesh Bank regulations (see docs).
 - **Brand:** "upay" is used only to describe who the prototype is for. No upay logos or assets are used.
@@ -184,8 +200,8 @@ As required by the rulebook (§4.4, §9.2):
 
 ```text
 backend/ferot/   datagen/ features/ models/ policy/ llm/ store/ sim/ api/ service.py cli.py
-backend/tests/   108 tests
-web/src/         customer app, agent console, analyst view
+backend/tests/   117 tests
+web/src/         customer app (Send money with Guard, Report a problem), agent console, case file, evidence
 config/          limits, assumptions, policy rules, holidays
 docs/            compliance, project report, model cards, error analysis, on-site playbook, demo script
 reports/         metrics.json, simulation.json

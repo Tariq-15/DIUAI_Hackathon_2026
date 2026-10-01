@@ -63,22 +63,22 @@ end shows where.
 | §12.3 | Transactions authenticated by the account holder | Ferot never moves money; it raises requests for an authorized officer |
 | §11 | AML/CFT (BFIU) | Mule flags → AML queue; `drafts.py` blocks tipping-off phrases |
 | §10.1(ii) | Monitor agent patterns | Cash-out agents appear in money trail and clusters |
-| §15 | Customer fraud awareness | Safety line on every customer screen |
+| §15 | Customer fraud awareness | Safety line on every customer screen; Ferot Guard warns before a risky transfer, in Bangla, and never blocks it |
 | §16.3 | Statements to Bangladesh Bank | `GET /api/v1/insights/dispute-report.csv` |
 
 ## Traceability: rule → code → test
 
 | Rule | Code | Test |
 | --- | --- | --- |
-| R1 | `models/drafts.py` banned-phrase filter | `tests/test_drafts.py::test_no_refund_promises` |
+| R1 | `models/drafts.py` banned-phrase filter; case report | `tests/test_drafts.py::test_no_refund_promises`, `tests/test_guard.py::test_case_report_and_network` |
 | R2 | `policy/sla.py`, `models/priority.py` | `tests/test_sla.py` |
 | R3 | `api/main.py` complaint channels | `tests/test_api.py::test_all_channels` |
 | R4 | Customer confirmation screen (`web/src/pages/Customer.tsx`) | Manual check in demo |
 | R5 | `assumptions.yaml` retention; export endpoint | `tests/test_api.py::test_export_requires_compliance` |
-| R6 | `api/main.py` decision endpoint | `tests/test_api.py::test_rejection_needs_supervisor` |
+| R6 | `api/main.py` decision endpoint; Guard has no blocking band | `tests/test_api.py::test_rejection_needs_supervisor`, `tests/test_guard.py::test_guard_never_blocks` |
 | R7 | `models/drafts.py` tipping-off filter | `tests/test_drafts.py::test_no_tipping_off` |
 | R8 | Consent stored with every case | `tests/test_api.py::test_consent_required` |
-| R9 | `llm/masking.py` | `tests/test_masking.py` |
+| R9 | `llm/masking.py`; Guard alerts masked for staff | `tests/test_masking.py`, `tests/test_guard.py::test_decision_is_logged_and_alerts_are_masked` |
 | R10 | `llm/provider.py` swappable provider | `tests/test_masking.py::test_offline_provider_no_network` |
 | R11 | `api/security.py` roles | `tests/test_api.py` role tests |
 | R12 | `store/audit.py` hash chain | `tests/test_audit.py::test_tamper_breaks_chain` |
@@ -88,5 +88,5 @@ end shows where.
 | R16 | `datagen/generator.py` 010 prefix | `tests/test_datagen.py::test_numbers_use_010_prefix` |
 | R17 | `config/limits.yaml` | `tests/test_datagen.py::test_limits_respected` |
 | R18 | `.github/workflows/ci.yml` gitleaks; injection suite | `tests/test_injection.py` |
-| R19 | Labels in UI; `docs/model_cards/` | Manual check in demo |
+| R19 | Provenance label on every panel (ledger fact, model estimate, drafted text, policy rule); `docs/model_cards.md` | Manual check in demo |
 | R20 | Public repo, commit history, README Disclosures | Commit history |

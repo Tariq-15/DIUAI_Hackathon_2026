@@ -29,6 +29,24 @@ Result: **11 errors out of 335** (macro-F1 0.96). All 11 are scam victims.
    error (FC-01005, 0.73) would recommend a rejection, which **needs a supervisor** (rule R6) and is never
    automatic.
 
+## Fairness
+
+`reports/metrics.json` → `fairness` slices the test cases by language, channel, age band, area and KYC level.
+The largest accuracy gap is by channel: app complaints 98.4%, phone complaints 94.6%. Phone complaints describe the
+transfer less exactly, so the matcher and the classifier have less to go on. Mitigation: on calls, the agent
+confirms the TrxID before deciding; the queue shows the channel on every row. Scam recall is lower for phone
+complaints (81.4%), limited-KYC customers (80.0%) and ages 25–34 (78.3%) than overall (87.6%). These groups are
+small (88–148 cases), so the gaps are noisy, but a pilot should track them first.
+
+## Ferot Guard
+
+- **False warnings fall unevenly.** USSD users get 0.78 false warnings per 100 ordinary transfers, app users 0.34.
+  We have not yet traced the cause. Both rates are low; a pilot should watch this slice first.
+- **Too clean to trust as is.** PR-AUC 0.997 reflects synthetic scam drop wallets with planted patterns. Real mule
+  wallets borrow history and look ordinary; expect lower recall.
+- **The typo check fires on its own.** Rahim's transfer has a scam risk of 20 (allow) but is warned because the
+  number is one keypad slip from his brother's. This is intended, and the evidence page says so.
+
 ## Other known limitations
 
 - **Synthetic data.** Patterns are planted by `datagen`; real data will be noisier. The scores show the method,
