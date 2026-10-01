@@ -30,7 +30,7 @@ rules:
     sop: [SOP-FR-04, SOP-FR-02, SOP-FR-03]
 
   - id: R-SCAM-01
-    when: {case_type: scam_victim, min_prob: 0.60}
+    when: {case_type: scam_victim, min_prob: 0.45}
     action: hold_and_fraud_review
     summary: "Likely scam: request a temporary hold (capped at the disputed amount), route to the fraud team, and send the receiving wallet to AML review."
     approval: agent
