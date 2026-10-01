@@ -188,7 +188,7 @@ disputed amount, supervisor approval for rejections, tamper-evident audit log, n
 
 As required by the rulebook (§4.4, §9.2):
 - **AI coding assistance:** this codebase was written with substantial help from Claude Code (Anthropic), working
-  with the team. Commits carry a `Co-Authored-By` line. The team reviewed the design and can explain every component.
+  with the team. The team reviewed the design and can explain every component.
 - **External API (optional, off by default):** Anthropic Claude API for complaint extraction and draft polishing.
 - **Open-source libraries:** FastAPI, Uvicorn, pandas, NumPy, PyArrow, LightGBM, scikit-learn, PyYAML, React, Vite,
   Tailwind CSS, Playwright (screenshots only, not shipped). Fonts: Anek Bangla and Hind Siliguri (Google Fonts, OFL).
