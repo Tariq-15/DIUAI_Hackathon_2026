@@ -48,10 +48,13 @@ def test_held_out_scam_variant_only_in_test_split(small_world):
 def test_double_recovery_has_return_flow(small_world):
     c = small_world.cases
     tx = small_world.transactions
-    row = c[c["case_type"] == "double_recovery"].iloc[0]
-    back = tx[(tx["sender"] == row["recipient"]) & (tx["receiver"] == row["claimant"])
-              & (tx["minute"] > row["transfer_minute"]) & (tx["minute"] < row["complaint_minute"])]
+    direct = c[(c["case_type"] == "double_recovery") & (c["variant"] == "")].iloc[0]
+    back = tx[(tx["sender"] == direct["recipient"]) & (tx["receiver"] == direct["claimant"])
+              & (tx["minute"] > direct["transfer_minute"]) & (tx["minute"] < direct["complaint_minute"])]
     assert len(back) >= 1
+    # in the accomplice variant the victim "returns" the money to someone else
+    acc = c[(c["case_type"] == "double_recovery") & (c["variant"] == "accomplice")]
+    assert len(acc) > 0
 
 
 def test_typo_is_one_slip_away():
