@@ -32,6 +32,8 @@ cases:
     technical_failure: 0.10
   label_noise: 0.05        # share of labels flipped so results are not unrealistically clean
   held_out_scam_variant: job_offer   # never seen in training; tests generalisation
+  new_payee_share: 0.20    # genuine typos on a first-time payee (no history to match against)
+  accomplice_share: 0.30   # double-recovery fraud where the "return" goes to an accomplice
 
 typos:                     # how a genuine wrong-send number is mistyped
   substitution: 0.60       # weighted toward neighbouring keypad keys
@@ -61,3 +63,6 @@ priority:
   expected_wait_hours: 2.0
   lambda_vulnerable: 400.0 # taka-equivalent weight for scam victims and USSD-only customers
   lambda_sla: 800.0        # taka-equivalent weight as the 10-working-day limit approaches
+
+recipient_history_predicts_behaviour: true  # an accidental recipient who habitually cashes out fast
+                                            # also cashes out a wrong-send fast (M5 learns from this)

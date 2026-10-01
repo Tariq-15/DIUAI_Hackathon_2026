@@ -228,11 +228,20 @@ class _Builder:
                 self.tx(minute + int(self.rng.integers(1440, 2880)), "payment", recipient,
                         str(self.rng.choice(self.merchants)), round(amount * self.rng.uniform(0.05, 0.3), -1))
 
-    def _light_background(self, wallet: str) -> None:
-        """Ordinary activity for an account that only appears as an accidental recipient."""
+    def _light_background(self, wallet: str, behaviour: str = "unaware") -> None:
+        """Ordinary activity for an account that only appears as an accidental recipient.
+
+        Assumption (documented in config/assumptions.yaml): people who habitually cash out soon after
+        money arrives also cash out a wrong-send quickly, so their history predicts their behaviour.
+        """
+        quick = {"fast_mover": (0.9, 5, 60), "opportunist": (0.7, 60, 480)}.get(behaviour, (0.15, 600, 4000))
         for _ in range(int(self.rng.poisson(6))):
-            self.tx(self.waking_minute(int(self.rng.integers(0, self.days))), "cash_in",
-                    str(self.rng.choice(self.agents)), wallet, self.amount(1500, 0.6, 50, 20000))
+            minute = self.waking_minute(int(self.rng.integers(0, self.days)))
+            amt = self.amount(1500, 0.6, 50, 20000)
+            self.tx(minute, "cash_in", str(self.rng.choice(self.agents)), wallet, amt)
+            if self.rng.random() < quick[0]:
+                self.tx(minute + int(self.rng.integers(quick[1], quick[2])), "cash_out", wallet,
+                        str(self.rng.choice(self.agents)), round(amt * self.rng.uniform(0.7, 1.0), -1))
         for _ in range(int(self.rng.poisson(5))):
             self.tx(self.waking_minute(int(self.rng.integers(0, self.days))), "payment", wallet,
                     str(self.rng.choice(self.merchants)), self.amount(400, 0.7, 10, 5000))
@@ -254,6 +263,10 @@ class _Builder:
                       wrong: str | None = None, amount: float | None = None, behaviour: str | None = None,
                       n_prior: int | None = None, delay: int | None = None, golden: str = "") -> None:
         sender = sender or str(self.rng.choice(self.customers))
+        variant = ""
+        if contact is None and not golden and self.rng.random() < self.a["cases"].get("new_payee_share", 0.2):
+            # paying someone for the first time (a shop, a new landlord) and mistyping their number
+            contact, n_prior, variant = str(self.rng.choice(self.customers)), 0, "new_payee"
         contact = contact or self._pick_contact(sender)
         mix = self.a["recipient_behaviour"]
         kinds = ["unaware", "opportunist", "fast_mover"]
@@ -266,7 +279,7 @@ class _Builder:
         if wrong not in self.wallets:
             self.add_wallet("customer", number=wrong, persona="day_laborer", behaviour=behaviour,
                             initial_balance=self.amount(800, 0.8, 0, 20000))
-            self._light_background(wrong)
+            self._light_background(wrong, behaviour)
         sw = self.wallets[sender]
         amount = amount or self.amount(self.a["personas"][sw["persona"]]["amount_median"] * 1.4)
         n_prior = n_prior if n_prior is not None else int(self.rng.integers(2, 13))
@@ -283,7 +296,8 @@ class _Builder:
         delay = delay if delay is not None else int(min(max(np.exp(self.rng.normal(math.log(25), 1.0)), 3), 4320))
         self._record_case(case_type="genuine_wrong_send", claimant=sender, recipient=wrong, amount=amount,
                           tag=tag, transfer_minute=minute, complaint_minute=minute + delay,
-                          intended_number=contact, behaviour=behaviour, golden=golden)
+                          intended_number=contact if variant != "new_payee" else "", behaviour=behaviour,
+                          golden=golden, variant=variant)
 
     def plant_scam(self, minute: int, ring: int, variant: str, victim: str | None = None,
                    amount: float | None = None, delay: int | None = None, mule: str | None = None,
@@ -316,17 +330,23 @@ class _Builder:
         tag = f"case{self.case_seq + 1}"
         self.tx(minute, "send_money", fraudster, victim, amount, protected=True, tag=tag)
         back = minute + int(self.rng.integers(10, 120))
-        self.tx(back, "send_money", victim, fraudster, amount, protected=True, tag="keep")
-        self.tx(back + int(self.rng.integers(10, 90)), "cash_out", fraudster, str(self.rng.choice(self.agents)),
+        variant = ""
+        receiver = fraudster
+        if self.rng.random() < self.a["cases"].get("accomplice_share", 0.3):
+            receiver = str(self.rng.choice([f for f in self.fraudsters if f != fraudster]))
+            variant = "accomplice"
+        self.tx(back, "send_money", victim, receiver, amount, protected=True, tag="keep")
+        self.tx(back + int(self.rng.integers(10, 90)), "cash_out", receiver, str(self.rng.choice(self.agents)),
                 round(amount * 0.95, -1), protected=True)
         self._record_case(case_type="double_recovery", claimant=fraudster, recipient=victim, amount=amount, tag=tag,
-                          transfer_minute=minute, complaint_minute=back + int(self.rng.integers(20, 600)))
+                          transfer_minute=minute, complaint_minute=back + int(self.rng.integers(20, 600)),
+                          variant=variant)
 
     def plant_false_claim(self, minute: int) -> None:
         sender = str(self.rng.choice(self.customers))
         contact = self._pick_contact(sender)
         amount = self.amount(self.a["personas"][self.wallets[sender]["persona"]]["amount_median"] * 1.5)
-        for k in range(int(self.rng.integers(3, 10))):
+        for k in range(int(self.rng.integers(1, 10))):
             self.tx(minute - int(self.rng.integers(3, 85)) * 1440 + k, "send_money", sender, contact,
                     round(amount * self.rng.uniform(0.5, 1.2), -1), protected=True)
         tag = f"case{self.case_seq + 1}"
@@ -370,7 +390,7 @@ class _Builder:
                                        persona="mule", initial_balance=0.0) for _ in range(size)]
             self.rings.append(members)
             self.ring_agents.append([str(x) for x in self.rng.choice(self.agents, size=2, replace=False)])
-        fraudsters = [self.add_wallet("fraudster", persona="fraudster", kyc_level="limited",
+        self.fraudsters = fraudsters = [self.add_wallet("fraudster", persona="fraudster", kyc_level="limited",
                                       opened_minute=-int(self.rng.integers(10, 200)) * 1440,
                                       initial_balance=self.amount(3000, 0.5, 500, 10000)) for _ in range(40)]
 
