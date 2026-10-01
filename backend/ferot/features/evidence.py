@@ -158,6 +158,7 @@ def build_evidence(ledger: Ledger, claimant: str, trx_id: str, complaint_minute:
         "log_amount": math.log1p(amount),
         "recoverable_share_now": round(recoverable / max(amount, 1.0), 3),
         "remaining_cashout_limit": remaining_limit,
+        "complaint_hour": complaint_minute % 1440 // 60,
     }
     for k in CUES:
         features[f"cue_{k}"] = int(extraction.cues.get(k, False))
