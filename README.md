@@ -2,6 +2,8 @@
 
 > AI Hackathon 2026 (AI DEV FEST, DIU CPC × upay) · Track 06: Operations & Service Intelligence
 > **Prototype. Synthetic data only. Not an official upay product, message or endorsement.**
+>
+> What's new: [CHANGELOG.md](CHANGELOG.md) (0.2.0 adds Ferot Guard, fairness metrics and the redesigned app).
 
 ## Project overview
 
