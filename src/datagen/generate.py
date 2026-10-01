@@ -122,19 +122,10 @@ def enforce_balances(
             sample_n  = min(n_benign_need, len(normal_txns))
             benign_sample = normal_txns.nlargest(sample_n, "amount_tk")
 
-            for _, row in benign_sample.iterrows():
-                tid = row["txn_id"]
-                # Update or add label row
-                mask = lbl_df["txn_id"] == tid
-                if mask.any():
-                    lbl_df.loc[mask, "is_benign_lookalike"] = 1
-                    lbl_df.loc[mask, "expected_band"]       = "ALLOW"
-                else:
-                    lbl_df = pd.concat([lbl_df, pd.DataFrame([dict(
-                        txn_id=tid, is_fraud=0, fraud_class=None, fraud_role=None,
-                        case_id=None, scenario_id=None, is_benign_lookalike=1,
-                        expected_band="ALLOW",
-                    )])], ignore_index=True)
+            benign_tids = set(benign_sample["txn_id"].tolist())
+            mask = lbl_df["txn_id"].isin(benign_tids)
+            lbl_df.loc[mask, "is_benign_lookalike"] = 1
+            lbl_df.loc[mask, "expected_band"]       = "ALLOW"
 
     print(f"   [OK] enforce_balances done in {time.time()-t0:.1f}s")
     return txn_df, lbl_df

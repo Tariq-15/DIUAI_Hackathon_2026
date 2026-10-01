@@ -464,48 +464,40 @@ def simulate_normal_life(
                 ))
 
             elif txn_type == "G2P_ALLOWANCE":
-                # G2P: one trusted source disburses to many recipients
-                # Pick a batch of up to 300 recipients and add them as separate rows
-                n_batch = min(int(rng.integers(50, 150)), len(active_cids))
-                g2p_src = str(rng.choice(g2p_sources))
-                recipients_g2p = rng.choice(active_cids, size=n_batch, replace=False)
-                for rid in recipients_g2p:
-                    rcp_prof  = profiles[str(rid)]
-                    rcp_kyc   = rcp_prof["kyc_level"]
-                    g2p_amt   = float(rng.choice([500, 1000, 1500, 2000, 2500]))
-                    h2        = _pick_hour(rng, prof["active_hour_weights"])
-                    s2        = _random_second(rng)
-                    ts2       = day.replace(hour=h2, minute=0, second=0) + timedelta(seconds=s2)
+                recipient_id  = sender_id
+                rcp_prof      = profiles[recipient_id]
+                rcp_kyc       = rcp_prof["kyc_level"]
+                g2p_amt       = float(rng.choice([500, 1000, 1500, 2000, 2500]))
+                g2p_src       = str(rng.choice(g2p_sources))
 
-                    bal_b = rcp_prof["balance"]
-                    rcp_prof["balance"] = min(
-                        rcp_prof["balance"] + g2p_amt,
-                        float(cfg.kyc_caps[str(rcp_kyc)].max_balance)
-                    )
-                    bal_a = rcp_prof["balance"]
+                bal_b = rcp_prof["balance"]
+                rcp_prof["balance"] = min(
+                    rcp_prof["balance"] + g2p_amt,
+                    float(cfg.kyc_caps[str(rcp_kyc)].max_balance)
+                )
+                bal_a = rcp_prof["balance"]
 
-                    day_txns.append(dict(
-                        txn_id=_make_txn_id(counter),
-                        timestamp=ts2,
-                        sender_id=g2p_src,
-                        recipient_id=str(rid),
-                        txn_type="G2P_ALLOWANCE",
-                        amount_tk=g2p_amt,
-                        fee_tk=0.0,
-                        sender_balance_before=None,
-                        sender_balance_after=None,
-                        recipient_balance_before=round(bal_b, 2),
-                        recipient_balance_after=round(bal_a, 2),
-                        channel="APP",
-                        agent_id=None,
-                        device_id=rcp_prof["device_id"],
-                        device_changed=0,
-                        location_changed=0,
-                        session_seconds=0,
-                        pin_attempts=0,
-                        counterparty_first_time=0,
-                    ))
-                # G2P batch done; continue drawing other transactions for this day
+                day_txns.append(dict(
+                    txn_id=_make_txn_id(counter),
+                    timestamp=ts,
+                    sender_id=g2p_src,
+                    recipient_id=recipient_id,
+                    txn_type="G2P_ALLOWANCE",
+                    amount_tk=g2p_amt,
+                    fee_tk=0.0,
+                    sender_balance_before=None,
+                    sender_balance_after=None,
+                    recipient_balance_before=round(bal_b, 2),
+                    recipient_balance_after=round(bal_a, 2),
+                    channel="APP",
+                    agent_id=None,
+                    device_id=rcp_prof["device_id"],
+                    device_changed=0,
+                    location_changed=0,
+                    session_seconds=0,
+                    pin_attempts=0,
+                    counterparty_first_time=0,
+                ))
 
 
         txn_rows.extend(day_txns)

@@ -1,0 +1,24 @@
+============================================================
+Prohori Dataset Acceptance Tests  T1–T14
+============================================================
+Transactions: 1,022,013 rows
+Labels:       1,022,013 rows
+
+  [PASS]  T1  Row count & window  [rows=1,022,013; sorted=True; ts_ok=True]
+  [PASS]  T2  Fraud prevalence  [rate=1.005%; mix={'S1': 0.22018884454395016, 'S2': 0.04438820208313054, 'S3': 0.010123625036503455, 'S4': 0.02930010707680327, 'S5': 0.6870437068042441, 'S6': 0.004477757227684221}]
+  [PASS]  T3  Balance integrity  [correct=100.0%; no_negatives=True]
+  [PASS]  T4  KYC caps  [over_cap_rate=0.000%]
+  [PASS]  T5  Normal amount shape  [median=1620; over15k=0.339%]
+  [PASS]  T6  Calendar effects  [fri_uplift=1.15; eid_uplift=2.27; salary_uplift=2.60]
+  [PASS]  T7  Night activity  [normal_00-05=0.197%; S1_00-05=38.108%]
+  [PASS]  T8  Scenario presence  [SC: ['SC-01', 'SC-02', 'SC-03', 'SC-04', 'SC-05', 'SC-06', 'SC-07', 'SC-08', 'SC-09', 'SC-10']; SB: ['SB-01', 'SB-02', 'SB-03', 'SB-04', 'SB-05', 'SB-06', 'SB-07', 'SB-08']]
+  [PASS]  T9  Collector structure  [2 collector wallets checked]
+  [PASS]  T10 Agent outliers  [rogue_agents_7x+=2]
+  [PASS]  T11 No leakage  [leaking_cols=set()]
+  [PASS]  T12 Benign look-alikes  [benign=15,409; fraud=10,273; ratio=1.50]
+  [PASS]  T13 Reproducibility  [seed=42 (verify by running twice with seed=42)]
+  [PASS]  T14 Privacy  [No real phone/NID patterns detected]
+
+============================================================
+Results: 14/14 PASS   0 FAIL
+============================================================

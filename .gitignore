@@ -1,8 +1,7 @@
-# Large generated datasets (>100MB / non-sample)
-data/*.csv
-data/*.parquet
-!data/sample/*.csv
-!data/sample/*.parquet
+# All data files ignored completely
+data/
+*.csv
+*.parquet
 
 # Model artifacts
 models/*.joblib
