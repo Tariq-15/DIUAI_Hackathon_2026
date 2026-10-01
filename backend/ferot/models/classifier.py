@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 
-from ferot.features.evidence import FEATURE_LABELS, FEATURES
+from ferot.features.evidence import FEATURE_LABELS, FEATURES, describe
 
 CLASSES = ["genuine_wrong_send", "scam_victim", "double_recovery", "false_claim", "technical_failure"]
 CLASS_LABELS = {
@@ -52,7 +52,8 @@ class CaseClassifier:
                 break
             name = self.features[k]
             reasons.append({"feature": name, "label": FEATURE_LABELS.get(name, name),
-                            "value": _fmt(row.get(name)), "weight": round(float(values[k]), 3)})
+                            "value": _fmt(row.get(name)), "text": describe(name, row.get(name)),
+                            "weight": round(float(values[k]), 3)})
         probs = {c: round(float(p), 4) for c, p in zip(CLASSES, proba)}
         return probs, reasons
 

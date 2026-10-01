@@ -60,6 +60,54 @@ for _k in CUES:
     FEATURE_LABELS[f"cue_{_k}"] = f"complaint mentions '{_k.replace('_', '/')}'"
 
 
+def _minutes(m: float) -> str:
+    m = int(round(m))
+    if m < 60:
+        return f"{m} min"
+    h, r = divmod(m, 60)
+    return f"{h} h {r} min" if h < 48 else f"{h // 24} days"
+
+
+def describe(name: str, v) -> str:
+    """One plain sentence for a model input, used in reasons shown to staff."""
+    v = 0.0 if v is None else float(v)
+    texts = {
+        "n_prior_to_recipient": lambda: f"The customer had sent money to this number {int(v)} times before.",
+        "first_ever": lambda: "This was the customer's first transfer to this number." if v else
+        "The customer had sent money to this number before.",
+        "intended_found": lambda: "A frequent contact differs from this number by one keypad slip." if v else
+        "No frequent contact looks like a keypad slip of this number.",
+        "intended_score": lambda: f"The typo match strength is {v:.2f}.",
+        "intended_distance": lambda: f"The closest contact is {v:.1f} keypad steps away.",
+        "log_minutes_to_complaint": lambda: f"The complaint came {_minutes(math.expm1(v))} after the transfer.",
+        "transfer_hour": lambda: f"The transfer was made at {int(v):02d}:00.",
+        "recipient_age_days": lambda: f"The receiving wallet is {int(v)} days old.",
+        "recipient_distinct_senders_7d": lambda: f"{int(v)} unrelated people sent money to the receiving wallet in 7 days.",
+        "recipient_new_sender_share_7d": lambda: f"{v * 100:.0f}% of its senders in 7 days were first-time senders.",
+        "recipient_outflow_share_since": lambda: f"{v * 100:.0f}% of the money moved out before the complaint.",
+        "minutes_to_first_outflow": lambda: "The money has not moved yet." if v >= 99999 else
+        f"The money started moving {_minutes(v)} after the transfer.",
+        "recipient_passthrough_30d": lambda: f"The receiving wallet cashes out {v:.1f}× what it receives (30 days).",
+        "recipient_inbound_30d": lambda: f"The receiving wallet got {int(v)} incoming transfers in 30 days.",
+        "prior_complainants_on_recipient": lambda: f"{int(v)} other customers complained about the receiving wallet.",
+        "return_flow": lambda: "The recipient already sent the same amount back." if v else "No money has come back.",
+        "claimant_prior_claims": lambda: f"The customer has made {int(v)} earlier claims.",
+        "claimant_age_days": lambda: f"The customer's account is {int(v)} days old.",
+        "claimant_kyc_full": lambda: "The customer has full KYC." if v else "The customer has basic KYC.",
+        "claimant_ussd": lambda: "The customer uses USSD." if v else "The customer uses the app.",
+        "tech_failure": lambda: "The system log shows a failed credit." if v else "The system log shows a clean credit.",
+        "log_amount": lambda: f"The amount is Tk {math.expm1(v):,.0f}.",
+        "recoverable_share_now": lambda: f"{v * 100:.0f}% of the money is still in the receiving wallet.",
+        "remaining_cashout_limit": lambda: f"The receiving wallet can still cash out Tk {v:,.0f} today.",
+    }
+    if name in texts:
+        return texts[name]()
+    if name.startswith("cue_"):
+        label = FEATURE_LABELS.get(name, name)
+        return ("The " + label + ".") if v else ("The complaint does not mention " + label.split("mentions ")[-1] + ".")
+    return f"{FEATURE_LABELS.get(name, name)}: {v:g}."
+
+
 class CaseHistory:
     """Earlier complaints, used for 'how many others complained about this wallet' features."""
 
