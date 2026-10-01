@@ -142,7 +142,7 @@ Rebuild pieces individually: `python -m ferot.cli data` · `train` · `simulate`
 **Live demo:** _to be added after deployment_ (Render free tier; first load after idle can take ~1 minute).
 
 Deploy your own: on [Render](https://render.com) choose **New → Blueprint**, select this repository, and Render
-reads [`render.yaml`](render.yaml). The free tier has 512 MB RAM; the image (2,500 customers) uses about 390 MB.
+reads [`render.yaml`](render.yaml). The free tier has 512 MB RAM; the image (2,500 customers) uses about 410 MB.
 Any Docker host works: `docker build -t ferot . && docker run -p 8000:8000 -e PORT=8000 ferot`.
 
 ## Testing instructions
