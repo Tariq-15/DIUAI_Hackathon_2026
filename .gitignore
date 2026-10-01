@@ -1,0 +1,30 @@
+# Large generated datasets (>100MB / non-sample)
+data/*.csv
+data/*.parquet
+!data/sample/*.csv
+!data/sample/*.parquet
+
+# Model artifacts
+models/*.joblib
+models/*.pkl
+models/*.onnx
+
+# Python / Cache / Environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.env
+*.log
