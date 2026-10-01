@@ -194,8 +194,8 @@ export function TakaDrain({ amount, past, curve, trail, transferTs, complaintTs,
             </pattern>
           </defs>
           {/* region captions */}
-          <text x={L} y={14} fontSize="12" fill="#a9bdb6">Before the complaint</text>
-          <text x={xNow + 10} y={14} fontSize="12" fill="#a9bdb6">If no one acts (estimate)</text>
+          <text x={L} y={14} fontSize="12" fill="#a9bdb6">{narrow ? 'Before' : 'Before the complaint'}</text>
+          <text x={xNow + 10} y={14} fontSize="12" fill="#a9bdb6">{narrow ? 'If no one acts' : 'If no one acts (estimate)'}</text>
           {/* money gone and money still there, ledger facts */}
           <path d={`${line} V${y(top)} H${xp(0)} Z`} fill={ROSE} fillOpacity="0.28" />
           <path d={`${line} V${base} H${xp(0)} Z`} fill={MINT} fillOpacity="0.3" />
@@ -235,7 +235,7 @@ export function TakaDrain({ amount, past, curve, trail, transferTs, complaintTs,
           <text x={xp(0)} y={base + 18} fontSize="12" fill="#a9bdb6">Sent {clock(transferTs)}</text>
           <text x={xNow} y={base + 18} fontSize="12" textAnchor="middle" fill="#f4f7f5" fontWeight="600">Complaint {clock(complaintTs)}</text>
           <text x={xNow} y={base + 34} fontSize="11.5" textAnchor="middle" fill="#a9bdb6">{delay < 60 ? `${Math.round(delay)} min later` : `${Math.floor(delay / 60)} h ${Math.round(delay % 60)} min later`}</text>
-          {curve.map((c, i) => i > 0 && (!narrow || i % 2 === 1 || i === curve.length - 1) && (
+          {curve.map((c, i) => i > 0 && (!narrow || i === 3 || i === curve.length - 1) && (
             <g key={c.minutes}>
               <line x1={xf(i)} x2={xf(i)} y1={base} y2={base + 5} stroke="#2f5249" />
               <text x={xf(i)} y={base + 18} fontSize="12" textAnchor={i === curve.length - 1 ? 'end' : 'middle'} fill="#a9bdb6">{HORIZON[c.minutes] ?? `+${c.minutes} min`}</text>
