@@ -12,6 +12,8 @@ import io
 from datetime import datetime, timedelta
 from functools import lru_cache
 
+import numpy as np
+
 from ferot import config
 from ferot.features.evidence import CaseHistory, build_evidence
 from ferot.features.ledger import Ledger, load_ledger
@@ -101,13 +103,28 @@ class FerotService:
             "facts": ev.facts, "trail": ev.trail, "intended": ev.intended,
             "prediction": {"probs": probs, "case_type": top, "label": CLASS_LABELS[top],
                            "confidence": probs[top], "reasons": reasons},
-            "recoverability": {"now": ev.recoverable_now, "curve": curve},
+            "recoverability": {"now": ev.recoverable_now, "curve": curve,
+                               "past": self._drain(ev.facts, complaint_minute)},
             "priority": prio, "recommendation": rec,
         })
         base["drafts"] = generate_drafts(rec["drafts"], case_id, ev.facts, sla["deadline"],
                                          self._internal_note(base, rec, reasons))
         base["report"] = self._case_report(base)
         return base
+
+    def _drain(self, facts: dict, until: int) -> list[dict]:
+        """Taka still holdable in the receiving wallet, from the transfer to the complaint (ledger facts)."""
+        r, t0, amount = facts.get("recipient"), facts.get("transfer_minute"), float(facts.get("amount", 0))
+        if not r or t0 is None or facts.get("status") == "failed":
+            return []
+        t0 = int(t0)
+        idx = np.concatenate([self.ledger.outgoing(r, t0, until), self.ledger.incoming(r, t0 + 1, until)])
+        mins = sorted({t0, int(until), *(int(m) for m in self.ledger.minute[idx])})
+        if len(mins) > 80:
+            step = len(mins) / 78
+            mins = sorted({mins[0], mins[-1], *(mins[int(i * step)] for i in range(78))})
+        return [{"minutes": m - t0, "holdable": round(min(amount, max(self.ledger.balance_at(r, m), 0.0)), 2)}
+                for m in mins]
 
     def _case_report(self, case: dict) -> dict:
         """What happened, why it is risky, what to do next, and the limits. Built only from the case file."""
@@ -132,8 +149,10 @@ class FerotService:
             why.append(f"{f['other_complainants_on_recipient']} other customers have complained about the receiving wallet.")
         if f.get("return_flow"):
             why.append("The receiving wallet already sent the same amount back.")
+        wait_h = config.assumptions()["priority"]["expected_wait_hours"]
         why.append(f"Tk {f.get('recoverable_now', 0):,.0f} is still in the receiving wallet; about "
-                   f"Tk {case['priority']['lost_by_waiting']:,.0f} of it is likely to leave within a day.")
+                   f"Tk {case['priority']['lost_by_waiting']:,.0f} of it is likely to leave if the case waits "
+                   f"{wait_h:g} hours.")
         who = {"agent": "an agent", "supervisor": "a supervisor", "compliance": "compliance"}.get(rec["approval"], rec["approval"])
         nxt = f"{rec['summary']} Needs approval from {who} (rule {rec['rule_id']})."
         if rec["hold_amount"]:
