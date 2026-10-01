@@ -21,12 +21,15 @@ COPY reports reports
 COPY backend backend
 COPY --from=web /app/web/dist web/dist
 
-ENV FEROT_ROOT=/app \
+# Size of the synthetic world: 2500 customers fits a 512 MB host (~390 MB); 4000 needs ~450 MB.
+ARG FEROT_CUSTOMERS=2500
+ENV FEROT_CUSTOMERS=${FEROT_CUSTOMERS} \
+    FEROT_ROOT=/app \
     FEROT_DB_PATH=/app/backend/ferot.db \
     FEROT_LLM_PROVIDER=offline \
     PYTHONUNBUFFERED=1
 WORKDIR /app/backend
-# Build the synthetic world and train the models at image build time so the app starts fast.
-RUN python -m ferot.cli data && python -m ferot.cli train
+# Build the synthetic world, train the models and run the simulation at image build time.
+RUN python -m ferot.cli build
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn ferot.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

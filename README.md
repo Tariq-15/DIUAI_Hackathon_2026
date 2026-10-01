@@ -49,6 +49,8 @@ complaints into mule-wallet intelligence for the AML team, and meet Bangladesh B
 | Recoverability Brier at 6 h (M5, lower is better) | **0.072** | "balance now" 0.099 |
 | Money still holdable when an agent acts (simulation) | **+4.2%** vs first-come-first-served (95% CI 3.8–4.6%) | largest-first +4.5% · oracle ceiling +6.7% |
 
+The numbers above come from the default 4,000-customer build. The Docker image builds a 2,500-customer world so it fits a 512 MB host; its results are similar (macro-F1 0.97) and the hosted analyst page shows that build's own numbers.
+
 Honest notes: the data is synthetic, so these numbers show the method works on planted patterns, not real-world
 accuracy. Ferot's ordering matches the strong "largest amount first" heuristic; its extra value is the case file,
 the explanation and the compliance controls. See [docs/error_analysis.md](docs/error_analysis.md). Full numbers:
@@ -127,8 +129,8 @@ Rebuild pieces individually: `python -m ferot.cli data` · `train` · `simulate`
 **Live demo:** _to be added after deployment_ (Render free tier; first load after idle can take ~1 minute).
 
 Deploy your own: on [Render](https://render.com) choose **New → Blueprint**, select this repository, and Render
-reads [`render.yaml`](render.yaml). The free tier has 512 MB RAM; Ferot uses about 400 MB. If memory is tight,
-set `FEROT_CUSTOMERS=3000` or use a host with more memory (e.g. a Hugging Face Docker Space).
+reads [`render.yaml`](render.yaml). The free tier has 512 MB RAM; the image (2,500 customers) uses about 390 MB.
+Any Docker host works: `docker build -t ferot . && docker run -p 8000:8000 -e PORT=8000 ferot`.
 
 ## Testing instructions
 

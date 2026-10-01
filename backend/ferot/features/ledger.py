@@ -37,6 +37,9 @@ class Ledger:
         ev = pd.concat([s, r]).dropna(subset=["b"]).sort_values(["w", "i"], kind="stable")
         self.timeline = {w: (g["m"].to_numpy(), g["b"].to_numpy()) for w, g in ev.groupby("w")}
         del s, r, ev
+        # keep only the columns lookups need; balances now live in the per-wallet timelines
+        self.tx = tx = tx[["trx_id", "minute", "type", "sender", "receiver", "amount", "status"]]
+        world.transactions = tx
         self.initial = dict(zip(world.wallets["wallet_no"], world.wallets["initial_balance"]))
         events = world.system_events
         self.failed_trx = set(events.loc[events["event"] == "credit_fail", "trx_id"].dropna())
