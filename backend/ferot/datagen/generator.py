@@ -277,7 +277,7 @@ class _Builder:
         tag = f"case{self.case_seq + 1}"
         self.tx(minute, "send_money", sender, wrong, amount, protected=True, tag=tag, channel=sw["channel"])
         if golden == "rahim":
-            self.tx(minute + 35, "payment", wrong, str(self.rng.choice(self.merchants)), 800.0, protected=True)
+            self.tx(minute + 15, "payment", wrong, str(self.rng.choice(self.merchants)), 800.0, protected=True)
         else:
             self._recipient_behaviour(wrong, minute, amount, behaviour)
         delay = delay if delay is not None else int(min(max(np.exp(self.rng.normal(math.log(25), 1.0)), 3), 4320))
