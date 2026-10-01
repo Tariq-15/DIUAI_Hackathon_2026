@@ -1,0 +1,15 @@
+# Render blueprint: New > Blueprint > pick this repo. One Docker web service serves app + API.
+services:
+  - type: web
+    name: ferot
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: FEROT_LLM_PROVIDER
+        value: offline          # set to "anthropic" and add the key below to enable the LLM path
+      - key: ANTHROPIC_API_KEY
+        sync: false             # entered in the Render dashboard, never committed (R18)
+      - key: FEROT_CORS_ORIGINS
+        value: ""
