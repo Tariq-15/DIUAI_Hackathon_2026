@@ -112,3 +112,11 @@ def test_unknown_role_is_rejected(client):
 def test_dispute_report_csv(client):
     r = client.get("/api/v1/insights/dispute-report.csv", headers=SUPERVISOR)
     assert r.status_code == 200 and r.text.startswith("month,disputes")
+
+
+def test_unmatched_complaint_asks_for_more_information(client, rahim):
+    """No transfer found in the last 7 days: the case is saved and asks the customer for details."""
+    r = client.post("/api/v1/complaints", json=complaint(rahim, as_of_minute=rahim["now_minute"] - 30 * 1440))
+    assert r.status_code == 201
+    case = client.get(f"/api/v1/cases/{r.json()['case_id']}", headers=AGENT).json()
+    assert case["prediction"] is None and case["recommendation"]["rule_id"] == "R-LOW-01"

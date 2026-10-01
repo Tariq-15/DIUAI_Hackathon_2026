@@ -66,7 +66,7 @@ class CaseStore:
                 "status, case_type, priority, sla_deadline, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (case["case_id"], case["created_at"], case["complaint_minute"], case["claimant"],
                  case["facts"].get("recipient") if case.get("facts") else None, case["channel"], case["status"],
-                 case.get("prediction", {}).get("case_type"), case.get("priority", {}).get("score"),
+                 (case.get("prediction") or {}).get("case_type"), (case.get("priority") or {}).get("score"),
                  case.get("sla", {}).get("deadline"), json.dumps(case, ensure_ascii=False, default=str)))
             self.conn.commit()
 

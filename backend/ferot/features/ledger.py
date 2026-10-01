@@ -18,6 +18,7 @@ class Ledger:
     def __init__(self, world: World):
         self.world = world
         tx = world.transactions.reset_index(drop=True)
+        world.transactions = tx  # keep a single copy of the ledger in memory
         self.tx = tx
         self.start = world.start
         self.wallets = world.wallets.set_index("wallet_no")
@@ -35,6 +36,7 @@ class Ledger:
         r = pd.DataFrame({"w": tx["receiver"], "m": tx["minute"], "b": tx["receiver_balance_after"], "i": tx.index})
         ev = pd.concat([s, r]).dropna(subset=["b"]).sort_values(["w", "i"], kind="stable")
         self.timeline = {w: (g["m"].to_numpy(), g["b"].to_numpy()) for w, g in ev.groupby("w")}
+        del s, r, ev
         self.initial = dict(zip(world.wallets["wallet_no"], world.wallets["initial_balance"]))
         events = world.system_events
         self.failed_trx = set(events.loc[events["event"] == "credit_fail", "trx_id"].dropna())
