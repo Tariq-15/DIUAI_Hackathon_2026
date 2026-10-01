@@ -1,0 +1,65 @@
+# Business rules, owned by upay operations and compliance, evaluated top to bottom.
+# The first matching rule wins. Models only provide inputs; these rules choose the recommendation.
+# Every recommendation still needs a named human's approval (R6). Holds never exceed the disputed
+# amount (R14). Nothing here moves money: a hold is a request to an authorised officer (MFS Regs §12.3).
+version: "2026-10-01"
+rules:
+  - id: R-AGENT-01
+    when: {involves_agent: true}
+    action: route_distributor
+    summary: "Agent cash-out dispute: route to the distributor first, upay second (MFS Regulations §17.5)."
+    approval: agent
+    drafts: [customer_agent_route, internal_note]
+
+  - id: R-TECH-01
+    when: {case_type: technical_failure, min_prob: 0.60}
+    action: check_auto_reversal
+    summary: "Technical failure: check for an automatic reversal and route to technical operations."
+    approval: agent
+    drafts: [customer_technical, internal_note]
+
+  - id: R-DBL-01
+    when: {case_type: double_recovery, min_prob: 0.70}
+    action: reject_and_flag_claimant
+    summary: "The recipient already returned this amount to the claimant. Reject the claim and send the claimant to AML review."
+    approval: supervisor
+    aml_flag: claimant
+    drafts: [customer_reject_double, internal_note]
+
+  - id: R-SCAM-01
+    when: {case_type: scam_victim, min_prob: 0.60}
+    action: hold_and_fraud_review
+    summary: "Likely scam: request a temporary hold (capped at the disputed amount), route to the fraud team, and send the receiving wallet to AML review."
+    approval: agent
+    hold: true
+    aml_flag: recipient
+    drafts: [customer_scam, recipient_neutral, internal_note]
+
+  - id: R-GEN-01
+    when: {case_type: genuine_wrong_send, min_prob: 0.80, recoverable_gt: 0}
+    action: hold_and_request_consent
+    summary: "Likely a genuine typo with money still in the wallet: request a temporary hold (capped) and ask the recipient for consent to return it."
+    approval: agent
+    hold: true
+    drafts: [customer_genuine, recipient_consent, internal_note]
+
+  - id: R-GEN-02
+    when: {case_type: genuine_wrong_send, min_prob: 0.80}
+    action: request_consent_only
+    summary: "Likely a genuine typo but the money has left the wallet: ask the recipient for consent and explain the legal route (police GD)."
+    approval: agent
+    drafts: [customer_genuine_no_balance, recipient_consent, internal_note]
+
+  - id: R-FALSE-01
+    when: {case_type: false_claim, min_prob: 0.70}
+    action: reject_with_explanation
+    summary: "The ledger contradicts a wrong-send (repeated earlier payments to this number). Reject with an explanation and offer the merchant-dispute path."
+    approval: supervisor
+    drafts: [customer_reject_false, internal_note]
+
+  - id: R-LOW-01
+    when: {}
+    action: request_more_info
+    summary: "Not enough confidence for a recommendation: ask the customer for the missing details."
+    approval: agent
+    drafts: [customer_more_info, internal_note]

@@ -1,0 +1,63 @@
+# Every synthetic-data and modelling assumption lives here with a one-line reason.
+# replace_with_upay_data: true means a real pilot must replace the value with upay's own figure.
+
+generator:
+  seed: 42
+  customers: 4000          # scaled down from 20,000 so the demo builds in under a minute
+  agents: 160
+  merchants: 120
+  days: 90
+  start_date: "2026-06-01" # synthetic window: 2026-06-01 .. 2026-08-29
+  phone_prefix: "010"      # R16: 010 is outside Bangladesh's active mobile prefixes (013-019)
+  contacts_per_customer: [3, 10]
+  replace_with_upay_data: true
+
+personas:                  # share of customers, mean send-money per week, typical amount (BDT)
+  salaried:            {share: 0.30, sends_per_week: 2.0, amount_median: 2500}
+  day_laborer:         {share: 0.20, sends_per_week: 1.2, amount_median: 900}
+  student:             {share: 0.15, sends_per_week: 1.5, amount_median: 700}
+  remittance_receiver: {share: 0.15, sends_per_week: 1.0, amount_median: 4000}
+  small_merchant:      {share: 0.20, sends_per_week: 3.0, amount_median: 3000}
+
+languages: {bn: 0.40, banglish: 0.40, en: 0.20}
+ussd_share: 0.25           # customers who mostly use USSD (*268#)
+
+cases:
+  total: 1600
+  mix:                     # training mix, not real prevalence
+    genuine_wrong_send: 0.40
+    scam_victim: 0.25
+    false_claim: 0.15
+    double_recovery: 0.10
+    technical_failure: 0.10
+  label_noise: 0.05        # share of labels flipped so results are not unrealistically clean
+  held_out_scam_variant: job_offer   # never seen in training; tests generalisation
+
+typos:                     # how a genuine wrong-send number is mistyped
+  substitution: 0.60       # weighted toward neighbouring keypad keys
+  transposition: 0.30
+  double_substitution: 0.10
+
+recipient_behaviour:       # what an accidental recipient does with the money
+  unaware: 0.50            # balance stays until routine spending
+  opportunist: 0.35        # cashes out within hours
+  fast_mover: 0.15         # cashes out within minutes
+  replace_with_upay_data: true
+
+mule_rings:
+  count: 25
+  size: [3, 6]
+  account_age_days_max: 30
+
+splits:                    # by time; every feature is computed as of the complaint
+  train_days: [0, 60]
+  valid_days: [60, 75]
+  test_days: [75, 90]
+
+retention_years: 6         # MFS Regulations 2022 §18.1 (R5)
+sla_working_days: 10       # MFS Regulations 2022 §17.3 (R2)
+
+priority:
+  expected_wait_hours: 2.0
+  lambda_vulnerable: 400.0 # taka-equivalent weight for scam victims and USSD-only customers
+  lambda_sla: 800.0        # taka-equivalent weight as the 10-working-day limit approaches

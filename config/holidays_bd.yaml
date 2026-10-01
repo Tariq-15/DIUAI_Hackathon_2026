@@ -1,0 +1,15 @@
+# Bangladesh public holidays used by the 10-working-day dispute timer (MFS Regulations §17.3).
+# Weekly holidays: Friday and Saturday.
+#
+# Only fixed-date national holidays are listed. Lunar-calendar holidays (Eid-ul-Fitr, Eid-ul-Adha,
+# Ashura, Eid-e-Miladunnabi, Shab-e-Barat, Durga Puja, Buddha Purnima, Janmashtami) move every year:
+# add them from the government's official holiday notification for each year before production use.
+weekend_days: [Friday, Saturday]
+fixed_dates:            # MM-DD, every year
+  - "02-21"             # Shaheed Dibosh and International Mother Language Day
+  - "03-26"             # Independence Day
+  - "04-14"             # Pohela Boishakh (Bengali New Year)
+  - "05-01"             # May Day
+  - "12-16"             # Victory Day
+  - "12-25"             # Christmas Day
+extra_dates: []         # YYYY-MM-DD, add the lunar holidays here from the official notification

@@ -1,0 +1,21 @@
+# upay published limits and fees, read from upay's FAQ and Limits page on 2026-10-01 (rule R17).
+# The two pages disagree; Ferot uses the stricter value and keeps the other for reference.
+send_money:
+  per_txn_min: 10
+  per_txn_max: 25000      # FAQ 25,000; Limits page 25,000 (one table says 50,000)
+  daily_max: 25000        # FAQ 25,000; Limits page 50,000
+  monthly_max: 200000     # FAQ 200,000; Limits page 300,000
+cash_out_agent:
+  per_txn_min: 50
+  per_txn_max: 25000      # FAQ 25,000; Limits page 30,000
+  daily_max: 25000        # FAQ 25,000; Limits page 30,000
+max_balance: 300000       # FAQ 300,000; Limits page 500,000
+fees:
+  send_money: 0.0         # "Send money charge will be BDT 0 from App and *268#"
+  cash_out_agent:         # VAT inclusive, by source wallet
+    primary: 0.014
+    remittance: 0.010
+    salary: 0.009
+    disbursement: 0.007
+helpline: "16268"
+ussd: "*268#"
