@@ -73,7 +73,7 @@ end shows where.
 | R1 | `models/drafts.py` banned-phrase filter | `tests/test_drafts.py::test_no_refund_promises` |
 | R2 | `policy/sla.py`, `models/priority.py` | `tests/test_sla.py` |
 | R3 | `api/main.py` complaint channels | `tests/test_api.py::test_all_channels` |
-| R4 | Customer confirmation screen | Manual check in demo |
+| R4 | Customer confirmation screen (`web/src/pages/Customer.tsx`) | Manual check in demo |
 | R5 | `assumptions.yaml` retention; export endpoint | `tests/test_api.py::test_export_requires_compliance` |
 | R6 | `api/main.py` decision endpoint | `tests/test_api.py::test_rejection_needs_supervisor` |
 | R7 | `models/drafts.py` tipping-off filter | `tests/test_drafts.py::test_no_tipping_off` |
