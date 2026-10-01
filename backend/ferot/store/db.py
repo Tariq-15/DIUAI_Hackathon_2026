@@ -37,6 +37,17 @@ CREATE TABLE IF NOT EXISTS audit (
     prev_hash TEXT NOT NULL,
     hash TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS guard_checks (
+    check_id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    amount REAL NOT NULL,
+    risk INTEGER NOT NULL,
+    band TEXT NOT NULL,
+    decision TEXT,
+    payload TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS aml_queue (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_id TEXT NOT NULL,
@@ -100,7 +111,30 @@ class CaseStore:
         rows = self.conn.execute("SELECT id, case_id, wallet, role, created_at FROM aml_queue ORDER BY id").fetchall()
         return [dict(zip(["id", "case_id", "wallet", "role", "created_at"], r)) for r in rows]
 
+    def save_check(self, check: dict) -> None:
+        with _lock:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO guard_checks (check_id, created_at, sender, recipient, amount, risk, band, "
+                "decision, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (check["check_id"], check["created_at"], check["sender"], check["recipient"], check["amount"],
+                 check["risk"], check["band"], check.get("decision"),
+                 json.dumps(check, ensure_ascii=False, default=str)))
+            self.conn.commit()
+
+    def get_check(self, check_id: str) -> dict | None:
+        row = self.conn.execute("SELECT payload FROM guard_checks WHERE check_id = ?", (check_id,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def checks(self, bands: tuple[str, ...] = ("warn", "review")) -> list[dict]:
+        marks = ",".join("?" * len(bands))
+        q = f"SELECT payload FROM guard_checks WHERE band IN ({marks}) ORDER BY check_id DESC LIMIT 100"
+        return [json.loads(r[0]) for r in self.conn.execute(q, bands)]
+
+    def count_checks(self) -> int:
+        return int(self.conn.execute("SELECT COUNT(*) FROM guard_checks").fetchone()[0])
+
     def reset(self) -> None:
         with _lock:
-            self.conn.executescript("DELETE FROM cases; DELETE FROM audit; DELETE FROM aml_queue;")
+            self.conn.executescript(
+                "DELETE FROM cases; DELETE FROM audit; DELETE FROM aml_queue; DELETE FROM guard_checks;")
             self.conn.commit()

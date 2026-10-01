@@ -45,6 +45,17 @@ class ComplaintIn(BaseModel):
     as_of_minute: int | None = Field(default=None, description="Demo clock (minutes since the synthetic start)")
 
 
+class GuardIn(BaseModel):
+    sender: str = Field(pattern=r"^01\d{9}$")
+    recipient: str = Field(pattern=r"^01\d{9}$")
+    amount: float = Field(gt=0, le=25000, description="upay's Send Money limit is Tk 25,000 per transfer")
+    as_of_minute: int | None = None
+
+
+class GuardDecisionIn(BaseModel):
+    decision: str = Field(pattern=r"^(cancelled|sent_anyway|changed_number)$")
+
+
 class DecisionIn(BaseModel):
     decision: str = Field(pattern=r"^(approve|edit|override)$")
     reason: str = ""
@@ -106,6 +117,39 @@ def contest(case_id: str, body: ContestIn):
     except KeyError:
         raise HTTPException(404, "case not found")
     return svc().customer_status(case_id)
+
+
+@app.post(f"{API}/guard/check")
+def guard_check_endpoint(body: GuardIn):
+    """Score a transfer before it is sent: allow, warn or review. The customer always decides."""
+    s = svc()
+    minute = body.as_of_minute if body.as_of_minute is not None else s.demo_now()
+    return s.guard(body.sender, body.recipient, body.amount, minute)
+
+
+@app.post(f"{API}/guard/{{check_id}}/decision")
+def guard_decision(check_id: str, body: GuardDecisionIn):
+    try:
+        return svc().guard_decision(check_id, body.decision)
+    except KeyError:
+        raise HTTPException(404, "check not found")
+
+
+@app.get(f"{API}/guard/alerts")
+def guard_alerts(caller: Caller = Depends(staff)):
+    """Warned and reviewed sends with the customer's choice. Numbers are masked (R9)."""
+    return [{"check_id": c["check_id"], "created_at": c["created_at"], "sender_last4": c["sender"][-4:],
+             "recipient_last4": c["recipient"][-4:], "amount": c["amount"], "risk": c["risk"], "band": c["band"],
+             "reasons": [r["en"] for r in c["reasons"]], "decision": c.get("decision")}
+            for c in svc().store.checks()]
+
+
+@app.get(f"{API}/cases/{{case_id}}/network")
+def case_network(case_id: str, caller: Caller = Depends(staff)):
+    try:
+        return svc().network(case_id)
+    except KeyError:
+        raise HTTPException(404, "case not found")
 
 
 @app.get(f"{API}/demo/customers")
