@@ -50,7 +50,7 @@ end shows where.
 
 | Clause | Requirement | Where in the code |
 | --- | --- | --- |
-| §17.2 | Prompt complaint handling, easy to find | `web/src/pages/customer/*` — "How to report a problem" |
+| §17.2 | Prompt complaint handling, easy to find | `web/src/pages/Customer.tsx` — "How to report a problem" step |
 | §17.3 | 24-hour intake by phone, SMS, IVR, mail | `POST /api/v1/complaints` with `channel` = app / call / sms / email |
 | §17.3 | Resolve within 10 working days | `backend/ferot/policy/sla.py` (Sun–Thu working days, Fri–Sat weekend, holidays from config) |
 | §17.3 | Log and track every dispute | `backend/ferot/store/audit.py` (hash-chained log) + case status history |
@@ -58,7 +58,7 @@ end shows where.
 | §17.5 | Agent disputes: distributor first | `config/policy_rules.yaml` rule `R-AGENT-01` |
 | §17.6 | Explain roles, responsibilities, risks, liabilities | Intake notice in the customer app |
 | §18.1 | Records kept ≥ 6 years | `config/assumptions.yaml` `retention_years: 6`; no delete endpoint |
-| §18.2 | Copies of records on request | `GET /api/v1/cases/{id}/export` (compliance role only) |
+| §18.2 | Copies of records on request | `POST /api/v1/cases/{id}/export` (compliance role only) |
 | §12.1–12.2 | Confidentiality, integrity, authorization, non-repudiation | Role checks in `api/security.py`; audit hash chain; named approver |
 | §12.3 | Transactions authenticated by the account holder | Ferot never moves money; it raises requests for an authorized officer |
 | §11 | AML/CFT (BFIU) | Mule flags → AML queue; `drafts.py` blocks tipping-off phrases |
