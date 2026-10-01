@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
 
-HORIZONS_MIN = [60, 360, 1440]
+HORIZONS_MIN = [60, 360, 1440, 2880, 4320]
 REC_FEATURES = [
     "recoverable_share_now", "recipient_outflow_share_since", "minutes_to_first_outflow",
     "recipient_passthrough_30d", "recipient_inbound_30d", "recipient_distinct_senders_7d",

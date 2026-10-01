@@ -1,0 +1,76 @@
+{
+  "summary": {
+    "fcfs": {
+      "recovered_mean": 457238.0,
+      "median_minutes_to_action": 857.0,
+      "p90_minutes_to_action": 3125.0
+    },
+    "largest": {
+      "recovered_mean": 477719.0,
+      "median_minutes_to_action": 709.0,
+      "p90_minutes_to_action": 3703.0,
+      "gain_vs_fcfs": 20481.0,
+      "gain_vs_fcfs_ci95": [
+        18818.0,
+        22144.0
+      ],
+      "gain_vs_fcfs_pct": 4.5
+    },
+    "ferot": {
+      "recovered_mean": 476530.0,
+      "median_minutes_to_action": 733.0,
+      "p90_minutes_to_action": 4010.0,
+      "gain_vs_fcfs": 19292.0,
+      "gain_vs_fcfs_ci95": [
+        17438.0,
+        21146.0
+      ],
+      "gain_vs_fcfs_pct": 4.2
+    },
+    "ferot_fast": {
+      "recovered_mean": 479138.0,
+      "median_minutes_to_action": 449.0,
+      "p90_minutes_to_action": 2815.0,
+      "gain_vs_fcfs": 21900.0,
+      "gain_vs_fcfs_ci95": [
+        18439.0,
+        25361.0
+      ],
+      "gain_vs_fcfs_pct": 4.8
+    },
+    "oracle": {
+      "recovered_mean": 490665.0,
+      "median_minutes_to_action": 847.0,
+      "p90_minutes_to_action": 3232.0,
+      "gain_vs_fcfs": 30841.0,
+      "gain_vs_fcfs_ci95": [
+        28124.0,
+        33558.0
+      ],
+      "gain_vs_fcfs_pct": 6.7
+    }
+  },
+  "assumptions": {
+    "agents": 2,
+    "service_minutes_median": 30,
+    "service_sigma": 0.4,
+    "shift": [
+      9,
+      17
+    ],
+    "seeds": 30,
+    "workdays": [
+      6,
+      0,
+      1,
+      2,
+      3
+    ],
+    "priority_wait_minutes": 1440,
+    "ferot_fast_service_factor": 0.5
+  },
+  "cases": 333,
+  "eligible_cases": 217,
+  "disputed_taka_eligible": 950200.0,
+  "note": "Synthetic ledger, held-out test window. Service times and staffing are assumptions."
+}

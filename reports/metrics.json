@@ -129,6 +129,20 @@
       "auc_model": 0.9475,
       "positives": 173,
       "n": 303
+    },
+    "2880min": {
+      "brier_model": 0.1038,
+      "brier_baseline_balance_now": 0.1386,
+      "auc_model": 0.9344,
+      "positives": 173,
+      "n": 303
+    },
+    "4320min": {
+      "brier_model": 0.1066,
+      "brier_baseline_balance_now": 0.1386,
+      "auc_model": 0.9263,
+      "positives": 177,
+      "n": 303
     }
   },
   "model_version": "ferot-2026.10.01",
