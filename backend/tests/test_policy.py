@@ -41,3 +41,12 @@ def test_low_confidence_asks_for_more_information():
 def test_scam_flags_recipient_for_aml():
     rec = recommend(probs("scam_victim", 0.8), {"amount": 1000, "recoverable_now": 500})
     assert rec["aml_flag"] == "recipient" and "recipient_neutral" in rec["drafts"]
+
+
+def test_every_rule_cites_an_operating_procedure():
+    from ferot import config
+    from ferot.policy.sop import sections
+    known = sections()
+    for rule in config.policy_rules()["rules"]:
+        assert rule.get("sop"), rule["id"]
+        assert all(ref in known for ref in rule["sop"]), rule["id"]

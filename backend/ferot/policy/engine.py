@@ -8,6 +8,7 @@ capped at the disputed amount and at what is still in the wallet (R14).
 from __future__ import annotations
 
 from ferot import config
+from ferot.policy.sop import cite
 
 
 def recommend(probs: dict[str, float], facts: dict) -> dict:
@@ -33,6 +34,7 @@ def recommend(probs: dict[str, float], facts: dict) -> dict:
             "hold_amount": max(hold, 0.0),
             "aml_flag": rule.get("aml_flag"),
             "drafts": rule.get("drafts", []),
+            "sop": cite(rule.get("sop", [])),
             "case_type": top,
             "confidence": round(p, 4),
             "policy_version": cfg.get("version"),

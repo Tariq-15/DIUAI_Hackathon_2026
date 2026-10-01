@@ -140,6 +140,15 @@ export default function CaseView({ id, go }: { id: string; go: (to: string) => v
               <span>Needs: <b>{rec.approval}</b></span>
               {rec.aml_flag && <span>AML review: {rec.aml_flag}</span>}
             </div>
+            {rec.sop && rec.sop.length > 0 && (
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer text-slate-600">Procedure followed: {rec.sop.map((x) => x.id).join(', ')}</summary>
+                <ul className="mt-1 space-y-1">
+                  {rec.sop.map((x) => <li key={x.id}><b>{x.id} {x.title}.</b> {x.text}</li>)}
+                </ul>
+                <p className="text-[10px] text-slate-400 mt-1">Mock procedures written for the prototype, not upay's.</p>
+              </details>
+            )}
             <p className="text-[11px] text-slate-400 mt-1">Ferot never moves money; an authorised upay officer carries out an approved request (MFS Regulations §12.3).</p>
           </Card>
         </div>

@@ -10,6 +10,7 @@ rules:
     summary: "Agent cash-out dispute: route to the distributor first, upay second (MFS Regulations §17.5)."
     approval: agent
     drafts: [customer_agent_route, internal_note]
+    sop: [SOP-OT-02]
 
   - id: R-TECH-01
     when: {case_type: technical_failure, min_prob: 0.60}
@@ -17,6 +18,7 @@ rules:
     summary: "Technical failure: check for an automatic reversal and route to technical operations."
     approval: agent
     drafts: [customer_technical, internal_note]
+    sop: [SOP-OT-01]
 
   - id: R-DBL-01
     when: {case_type: double_recovery, min_prob: 0.70}
@@ -25,6 +27,7 @@ rules:
     approval: supervisor
     aml_flag: claimant
     drafts: [customer_reject_double, internal_note]
+    sop: [SOP-FR-04, SOP-FR-02, SOP-FR-03]
 
   - id: R-SCAM-01
     when: {case_type: scam_victim, min_prob: 0.60}
@@ -34,6 +37,7 @@ rules:
     hold: true
     aml_flag: recipient
     drafts: [customer_scam, recipient_neutral, internal_note]
+    sop: [SOP-FR-01, SOP-FR-02, SOP-FR-03]
 
   - id: R-GEN-01
     when: {case_type: genuine_wrong_send, min_prob: 0.80, recoverable_gt: 0}
@@ -42,6 +46,7 @@ rules:
     approval: agent
     hold: true
     drafts: [customer_genuine, recipient_consent, internal_note]
+    sop: [SOP-WS-02, SOP-WS-03, SOP-WS-05]
 
   - id: R-GEN-02
     when: {case_type: genuine_wrong_send, min_prob: 0.80}
@@ -49,6 +54,7 @@ rules:
     summary: "Likely a genuine typo but the money has left the wallet: ask the recipient for consent and explain the legal route (police GD)."
     approval: agent
     drafts: [customer_genuine_no_balance, recipient_consent, internal_note]
+    sop: [SOP-WS-03, SOP-WS-04, SOP-WS-05]
 
   - id: R-FALSE-01
     when: {case_type: false_claim, min_prob: 0.70}
@@ -56,6 +62,7 @@ rules:
     summary: "The ledger contradicts a wrong-send (repeated earlier payments to this number). Reject with an explanation and offer the merchant-dispute path."
     approval: supervisor
     drafts: [customer_reject_false, internal_note]
+    sop: [SOP-OT-03]
 
   - id: R-LOW-01
     when: {}
@@ -63,3 +70,4 @@ rules:
     summary: "Not enough confidence for a recommendation: ask the customer for the missing details."
     approval: agent
     drafts: [customer_more_info, internal_note]
+    sop: [SOP-OT-04]

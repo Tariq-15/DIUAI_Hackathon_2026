@@ -111,7 +111,7 @@ export interface CaseView {
   recoverability: { now: number; curve: CurvePoint[] }
   priority: { score: number; lost_by_waiting: number; vulnerable: boolean; sla_risk: number }
   sla: Sla
-  recommendation: { rule_id: string; action: string; summary: string; approval: string; hold_amount: number; aml_flag: string | null; drafts: string[]; confidence: number; policy_version: string }
+  recommendation: { rule_id: string; action: string; summary: string; approval: string; hold_amount: number; aml_flag: string | null; drafts: string[]; confidence: number; policy_version: string; sop?: { id: string; title: string; text: string; source: string }[] }
   drafts: Record<string, Draft>
   decision: { decision: string; actor: string; role: string; reason: string; at: string; hold_amount: number } | null
   contest: { reason: string; at: string } | null
