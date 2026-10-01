@@ -20,6 +20,201 @@
   "m2_matching": {
     "top1_accuracy": 0.9500312304809494
   },
+  "m4_alerting": {
+    "policy_threshold": 0.45,
+    "scam_pr_auc": 0.9996,
+    "scam_precision_at_policy": 1.0,
+    "scam_recall_at_policy": 0.8539,
+    "false_alarm_rate_non_scam": 0.0,
+    "wrongful_rejections": 1,
+    "victim_cases": 219,
+    "note": "Case-level task: every row is a complaint, so classes are balanced by design. A PR-AUC near 1.0 means the synthetic scam pattern is very clean; expect lower on real data."
+  },
+  "fairness": {
+    "language": {
+      "groups": {
+        "banglish": {
+          "n": 123,
+          "accuracy": 0.959,
+          "scam_recall": 0.875,
+          "wrongful_rejection_rate": 0.011
+        },
+        "bn": {
+          "n": 143,
+          "accuracy": 0.972,
+          "scam_recall": 0.875,
+          "wrongful_rejection_rate": 0.0
+        },
+        "en": {
+          "n": 69,
+          "accuracy": 0.971,
+          "scam_recall": 0.882,
+          "wrongful_rejection_rate": 0.0
+        }
+      },
+      "max_accuracy_gap": 0.013
+    },
+    "channel": {
+      "groups": {
+        "app": {
+          "n": 187,
+          "accuracy": 0.984,
+          "scam_recall": 0.935,
+          "wrongful_rejection_rate": 0.008
+        },
+        "call": {
+          "n": 148,
+          "accuracy": 0.946,
+          "scam_recall": 0.814,
+          "wrongful_rejection_rate": 0.0
+        }
+      },
+      "max_accuracy_gap": 0.038
+    },
+    "age_band": {
+      "groups": {
+        "18-24": {
+          "n": 59,
+          "accuracy": 0.983,
+          "scam_recall": 0.923,
+          "wrongful_rejection_rate": 0.031
+        },
+        "25-34": {
+          "n": 98,
+          "accuracy": 0.949,
+          "scam_recall": 0.783,
+          "wrongful_rejection_rate": 0.0
+        },
+        "35-44": {
+          "n": 76,
+          "accuracy": 0.987,
+          "scam_recall": 0.938,
+          "wrongful_rejection_rate": 0.0
+        },
+        "45-54": {
+          "n": 53,
+          "accuracy": 0.943,
+          "scam_recall": 0.857,
+          "wrongful_rejection_rate": 0.0
+        },
+        "55+": {
+          "n": 49,
+          "accuracy": 0.98,
+          "scam_recall": 0.938,
+          "wrongful_rejection_rate": 0.0
+        }
+      },
+      "max_accuracy_gap": 0.044
+    },
+    "area": {
+      "groups": {
+        "rural": {
+          "n": 223,
+          "accuracy": 0.969,
+          "scam_recall": 0.879,
+          "wrongful_rejection_rate": 0.007
+        },
+        "urban": {
+          "n": 112,
+          "accuracy": 0.964,
+          "scam_recall": 0.871,
+          "wrongful_rejection_rate": 0.0
+        }
+      },
+      "max_accuracy_gap": 0.005
+    },
+    "kyc": {
+      "groups": {
+        "full": {
+          "n": 247,
+          "accuracy": 0.972,
+          "scam_recall": 0.899,
+          "wrongful_rejection_rate": 0.006
+        },
+        "limited": {
+          "n": 88,
+          "accuracy": 0.955,
+          "scam_recall": 0.8,
+          "wrongful_rejection_rate": 0.0
+        }
+      },
+      "max_accuracy_gap": 0.017
+    }
+  },
+  "guard": {
+    "test_transfers": 1223,
+    "test_scams": 85,
+    "scam_share": 0.0695,
+    "pr_auc": 0.9972,
+    "pr_auc_model_only": 0.9972,
+    "roc_auc": 0.9997,
+    "recall_at_warn": 0.9882,
+    "recall_at_review": 0.9882,
+    "precision_at_warn": 0.9438,
+    "precision_at_review": 1.0,
+    "innocent_warned_per_100": 0.44,
+    "innocent_reviewed_per_100": 0.0,
+    "typo_caught_rate": 1.0,
+    "typo_false_alarm_per_100_normal": 0.0,
+    "fusion": {
+      "w_model": 1.0,
+      "w_anomaly": 0.0,
+      "valid_pr_auc": 1.0
+    },
+    "band_cuts": {
+      "warn_score": 0.000301,
+      "review_score": 0.000613,
+      "rule": "set on validation normals: 99th and 99.9th percentile of the fused score"
+    },
+    "bands": {
+      "warn_at": 30,
+      "review_at": 70
+    },
+    "fairness": {
+      "channel": {
+        "app": {
+          "n": 880,
+          "innocent_warned_per_100": 0.34
+        },
+        "ussd": {
+          "n": 258,
+          "innocent_warned_per_100": 0.78
+        }
+      },
+      "age_band": {
+        "18-24": {
+          "n": 182,
+          "innocent_warned_per_100": 0.55
+        },
+        "25-34": {
+          "n": 374,
+          "innocent_warned_per_100": 0.0
+        },
+        "35-44": {
+          "n": 288,
+          "innocent_warned_per_100": 0.69
+        },
+        "45-54": {
+          "n": 177,
+          "innocent_warned_per_100": 1.13
+        },
+        "55+": {
+          "n": 117,
+          "innocent_warned_per_100": 0.0
+        }
+      },
+      "area": {
+        "rural": {
+          "n": 767,
+          "innocent_warned_per_100": 0.39
+        },
+        "urban": {
+          "n": 371,
+          "innocent_warned_per_100": 0.54
+        }
+      }
+    }
+  },
   "m3_intended_number": {
     "top1_accuracy_on_genuine_typos": 0.9825,
     "false_match_rate_other_cases": 0.0198
@@ -165,6 +360,12 @@
     "m5_brier_6h_model_vs_baseline": [
       0.0718,
       0.099
-    ]
+    ],
+    "m4_scam_recall_at_policy": 0.8539,
+    "guard_pr_auc": 0.9972,
+    "guard_recall_at_warn": 0.9882,
+    "guard_innocent_warned_per_100": 0.44,
+    "guard_typo_caught": 1.0,
+    "max_accuracy_gap_by_channel": 0.038
   }
 }

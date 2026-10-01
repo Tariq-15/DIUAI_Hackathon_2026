@@ -1,0 +1,14 @@
+# Ferot Guard: the check that runs when a customer presses "Send Money".
+# Thresholds are business settings, kept out of the model so operations can tune them (and explain them).
+version: "2026-10-01"
+bands:
+  warn_at: 30        # risk 30-69: show a warning; the customer decides
+  review_at: 70      # risk 70+: strong warning, 30-second pause and an analyst alert; the customer still decides
+typo:
+  max_distance: 1.6  # keypad-weighted distance to a frequent contact that triggers "Did you mean ...?"
+  min_earlier_sends: 2
+fusion:
+  # risk = 100 x (w_model x P(scam) + w_anomaly x unusual-for-this-sender score); weights chosen on the
+  # validation window (see reports/metrics.json -> guard.fusion)
+  w_model: 0.8
+  w_anomaly: 0.2
