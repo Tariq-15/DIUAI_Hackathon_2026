@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
-import { PrototypeBanner } from './components'
 import { useHashRoute } from './lib'
 import Analyst from './pages/Analyst'
 import CaseView from './pages/CaseView'
@@ -12,49 +11,59 @@ const NAV = [
   { to: '/', label: 'Overview' },
   { to: '/customer', label: 'Customer app' },
   { to: '/console', label: 'Agent console' },
-  { to: '/analyst', label: 'Analyst & evidence' },
+  { to: '/analyst', label: 'Evidence' },
 ]
 
 export default function App() {
   const [route, go] = useHashRoute()
-  const [health, setHealth] = useState<{ model_version: string; llm_provider: string } | null>(null)
+  const [health, setHealth] = useState<{ model_version: string; llm_provider: string } | null | undefined>(undefined)
   useEffect(() => {
     api.health().then(setHealth).catch(() => setHealth(null))
   }, [])
 
   let page = <Home go={go} />
-  if (route.startsWith('/customer')) page = <Customer />
+  if (route.startsWith('/customer')) page = <Customer go={go} />
   else if (route.startsWith('/console/case/')) page = <CaseView id={route.split('/')[3]} go={go} />
   else if (route.startsWith('/console')) page = <Console go={go} />
-  else if (route.startsWith('/analyst')) page = <Analyst />
+  else if (route.startsWith('/analyst')) page = <Analyst go={go} />
 
   return (
     <div className="min-h-screen flex flex-col">
-      <PrototypeBanner />
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-6">
-          <a href="#/" className="flex items-center gap-2 font-semibold text-slate-900">
-            <img src="/favicon.svg" alt="" className="w-7 h-7" />
-            Ferot <span className="bn text-slate-500 font-normal">ফেরত</span>
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-surface px-3 py-2 rounded">Skip to content</a>
+      <header className="bg-night text-paper">
+        <div className="max-w-[1240px] mx-auto px-4 md:px-6 flex flex-wrap items-center gap-x-8">
+          <a href="#/" className="flex items-baseline gap-2 py-3.5" aria-label="Ferot home">
+            <span className="font-display text-[24px] font-semibold leading-none">Ferot</span>
+            <span className="font-display text-[19px] leading-none text-turmeric">ফেরত</span>
           </a>
-          <nav className="flex gap-1 text-sm overflow-x-auto">
+          <nav className="order-3 md:order-none w-full md:w-auto -mx-1 flex overflow-x-auto" aria-label="Main">
             {NAV.map((n) => {
               const active = n.to === '/' ? route === '/' : route.startsWith(n.to)
               return (
-                <a key={n.to} href={`#${n.to}`} className={`px-3 py-1.5 rounded-lg whitespace-nowrap ${active ? 'bg-teal-50 text-teal-800 font-medium' : 'text-slate-600 hover:bg-slate-100'}`}>
+                <a key={n.to} href={`#${n.to}`} aria-current={active ? 'page' : undefined}
+                  className={`relative px-3 py-3 md:py-5 text-[14.5px] whitespace-nowrap transition-colors ${active ? 'text-paper font-medium' : 'text-mist hover:text-paper'}`}>
                   {n.label}
+                  {active && <span className="absolute left-3 right-3 bottom-0 h-[3px] rounded-t bg-turmeric" />}
                 </a>
               )
             })}
           </nav>
-          <span className="ml-auto hidden md:block text-xs text-slate-500">
-            {health ? `model ${health.model_version} · LLM: ${health.llm_provider}` : 'API offline'}
+          <span className="ml-auto hidden lg:flex items-center gap-2 text-[12.5px] text-mist">
+            <span className={`w-2 h-2 rounded-full ${health ? 'bg-[#9fe0c3]' : health === null ? 'bg-signal' : 'bg-mist'}`} aria-hidden="true" />
+            {health ? `Models ${health.model_version}, language model: ${health.llm_provider}` : health === null ? 'API offline' : 'Connecting'}
           </span>
         </div>
       </header>
-      <main className="flex-1">{page}</main>
-      <footer className="text-xs text-slate-500 text-center py-4">
-        Built for the AI Hackathon 2026 (DIU CPC × upay). Synthetic data; numbers use the 010 prefix. Not affiliated with or endorsed by upay.
+      <p className="bg-paper-2 text-ink-2 text-[12.5px] px-4 py-1.5 text-center border-b border-line">
+        Hackathon prototype on synthetic data. Not an upay product, and nothing here is an upay message.
+      </p>
+      <main id="main" className="flex-1">{page}</main>
+      <footer className="border-t border-line mt-16">
+        <div className="max-w-[1240px] mx-auto px-4 md:px-6 py-6 flex flex-wrap gap-x-8 gap-y-2 text-[13px] text-ink-3">
+          <span>Built for AI Hackathon 2026, DIU CPC and upay, Track 06.</span>
+          <span>All customers and numbers are synthetic and use the 010 prefix.</span>
+          <span>Not affiliated with or endorsed by upay or UCB Fintech.</span>
+        </div>
       </footer>
     </div>
   )

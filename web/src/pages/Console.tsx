@@ -1,33 +1,61 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, getSession, type QueueRow, type Role, setSession } from '../api'
-import { Button, SlaChip, TypeBadge } from '../components'
-import { pct, taka, when } from '../lib'
+import { Button, SlaText, Stat, TypeMark } from '../components'
+import { day, taka, when } from '../lib'
+import { CHANNEL, LANGUAGE, OPEN, status } from '../lib-labels'
 
 const ROLES: { role: Role; label: string; note: string }[] = [
-  { role: 'agent', label: 'Agent', note: 'Approves most recommendations' },
-  { role: 'supervisor', label: 'Supervisor', note: 'Approves rejections; can reset the demo' },
-  { role: 'analyst', label: 'Analyst', note: 'Clusters, KPIs, reports' },
-  { role: 'compliance', label: 'Compliance', note: 'AML queue; exports on a verified request' },
+  { role: 'agent', label: 'Agent', note: 'Works the queue and approves most recommendations' },
+  { role: 'supervisor', label: 'Supervisor', note: 'Approves rejections and can reset the demo' },
+  { role: 'analyst', label: 'Analyst', note: 'Sees clusters, reports and model evidence' },
+  { role: 'compliance', label: 'Compliance', note: 'Works the AML queue and exports evidence on a verified request' },
 ]
 
 export function SignIn({ onDone }: { onDone: () => void }) {
   const [actor, setActor] = useState('tania')
   const [role, setRole] = useState<Role>('agent')
   return (
-    <div className="max-w-md mx-auto mt-16 bg-white rounded-xl ring-1 ring-slate-200 p-6">
-      <h2 className="text-lg font-semibold">Sign in (demo)</h2>
-      <p className="text-xs text-slate-500 mt-1">Prototype only. In production, identity and role come from upay's single sign-on.</p>
-      <label className="block text-sm mt-4">Name</label>
-      <input value={actor} onChange={(e) => setActor(e.target.value)} className="w-full rounded-lg ring-1 ring-slate-300 px-3 py-2 mt-1" />
-      <div className="mt-4 space-y-2">
-        {ROLES.map((r) => (
-          <label key={r.role} className={`flex items-start gap-2 p-2 rounded-lg ring-1 cursor-pointer ${role === r.role ? 'ring-teal-600 bg-teal-50' : 'ring-slate-200'}`}>
-            <input type="radio" checked={role === r.role} onChange={() => setRole(r.role)} className="mt-1" />
-            <span><span className="font-medium text-sm">{r.label}</span><span className="block text-xs text-slate-500">{r.note}</span></span>
-          </label>
-        ))}
-      </div>
-      <Button className="w-full mt-4" disabled={!actor.trim()} onClick={() => { setSession({ actor: actor.trim(), role }); onDone() }}>Continue</Button>
+    <div className="max-w-[440px] mx-auto px-4 pt-16">
+      <h1 className="text-[30px] font-semibold">Sign in to the console</h1>
+      <p className="mt-2 text-[14.5px] text-ink-2">Demo sign-in. In production, identity and role come from upay's single sign-on.</p>
+      <form className="mt-6 space-y-5" onSubmit={(e) => { e.preventDefault(); if (actor.trim()) { setSession({ actor: actor.trim(), role }); onDone() } }}>
+        <label className="block">
+          <span className="text-[14px] font-medium">Your name</span>
+          <input value={actor} onChange={(e) => setActor(e.target.value)} className="field mt-1" autoComplete="off" />
+        </label>
+        <fieldset>
+          <legend className="text-[14px] font-medium">Role</legend>
+          <div className="mt-2 space-y-2">
+            {ROLES.map((r) => (
+              <label key={r.role} className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors ${role === r.role ? 'border-flag bg-flag-soft/50' : 'border-line bg-surface hover:border-ink-3'}`}>
+                <input type="radio" name="role" checked={role === r.role} onChange={() => setRole(r.role)} className="mt-1.5 accent-[#006a4e]" />
+                <span><span className="font-semibold">{r.label}</span><span className="block text-[13.5px] text-ink-3">{r.note}</span></span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <Button type="submit" size="lg" className="w-full" disabled={!actor.trim()}>Continue</Button>
+      </form>
+    </div>
+  )
+}
+
+export function UserChip({ onOut }: { onOut: () => void }) {
+  const s = getSession()
+  if (!s) return null
+  return (
+    <span className="inline-flex items-center gap-2 text-[14px]">
+      <span className="w-7 h-7 rounded-full bg-night text-paper grid place-items-center text-[13px] font-semibold uppercase" aria-hidden="true">{s.actor.slice(0, 1)}</span>
+      <span>{s.actor}, <span className="text-ink-3">{s.role}</span></span>
+      <Button tone="quiet" size="sm" onClick={() => { setSession(null); onOut() }}>Sign out</Button>
+    </span>
+  )
+}
+
+function RiskBar({ value, max }: { value: number; max: number }) {
+  return (
+    <div className="h-1.5 w-24 bg-paper-2 rounded-full overflow-hidden" aria-hidden="true">
+      <div className="h-full rounded-full bg-turmeric" style={{ width: `${Math.max((value / Math.max(max, 1)) * 100, value > 0 ? 4 : 0)}%` }} />
     </div>
   )
 }
@@ -35,11 +63,14 @@ export function SignIn({ onDone }: { onDone: () => void }) {
 export default function Console({ go }: { go: (to: string) => void }) {
   const [session, setS] = useState(getSession())
   const [rows, setRows] = useState<QueueRow[]>([])
+  const [kpis, setKpis] = useState<Record<string, any> | null>(null)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<'open' | 'all'>('open')
+  const [loaded, setLoaded] = useState(false)
 
   const load = useCallback(() => {
-    api.queue().then(setRows).catch((e) => setError(String(e)))
+    api.queue().then((r) => { setRows(r); setLoaded(true); setError('') }).catch((e) => setError(String(e.message ?? e)))
+    api.kpis().then(setKpis).catch(() => {})
   }, [])
   useEffect(() => {
     if (!session) return
@@ -49,63 +80,113 @@ export default function Console({ go }: { go: (to: string) => void }) {
   }, [session, load])
 
   if (!session) return <SignIn onDone={() => setS(getSession())} />
-  const shown = rows.filter((r) => filter === 'all' || ['new', 'human_review'].includes(r.status))
+  const open = rows.filter((r) => OPEN.includes(r.status))
+  const shown = filter === 'open' ? open : rows
+  const maxRisk = Math.max(...shown.map((r) => r.lost_by_waiting), 1)
+  const atRisk = open.reduce((a, r) => a + r.lost_by_waiting, 0)
+  const holdable = open.reduce((a, r) => a + r.recoverable_now, 0)
+  const dueSoon = open.filter((r) => r.sla.breached || r.sla.working_days_left <= 3).length
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex items-center gap-3 flex-wrap">
-        <h1 className="text-xl font-semibold">Dispute queue</h1>
-        <span className="text-xs text-slate-500">Sorted by taka at risk if the case waits · numbers masked (R9)</span>
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <select value={filter} onChange={(e) => setFilter(e.target.value as 'open' | 'all')} className="rounded-lg ring-1 ring-slate-300 px-2 py-1">
-            <option value="open">Open cases</option>
-            <option value="all">All cases</option>
-          </select>
-          {session.role === 'supervisor' && (
-            <Button tone="secondary" onClick={async () => { await api.reset(); load() }}>Reset demo</Button>
-          )}
-          <span className="text-slate-600">{session.actor} · {session.role}</span>
-          <Button tone="secondary" onClick={() => { setSession(null); setS(null) }}>Sign out</Button>
+    <div className="max-w-[1240px] mx-auto px-4 md:px-6 py-8">
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+        <div>
+          <h1 className="text-[32px] font-semibold">Dispute queue</h1>
+          <p className="text-[14.5px] text-ink-2 mt-1">Ordered by the money likely to leave while a case waits. Numbers are masked until an agent reveals them.</p>
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          {session.role === 'supervisor' && <Button tone="secondary" size="sm" onClick={async () => { await api.reset(); load() }}>Reset demo</Button>}
+          <UserChip onOut={() => setS(null)} />
         </div>
       </div>
-      {error && <p className="mt-3 text-sm text-rose-700">{error}</p>}
-      <div className="mt-4 bg-white rounded-xl ring-1 ring-slate-200 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-xs text-slate-500 bg-slate-50">
-            <tr>
-              <th className="text-left px-3 py-2">At risk if it waits</th>
-              <th className="text-left px-3 py-2">Case</th>
-              <th className="text-left px-3 py-2">Type (prediction)</th>
-              <th className="text-right px-3 py-2">Disputed</th>
-              <th className="text-right px-3 py-2">Holdable now</th>
-              <th className="text-left px-3 py-2">Deadline (MFS §17.3)</th>
-              <th className="text-left px-3 py-2">Recommendation</th>
-              <th className="text-left px-3 py-2">Status</th>
+
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-x-8 gap-y-5 border-y border-line py-5">
+        <Stat label="Open cases" value={open.length} />
+        <Stat label="Still holdable in open cases" value={taka(holdable)} tone="#006a4e" />
+        <Stat label="At risk if they wait 2 h" value={taka(atRisk)} tone="#a77300" />
+        <Stat label="Due within 3 working days" value={dueSoon} tone={dueSoon ? '#d7263d' : undefined} />
+        <Stat label="Guard warnings shown" value={kpis?.guard_alerts ?? '—'} note="Before the money left" />
+      </div>
+
+      <div className="mt-6 flex items-center gap-3">
+        <div role="radiogroup" aria-label="Which cases" className="inline-flex rounded-lg bg-paper-2 p-1">
+          {(['open', 'all'] as const).map((k) => (
+            <button key={k} role="radio" aria-checked={filter === k} onClick={() => setFilter(k)}
+              className={`px-3.5 py-1.5 rounded-md text-[14px] ${filter === k ? 'bg-surface shadow-sm font-medium' : 'text-ink-2'}`}>
+              {k === 'open' ? `Open (${open.length})` : `All (${rows.length})`}
+            </button>
+          ))}
+        </div>
+        <span className="text-[13px] text-ink-3">Updates every 5 seconds</span>
+      </div>
+      {error && <p className="mt-3 text-[14px] text-signal-2">{error}</p>}
+
+      {/* wide screens: a ledger-style table */}
+      <div className="mt-4 hidden md:block bg-surface border border-line rounded-xl overflow-hidden">
+        <table className="w-full text-[14px]">
+          <thead>
+            <tr className="text-left text-[12.5px] text-ink-3 border-b border-line bg-paper/60">
+              <th className="font-medium px-4 py-2.5">At risk if it waits</th>
+              <th className="font-medium px-4 py-2.5">Case</th>
+              <th className="font-medium px-4 py-2.5">Type</th>
+              <th className="font-medium px-4 py-2.5 text-right">Disputed</th>
+              <th className="font-medium px-4 py-2.5 text-right">Holdable now</th>
+              <th className="font-medium px-4 py-2.5">Deadline</th>
+              <th className="font-medium px-4 py-2.5">Status</th>
             </tr>
           </thead>
           <tbody>
             {shown.map((r) => (
-              <tr key={r.case_id} onClick={() => go(`/console/case/${r.case_id}`)} className="border-t border-slate-100 hover:bg-teal-50/40 cursor-pointer">
-                <td className="px-3 py-2">
-                  <div className="font-semibold tabular-nums">{taka(r.lost_by_waiting)}</div>
-                  <div className="text-xs text-slate-400">score {Math.round(r.priority)}</div>
+              <tr key={r.case_id} tabIndex={0} onClick={() => go(`/console/case/${r.case_id}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter') go(`/console/case/${r.case_id}`) }}
+                className="border-b border-line-2 last:border-0 hover:bg-paper cursor-pointer focus-visible:bg-paper">
+                <td className="px-4 py-3">
+                  <div className="num text-[17px] font-semibold">{taka(r.lost_by_waiting)}</div>
+                  <RiskBar value={r.lost_by_waiting} max={maxRisk} />
+                  {r.priority > r.lost_by_waiting + 1 && <div className="text-[12px] text-turmeric-ink mt-0.5" title="Scam victims and USSD-only customers are moved up the queue">Moved up: vulnerable</div>}
                 </td>
-                <td className="px-3 py-2">
-                  <div className="font-medium">{r.case_id}</div>
-                  <div className="text-xs text-slate-500">{when(r.created_at)} · {r.channel} · {r.language} · to …{r.recipient_last4}</div>
+                <td className="px-4 py-3">
+                  <div className="font-medium num">{r.case_id}</div>
+                  <div className="text-[12.5px] text-ink-3">{when(r.created_at)}, {CHANNEL[r.channel] ?? r.channel}{r.language ? `, ${LANGUAGE[r.language] ?? r.language}` : ''}</div>
                 </td>
-                <td className="px-3 py-2"><TypeBadge type={r.case_type} label={r.label} /> <span className="text-xs text-slate-500">{pct(r.confidence)}</span></td>
-                <td className="px-3 py-2 text-right tabular-nums">{taka(r.amount)}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{taka(r.recoverable_now)}</td>
-                <td className="px-3 py-2"><SlaChip sla={r.sla} /></td>
-                <td className="px-3 py-2 text-xs"><span className="font-mono">{r.rule_id}</span><div className="text-slate-500">needs {r.approval}</div></td>
-                <td className="px-3 py-2 text-xs">{r.status.replace('_', ' ')}</td>
+                <td className="px-4 py-3"><TypeMark type={r.case_type} label={r.label} confidence={r.confidence} /></td>
+                <td className="px-4 py-3 text-right num">{taka(r.amount)}</td>
+                <td className="px-4 py-3 text-right num text-flag font-medium">{taka(r.recoverable_now)}</td>
+                <td className="px-4 py-3">
+                  <SlaText sla={r.sla} />
+                  <div className="text-[12.5px] text-ink-3">{day(r.sla.deadline)}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <div>{status(r.status)}</div>
+                  <div className="text-[12.5px] text-ink-3">Rule {r.rule_id}</div>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {!shown.length && <p className="p-6 text-sm text-slate-500">No cases. Submit one from the customer app.</p>}
+        {loaded && !shown.length && <p className="px-4 py-8 text-ink-3">No cases yet. Submit one from the customer app and it appears here.</p>}
       </div>
+
+      {/* narrow screens: one block per case */}
+      <ul className="mt-4 md:hidden space-y-3">
+        {shown.map((r) => (
+          <li key={r.case_id}>
+            <button onClick={() => go(`/console/case/${r.case_id}`)} className="w-full text-left bg-surface border border-line rounded-xl px-4 py-3.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="num font-medium">{r.case_id}</span>
+                <SlaText sla={r.sla} />
+              </div>
+              <div className="mt-1.5"><TypeMark type={r.case_type} label={r.label} confidence={r.confidence} /></div>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-[12.5px] text-ink-3">
+                <div>At risk<div className="num text-[16px] text-ink font-semibold">{taka(r.lost_by_waiting)}</div></div>
+                <div>Holdable<div className="num text-[16px] text-flag font-semibold">{taka(r.recoverable_now)}</div></div>
+                <div>Disputed<div className="num text-[16px] text-ink">{taka(r.amount)}</div></div>
+              </div>
+            </button>
+          </li>
+        ))}
+        {loaded && !shown.length && <li className="text-ink-3">No cases yet. Submit one from the customer app and it appears here.</li>}
+      </ul>
     </div>
   )
 }

@@ -1,13 +1,129 @@
 @import "tailwindcss";
 
+/* Ferot tokens. Ink and paper carry the page; flag green means money that can still come back,
+   signal red means money leaving or a scam, turmeric means a model estimate or a warning. */
 @theme {
-  --font-sans: "Inter", "Noto Sans Bengali", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Anek Bangla", "Hind Siliguri", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #0f2a24;
+  --color-ink-2: #3e554e;
+  --color-ink-3: #6b7f78;
+  --color-paper: #f4f7f5;
+  --color-paper-2: #e8eeeb;
+  --color-surface: #ffffff;
+  --color-line: #d3ddd8;
+  --color-line-2: #e5ebe8;
+  --color-flag: #006a4e;
+  --color-flag-2: #00553e;
+  --color-flag-soft: #dcefe6;
+  --color-signal: #d7263d;
+  --color-signal-2: #b01c30;
+  --color-signal-soft: #fbe4e7;
+  --color-turmeric: #e3a008;
+  --color-turmeric-ink: #7a5200;
+  --color-turmeric-soft: #fcf1d2;
+  --color-night: #0f2a24;
+  --color-night-2: #1b3d35;
+  --color-night-line: #2f5249;
+  --color-mist: #a9bdb6;
 }
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    line-height: 1.15;
+    letter-spacing: -0.005em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-flag);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::selection {
+    background: var(--color-turmeric-soft);
+  }
 }
 
-.bn {
-  font-family: "Noto Sans Bengali", "Inter", sans-serif;
+@layer components {
+  .num {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .condensed {
+    font-variation-settings: "wdth" 82;
+  }
+  .field {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: 0.5rem 0.75rem;
+    font-size: 15px;
+  }
+  .field:focus-visible {
+    outline: 2px solid var(--color-flag);
+    outline-offset: 0;
+    border-color: transparent;
+  }
+  .link {
+    color: var(--color-flag);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .link:hover {
+    color: var(--color-flag-2);
+  }
+}
+
+/* One orchestrated moment: the home hero reads the complaint, then gives the verdict. */
+@media (prefers-reduced-motion: no-preference) {
+  .read-mark {
+    background-size: 0% 3px;
+    animation: mark 600ms cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+  }
+  .read-note {
+    opacity: 0;
+    transform: translateY(4px);
+    animation: rise 400ms ease-out forwards;
+  }
+  .verdict {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: 2300ms;
+  }
+  .sheet-in {
+    animation: sheet 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+.read-mark {
+  background-image: linear-gradient(#e3a008, #e3a008);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 3px;
+  padding-bottom: 2px;
+}
+@keyframes mark {
+  to { background-size: 100% 3px; }
+}
+@keyframes rise {
+  to { opacity: 1; transform: none; }
+}
+@keyframes sheet {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
 }

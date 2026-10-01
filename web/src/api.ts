@@ -34,6 +34,7 @@ export interface Reason {
   feature: string
   label: string
   value: number | string
+  text?: string
   weight: number
 }
 
@@ -52,6 +53,18 @@ export interface CurvePoint {
   minutes: number
   expected: number
   p_hold: number
+}
+
+export interface DrainPoint {
+  minutes: number
+  holdable: number
+}
+
+export interface CaseReport {
+  what_happened: string
+  why_risky: string[]
+  next_step: string
+  limits: string[]
 }
 
 export interface DraftChecks {
@@ -108,7 +121,7 @@ export interface CaseView {
   trail: TrailStep[]
   intended: { found: boolean; candidate?: string | null; count?: number; distance?: number | null; positions?: number[] }
   prediction: { probs: Record<string, number>; case_type: string; label: string; confidence: number; reasons: Reason[] } | null
-  recoverability: { now: number; curve: CurvePoint[] }
+  recoverability: { now: number; curve: CurvePoint[]; past?: DrainPoint[] }
   priority: { score: number; lost_by_waiting: number; vulnerable: boolean; sla_risk: number }
   sla: Sla
   recommendation: { rule_id: string; action: string; summary: string; approval: string; hold_amount: number; aml_flag: string | null; drafts: string[]; confidence: number; policy_version: string; sop?: { id: string; title: string; text: string; source: string }[] }
@@ -116,7 +129,63 @@ export interface CaseView {
   decision: { decision: string; actor: string; role: string; reason: string; at: string; hold_amount: number } | null
   contest: { reason: string; at: string } | null
   model_version: string
+  report?: CaseReport
   audit?: AuditEntry[]
+}
+
+export interface SendScenario {
+  key: string
+  label: string
+  recipient: string
+  amount: number
+  minute: number
+}
+
+export interface GuardReason {
+  key: string
+  en: string
+  bn: string
+}
+
+export interface GuardCheck {
+  check_id: string
+  created_at: string
+  sender: string
+  recipient: string
+  amount: number
+  minute: number
+  risk: number
+  band: 'allow' | 'warn' | 'review'
+  p_scam: number
+  anomaly: number
+  typo: { candidate: string; count: number; positions: number[] } | null
+  reasons: GuardReason[]
+  advice: { en: string; bn: string } | null
+  decision: string | null
+}
+
+export interface GuardAlert {
+  check_id: string
+  created_at: string
+  sender_last4: string
+  recipient_last4: string
+  amount: number
+  risk: number
+  band: 'warn' | 'review'
+  reasons: string[]
+  decision: string | null
+}
+
+export interface NetworkNode {
+  id: string
+  kind: 'center' | 'this_customer' | 'complainant' | 'agent' | 'merchant' | 'mno' | 'wallet'
+}
+
+export interface Network {
+  center: string | null
+  complainants: number
+  nodes: NetworkNode[]
+  edges: { source: string; target: string; amount: number; kind: string }[]
 }
 
 export interface DemoCustomer {
@@ -128,6 +197,8 @@ export interface DemoCustomer {
   now: string
   sample_text: string
   transactions: { trx_id: string; type: string; to: string; amount: number; ts: string }[]
+  send_minute: number
+  send_scenarios: SendScenario[]
 }
 
 export interface CustomerStatus {
@@ -198,6 +269,12 @@ export const api = {
   status: (id: string) => request<CustomerStatus>(`/cases/${id}/status`),
   contest: (id: string, reason: string) =>
     request<CustomerStatus>(`/cases/${id}/contest`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  guardCheck: (body: { sender: string; recipient: string; amount: number; as_of_minute?: number }) =>
+    request<GuardCheck>('/guard/check', { method: 'POST', body: JSON.stringify(body) }),
+  guardDecision: (id: string, decision: 'cancelled' | 'sent_anyway' | 'changed_number') =>
+    request<GuardCheck>(`/guard/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision }) }),
+  guardAlerts: () => request<GuardAlert[]>('/guard/alerts', {}, true),
+  network: (id: string) => request<Network>(`/cases/${id}/network`, {}, true),
   queue: () => request<QueueRow[]>('/queue', {}, true),
   case: (id: string) => request<CaseView>(`/cases/${id}`, {}, true),
   decide: (id: string, decision: string, reason: string, edited?: Record<string, { en?: string; bn?: string }>) =>
