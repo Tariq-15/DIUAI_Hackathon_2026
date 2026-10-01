@@ -124,26 +124,29 @@ export function MoneyTrail({ trail, revealed }: { trail: TrailStep[]; revealed: 
   const nodes: Node[] = []
   const edges: Edge[] = []
   const seen = new Map<string, { x: number; y: number }>()
+  // top to bottom: complainant, then the receiving wallet, then where the money went next
   const place = (id: string, hop: number, text: string, tone: string) => {
     if (seen.has(id)) return
-    const count = [...seen.values()].filter((p) => p.x === hop * 230).length
-    const pos = { x: hop * 230, y: count * 80 }
+    const count = [...seen.values()].filter((p) => p.y === hop * 110).length
+    const pos = { x: count * 200, y: hop * 110 }
     seen.set(id, pos)
-    nodes.push({ id, position: pos, data: { label: text }, style: { fontSize: 11, padding: 6, borderRadius: 8, width: 170, background: tone, border: '1px solid #cbd5e1' } })
+    nodes.push({ id, position: pos, data: { label: text }, style: { fontSize: 12, padding: 8, borderRadius: 8, width: 170, background: tone, border: '1px solid #cbd5e1' } })
   }
   const first = trail[0]
   place(first.from, 0, `Complainant ${label(first.from)}`, '#f0fdfa')
   trail.forEach((s, i) => {
-    place(s.to, s.hop + 1, label(s.to, s.to_kind), s.hop === 0 ? '#eef2ff' : s.to_kind === 'agent' ? '#fff1f2' : '#ffffff')
+    place(s.to, s.hop + 1, `${label(s.to, s.to_kind)}${s.type === 'cash_out' ? ' (cash-out)' : ''}`, s.hop === 0 ? '#eef2ff' : s.to_kind === 'agent' ? '#fff1f2' : '#ffffff')
+    const t = new Date(s.ts)
     edges.push({
-      id: `e${i}`, source: s.from, target: s.to, label: `${taka(s.amount)} · ${s.type.replace('_', ' ')} · ${when(s.ts)}`,
-      labelStyle: { fontSize: 10 }, markerEnd: { type: MarkerType.ArrowClosed }, animated: s.hop === 0,
-      style: { stroke: s.hop === 0 ? '#4f46e5' : '#94a3b8' },
+      id: `e${i}`, source: s.from, target: s.to,
+      label: `${taka(s.amount)} · ${Number.isNaN(t.getTime()) ? when(s.ts) : t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+      labelStyle: { fontSize: 11, fontWeight: 600 }, labelBgPadding: [4, 2], markerEnd: { type: MarkerType.ArrowClosed }, animated: s.hop === 0,
+      style: { stroke: s.hop === 0 ? '#4f46e5' : '#94a3b8', strokeWidth: 1.5 },
     })
   })
   return (
-    <div className="h-64 rounded-lg ring-1 ring-slate-100">
-      <ReactFlow nodes={nodes} edges={edges} fitView proOptions={{ hideAttribution: true }} nodesDraggable={false} nodesConnectable={false}>
+    <div className="h-72 rounded-lg ring-1 ring-slate-100">
+      <ReactFlow nodes={nodes} edges={edges} fitView fitViewOptions={{ padding: 0.15, maxZoom: 1.1 }} proOptions={{ hideAttribution: true }} nodesDraggable={false} nodesConnectable={false}>
         <Background gap={16} color="#f1f5f9" />
       </ReactFlow>
     </div>
