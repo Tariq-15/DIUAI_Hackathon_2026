@@ -26,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = ("serve_bundle.joblib", "demo_state.joblib", "demo_world.joblib")
+PORTABLE = ("slip_costs.json", "federated.json", "amount_habits.json", "amount_profiles.npz", "test_kit.json")
 FILES = ("Dockerfile", ".dockerignore", "requirements-serve.txt", "config.yaml")
 DIRS = ("src", "ui")
 
@@ -65,9 +66,12 @@ def stage(dest: Path, source_url: str | None) -> list[str]:
         shutil.copy2(ROOT / f, dest / f)
     for d in DIRS:
         shutil.copytree(ROOT / d, dest / d, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.log"))
-    (dest / "artifacts").mkdir()
+    (dest / "artifacts" / "portable").mkdir(parents=True)
     for a in ARTIFACTS:
         shutil.copy2(ROOT / "artifacts" / a, dest / "artifacts" / a)
+    for a in PORTABLE:
+        if (ROOT / "artifacts" / "portable" / a).exists():
+            shutil.copy2(ROOT / "artifacts" / "portable" / a, dest / "artifacts" / "portable" / a)
     src = f"\nSource code, data generator, training pipeline and results: {source_url}\n" if source_url else ""
     (dest / "README.md").write_text(SPACE_README.format(source=src), encoding="utf-8")
     return sorted(str(p.relative_to(dest)).replace("\\", "/") for p in dest.rglob("*") if p.is_file())

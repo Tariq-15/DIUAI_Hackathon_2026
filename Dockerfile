@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r requirements-serve.txt
 COPY config.yaml .
 COPY src ./src
 COPY artifacts/serve_bundle.joblib artifacts/demo_state.joblib artifacts/demo_world.joblib ./artifacts/
+# federated slip costs and results, amount habits (thresholds + last-30 histories), the judges' test numbers
+COPY artifacts/portable/slip_costs.json artifacts/portable/federated.json artifacts/portable/amount_habits.json      artifacts/portable/amount_profiles.npz artifacts/portable/test_kit.json ./artifacts/portable/
 COPY ui ./ui
 ENV PROHORI_ARTIFACTS=/app/artifacts \
     PROHORI_LLM=offline \

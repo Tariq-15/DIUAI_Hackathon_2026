@@ -4,8 +4,15 @@ AI Hackathon 2026 (DIU CPC × upay) · **Track 01: Trust & Risk Intelligence**, 
 **Prototype on synthetic data. Not an upay product; the wallet screens are an upay-style mock.**
 
 **Live demo: https://tariq15-prohori.static.hf.space**. The trained models run inside your browser, with no server.
-The first visit downloads about 50 MB and takes about 15 s to start; later visits load from the cache.
+The first visit downloads about 30 MB and takes about 15 s to start. A refresh downloads nothing: the models and
+Python are kept on the device and it starts in about 7 s (see [Caching](#caching-why-a-refresh-is-fast)).
 Bangla ⇄ English switch on every screen; works on a phone (390 px) as well as a laptop.
+
+**No dataset? Use the test numbers.** The showcase header has **🧪 Test numbers**: 27 real numbers from the
+683,148-row synthetic dataset, grouped by what they are (everyday contacts, a mistyped number, an unusual amount, the
+staged scams, collector / scam-recipient / fake-seller / mule / card-fraud wallets, wallets reported to 16268,
+ordinary wallets, recharge tests). Each row shows what Prohori answered on a fresh demo; **Try** puts it on the
+phone. The same list is on the phone (Send Money → 🧪) and in [`docs/test_numbers.md`](docs/test_numbers.md).
 
 Prohori protects a customer's money **before it leaves the wallet**, and helps get it back when it already has:
 
@@ -19,16 +26,23 @@ Prohori protects a customer's money **before it leaves the wallet**, and helps g
    keypad slip or a scam, and open a case with the legal 10-working-day deadline.
 4. **Investigation copilot for upay's analysts.** Live queue, SHAP evidence, the money network, a four-part case
    report, and actions (freeze, hold the disputed amount, ask the recipient for consent) that need a person's name.
-5. **Federated learning, so the data stays where it is.** The typing-slip pattern behind check 1 is learned on
-   phones that never send their contacts or slips; the scam model can be trained across upay's eight divisions
-   without pooling a single transaction.
+5. **Unusual amount for *you*, Send Money and recharge.** Each customer's phone knows how much they usually send
+   (Rahim: about Tk 600, Tk 232 to 1,590, about 4 a week) and recharge (about Tk 99). Tk 15,000 to his mother is 25
+   times that: Prohori asks once and shows his usual amount next to this one, even though the model alone says
+   ALLOW. A Tk 1,000 recharge, or three quick recharges to other people's numbers, gets the same one-tap check.
+6. **Federated learning, so the data stays where it is.** The typing-slip pattern behind check 1 is learned on
+   phones that never send their contacts or slips; what counts as an unusual amount (check 5) is learned from noisy,
+   masked histograms of 11,285 phones; the scam model can be trained across upay's eight divisions without pooling a
+   single transaction.
 
 Models score, rules decide, people approve.
 
 ```
 python -m src.pipeline          # generate -> validate T1-T14 -> features -> train -> Agent Watch -> evaluate -> export -> demo world
 python -m src.fl.ondevice       # federated: learn keypad-slip costs on (simulated) phones
+python -m src.fl.amounts        # federated: learn what an unusual amount is (send + recharge), from the 683k rows
 python -m src.fl.fedgbdt        # federated: train the scam model across 8 divisions
+python -m src.serve.portable    # portable models + staged world + the judges' test numbers
 uvicorn src.serve.api:app       # open http://localhost:8000  (customer app + analyst copilot side by side)
 ```
 
@@ -46,12 +60,15 @@ The three layers of the Track 01 playbook, all on the trained models, plus the m
 
 | Layer | Where | What it does |
 |---|---|---|
-| 1. Pre-Transaction Guardian | `ui/app.html`, upay-style phone | **As the number is typed:** known contact ✓, new number, no wallet, or "Did you mean মা (01076-254257)?" with the wrong digits marked. **After the PIN:** Prohori scores the transfer. **ALLOW** goes through. **NUDGE** asks a question with the evidence and a cancel default (for a likely slip: "Send to মা instead"). **STEP_UP** asks for the PIN again. **HOLD** pauses it for an analyst ("your money is still in your wallet"). 🔊 reads the warning aloud (the browser's own voice, no network). Also: **Report a problem** (Banglish complaints, consent never pre-ticked, case tracker) and an "Am I talking to a scammer?" checker |
+| 1. Pre-Transaction Guardian | `ui/app.html`, upay-style phone | **As the number is typed:** known contact ✓, new number, no wallet, or "Did you mean মা (01076-254257)?" with the wrong digits marked. **After the PIN:** Prohori scores the transfer. **ALLOW** goes through. **NUDGE** asks a question with the evidence and a cancel default (for a likely slip: "Send to মা instead"). **STEP_UP** asks for the PIN again. **HOLD** pauses it for an analyst ("your money is still in your wallet"). 🔊 reads the warning aloud (the browser's own voice, no network). **Amount habit:** the amount screen shows "you usually send about Tk 600 (Tk 232 to 1,590), about 4 a week" and warns as you type when an amount is past the customer's own limit; the warning shows the last 30 amounts as dots with this one in red. **Mobile Recharge** with the same habit check and a rapid-recharge rule. Also: **Report a problem** (Banglish complaints, consent never pre-ticked, case tracker), an "Am I talking to a scammer?" checker, and **🧪 test numbers** from the dataset under Send Money and Recharge |
 | 2. Detection engine | `src/serve/live.py` + the trained bundle | The same streaming feature store, LightGBM, Isolation Forest, graph rules and four-band policy used in evaluation, plus the keypad-slip check with federated costs. Nothing is pre-recorded: every transfer is scored when it is sent |
-| 3. Investigation copilot | `ui/analyst.html` | Live queue (pre-send alerts and complaints; filters for complaints and wrong numbers), SHAP evidence, the money network, the digit diff for wrong numbers, the customer's own words for complaints, a four-part case report, actions that need an analyst's name. Tabs: Agent Watch, model and fairness, **federated learning and privacy**, hash-chained audit log |
+| 3. Investigation copilot | `ui/analyst.html` | Live queue (pre-send alerts, complaints and recharges; filters for complaints, wrong numbers, unusual amounts and recharges), SHAP evidence, the money network, the digit diff for wrong numbers, the customer's **amount habit** (usual amount, range, how often, this amount against the learned limit), the customer's own words for complaints, a four-part case report, actions that need an analyst's name. Tabs: Agent Watch, model and fairness, **federated learning and privacy** (slip costs, amount habits, cross-silo model), hash-chained audit log |
 
-`ui/index.html` shows the phone and the copilot side by side with the demo script along the top (on a phone it
-shows one at a time with a Phone / Copilot switch). The **বাং | EN** switch changes both screens at once.
+`ui/index.html` shows the phone and the copilot side by side with the demo script along the top. **Both | Phone only |
+Copilot only** in the header switches the layout on the same page: nothing reloads, so the engine and everything done
+so far stay (on a phone it shows one screen at a time). `index.html#phone` and `#copilot` open straight in that
+layout. **↺ reset demo** restages the world and restarts both screens in place. The **বাং | EN** switch changes both
+screens at once, and the language carries over when you open `app.html` or `analyst.html` on their own.
 
 **How the live demo world is made.** The API loads the feature store replayed to the end of the 60 days and moves
 the clock to 09:30 the next morning. It then *stages* scenarios as ordinary synthetic events in the same store the
@@ -69,6 +86,9 @@ Then the real model scores whatever the app sends:
 |---|---|---|
 | Rahim → his mother, Tk 800 | ALLOW | (none) |
 | Rahim → his mother's number with two digits swapped, Tk 800 | NUDGE (`possible_wrong_recipient`) | "Did you mean মা (01076254257)? You have sent there 14 times; digits 10 and 11 are swapped: you typed 75 instead of 57" + one-tap "Send to মা" |
+| Rahim → his mother, **Tk 15,000** (model alone: ALLOW, score 0) | NUDGE (`unusual_amount`) | "Unusual amount for you: you usually send about Tk 600 (Tk 232 to Tk 1,590 in your last 30); Tk 15,000 is 25 times that" + his last 30 amounts drawn next to this one |
+| Rahim recharges his own number Tk 1,000 (he usually recharges about Tk 99) | NUDGE (recharge habit) | "you usually recharge about Tk 99 …; Tk 1,000 is 10 times that". Tk 50 goes straight through |
+| Rahim recharges three different numbers Tk 100 each within an hour | third one NUDGE (`recharge_burst`) | "Recharge number 3 in the last hour, to 2 numbers that are not yours: scammers ask victims to recharge the scammers' own numbers" |
 | Rahim → a new number someone gave him, Tk 6,000 (found by rule: an ordinary wallet the model puts in NUDGE/STEP_UP) | NUDGE | amount vs his largest, first transfer to the number |
 | Rahim → collector, Tk 15,000 ("job deposit") | HOLD 100 | 14 different people paid this number in 24 h; fast money-movement ring; opened 2 days ago |
 | Rahim → fake seller, Tk 4,500 | HOLD | reported to 16268; opened 20 days ago; 6 different payers |
@@ -87,6 +107,10 @@ labelled with the synthetic ground truth so judges can see both kinds.
 **Rules that keep people in control** (plain code, `src/serve/live.py`, `copilot.py`):
 - The customer cancels or confirms NUDGE/STEP_UP warnings. A HOLD cannot be pushed through by the customer;
   only an analyst can release it. A likely keypad slip always gets a one-tap check, even when the model says ALLOW.
+  So does an amount past the customer's own habit (at least 16 times their usual Send Money amount and at least
+  Tk 2,000, or a 24-hour total at least 13 times their usual day and at least Tk 5,000; for recharges 9.5 times and
+  Tk 200). These rules only ask; they never block. Recharges are not scored by the model (it was not trained on
+  them): they get the habit check and the rapid-recharge rule.
 - Recommended actions come from a fixed list (freeze recipient, verify owner, contact senders, review agent,
   release, watchlist, dismiss, hold disputed amount, ask recipient consent, ask customer details), picked by rules.
   Every action needs an analyst name; a dismissal needs a reason.
@@ -106,7 +130,9 @@ API (stable contract `POST /api/v1/risk-score`):
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /api/v1/risk-score` | `{customer \| sender_id, to, amount, device_id?}` → band, score, Bangla/English reasons and message, allowed choices, `suggestion` (the contact probably meant, with the wrong digits) |
+| `POST /api/v1/risk-score` | `{customer \| sender_id, to, amount, device_id?}` → band, score, Bangla/English reasons and message, allowed choices, `suggestion` (the contact probably meant, with the wrong digits), `habit` (the customer's usual amount, this one's ratio, the learned limit) |
+| `POST /api/v1/recharge` | `{customer, number, amount}` (Tk 10 to 1,000) → ALLOW (done) or NUDGE (answer with `/decision`); `GET /api/v1/customers/{key}/recharges` lists them |
+| `GET /api/v1/test-kit` | the judges' test numbers from the dataset, each with what Prohori answered on a fresh demo |
 | `POST /api/v1/recipient-check` | as the number is typed: does a wallet use it, is it a known contact, or one slip from one |
 | `POST /api/v1/alerts/{id}/decision` | customer: `cancel` / `confirm` / `confirm_pin` / `use_suggested` |
 | `GET /api/v1/transfers/{id}` | customer's view of a warned transfer (status only) |
@@ -160,6 +186,32 @@ the tab too: features come from one feature store that sees all wallets (a real 
 cross-silo joins for counterparty and graph features); summed histograms are protected by secure aggregation but are
 not differentially private; policy thresholds were fitted on the pooled validation window.
 
+**③ Amount habits: how much is unusual for this customer** (`src/fl/amounts.py`, live in `src/serve/habits.py`).
+Each phone keeps its own last 30 Send Money amounts and last 30 recharges (with times): its usual amount (median),
+its range (middle half), how often, and its usual total on a day it is used. What counts as *unusual* is learned
+across phones with federated analytics: each phone turns its own history into two normalised histograms (how many
+times its own usual amount each transfer was, and each 24-hour total against its usual day), adds its share of
+Gaussian noise and sends them through secure aggregation; the server sets each limit where 0.75% (Send Money) or
+0.4% (recharge) of all transfers are above it. No amount, recipient, number or date leaves a phone, and no label is
+used (a phone does not know which of its transfers were fraud). Run on the real dataset: every wallet in the
+683,148 rows is one phone.
+
+| | Send Money | Mobile recharge |
+|---|---|---|
+| Phones (wallets) | 11,015 | 10,645 |
+| Unusual if this amount ≥ … × the customer's usual (federated · central) | **16×** · 13.5× (and ≥ Tk 2,000) | **9.5×** · 6.7× (and ≥ Tk 200) |
+| … or the 24-hour total ≥ … × the usual day | **13.5×** · 13.5× (and ≥ Tk 5,000) | **11.3×** · 9.5× (and ≥ Tk 500) |
+| Test window (days 51–60): honest transfers asked once | **0.62%** of 33,933 | **0.61%** of 23,586 |
+| Test window: scam transfers caught | 21.4% of 341 victim-side (coerced sends 57%, account-takeover drains 37%, mule hops 22%) | no recharge fraud in the data |
+| Privacy | (ε, δ) = (**1.66**, 10⁻⁵) for all four histograms together, one release | |
+
+It is one explainable signal on top of the model, not a replacement: the model already reads the amount against the
+sender's history (`amount_z`, `amount_vs_max`). What the habit adds is a check the customer can understand ("25 times
+what you usually send") even when the model says ALLOW. Limits: synthetic Send Money amounts are very spread (a
+customer's own transfers vary by a factor of about 2.3), so the limits are high; recharge amounts in the synthetic
+data barely depend on the customer, so that habit is weaker; the federated limits are one histogram bin from the
+central ones because of the noise.
+
 ---
 
 ## 1. Quick start
@@ -168,7 +220,7 @@ not differentially private; policy thresholds were fitted on the pooled validati
 python -m venv .venv && .venv/Scripts/activate        # Windows  (Linux/macOS: source .venv/bin/activate)
 pip install -r requirements.txt -c constraints.txt      # constraints = the versions the committed models were built with
 
-pytest                                                  # 50 tests, ~1 min (tiny world, product layer, wrong-number, complaints, FL)
+pytest                                                  # 58 tests, a few min (tiny world, product layer, wrong-number, complaints, FL, amount habits, recharge, test numbers)
 uvicorn src.serve.api:app --port 8000                   # API + UI on the committed models: http://localhost:8000
 
 python -m src.pipeline                                  # rebuild everything (Optuna 30 trials)
@@ -191,7 +243,9 @@ Individual stages:
 | Demo world | `python -m src.serve.demo_world` | `artifacts/demo_world.joblib`: recent edges, historical alerts with networks, demo customers |
 | FL on-device | `python -m src.fl.ondevice` | `artifacts/portable/slip_costs.json`, `reports/federated_ondevice.json` |
 | FL cross-silo | `python -m src.fl.fedgbdt [--trees 1500]` | `artifacts/fed_serve_bundle.joblib`, `reports/federated_crosssilo.json` |
-| Portable / static | `python -m src.serve.portable` · `python tools/build_static.py` | `artifacts/portable/` (incl. `federated.json`) · `site/` |
+| FL amount habits | `python -m src.fl.amounts` (~1 min, needs `data/generated/`) | `artifacts/portable/amount_habits.json` + `amount_profiles.npz`, `reports/federated_amounts.json` |
+| Portable / static | `python -m src.serve.portable` · `python tools/build_static.py` | `artifacts/portable/` (incl. `federated.json`, `test_kit.json`) · `site/` |
+| Test numbers | `python -m src.serve.testkit` (also run by the portable export) | `artifacts/portable/test_kit.json`, `data/sample/test_numbers.csv`, `docs/test_numbers.md` |
 
 **Kaggle / Colab:** open `notebooks/00_kaggle_end_to_end.ipynb`, add this repo as a Kaggle Dataset (or set
 `REPO_URL`), run all. Save `data/generated/` as a private Kaggle Dataset if you want to reuse it. Notebooks
@@ -206,18 +260,18 @@ src/validation/             checks.py (T1-T14) · run_checks.py
 src/features/               store.py (streaming store) · graph.py (hourly graph) · spec.py (feature groups) · build.py
 src/models/                 train.py · baselines.py · fusion.py (policy) · scoring.py · explain.py (SHAP -> Bangla/English reasons) · evaluate.py · metrics.py · plots.py
 src/agents/agent_watch.py   rogue-agent peer z-scores + register-compromise test
-src/fl/                     ondevice.py (slip costs, secure aggregation, DP) · fedgbdt.py (federated trees across 8 divisions) · summary.py
-src/serve/                  scorer.py (online engine) · live.py (live world, alerts, complaints, audit) · recipient.py (wrong-number check) ·
+src/fl/                     ondevice.py (slip costs, secure aggregation, DP) · amounts.py (amount habits, federated analytics) · fedgbdt.py (federated trees across 8 divisions) · summary.py
+src/serve/                  scorer.py (online engine) · live.py (live world, alerts, complaints, recharge, audit) · recipient.py (wrong-number check) · habits.py (amount habits) ·
                             complaints.py (Banglish complaint reader, transfer matching, SLA) · copilot.py (case reports) · scamcheck.py ·
-                            api.py · browser.py (same routes inside the browser) · portable.py · demo_world.py · export_state.py
+                            testkit.py (judges' test numbers) · api.py · browser.py (same routes inside the browser) · portable.py · demo_world.py · export_state.py
 ui/                         index.html (showcase) · app.html/app.js (upay-style customer app) · analyst.html/analyst.js (copilot) ·
                             prohori.css/js (Bangla/English switch, shared helpers) · fonts/ (Noto Sans Bengali) · engine.js/pyworker.js (in-browser engine)
 src/pipeline.py             one-command runner
-tests/                      pytest: data invariants, leakage, policy, reason codes, mini training, product layer, wrong-number check, complaints, federated learning
+tests/                      pytest: data invariants, leakage, policy, reason codes, mini training, product layer, wrong-number check, complaints, federated learning, amount habits, recharge, test numbers
 tools/                      build_static.py · deploy_space.py · readme_results.py · build_report_pdf.py
 notebooks/                  00 Kaggle end-to-end · 01 data · 02 features · 03 training · 04 test evaluation · 05 Agent Watch · 06 inference
-docs/                       data_dictionary.md · spec_review_fixes.md · prohori-plan.md · Prohori_Work_Breakdown.pdf
-data/sample/                ~20k-row sample (2 test days) + entity tables, committed
+docs/                       test_numbers.md · data_dictionary.md · spec_review_fixes.md · prohori-plan.md · Prohori_Work_Breakdown.pdf
+data/sample/                ~20k-row sample (2 test days) + entity tables + test_numbers.csv, committed
 artifacts/, reports/        trained bundle, federated bundle, demo state, demo world, portable models; all metrics and figures from the seed-42 run
 archive/ferot/              Track 06 prototype (see above)
 ```
@@ -433,12 +487,27 @@ need Hugging Face PRO, so the free deployment ships no server at all:
   (all 734 frauds plus 4,000 honest), every probability, score, band, policy override and SHAP contribution is
   identical to the pickled originals. In real Pyodide the largest difference on 1,000 rows is 1e-16.
 - `python tools/build_static.py` builds `site/`: the same `ui/` pages, `config.js` in browser mode, and
-  `py/prohori.zip` (our Python package plus the portable models, 6.4 MB). `ui/pyworker.js` boots Pyodide 0.28 in a Web
-  Worker (numpy, pandas and LightGBM from the jsDelivr CDN) and answers every `/api/v1` route through
-  `src/serve/browser.py`. The showcase's phone and copilot share one engine, so alerts still flow between them.
-- `python tools/deploy_space.py --space USER/prohori --static` uploads it (16 files, 6.7 MB). Measured on the live
-  Space: ready 15 s after opening, about 100 ms per scored transfer, about 340 MB of browser memory. In the browser
+  `py/prohori-<content hash>.zip` (our Python package plus the portable models, amount habits and test numbers,
+  8.1 MB). `ui/pyworker.js` boots Pyodide 0.28 in a Web Worker (numpy, pandas, SciPy and LightGBM from the jsDelivr
+  CDN) and answers every `/api/v1` route through `src/serve/browser.py`. The showcase's phone and copilot share one
+  engine, so alerts still flow between them; separate tabs (`app.html` in one, `analyst.html` in another) share one
+  too, through a SharedWorker, where the browser has it (desktop Chrome, Edge, Firefox, Safari).
+- `python tools/deploy_space.py --space USER/prohori --static` uploads it. Measured on the live Space before this
+  version: ready 15 s after opening, about 100 ms per scored transfer, about 340 MB of browser memory. In the browser
   the 24-hour graph snapshot from 09:30 is kept (networkx is not loaded); training also rebuilt it only hourly.
+
+<a id="caching-why-a-refresh-is-fast"></a>**Caching: why a refresh is fast.** Earlier, every refresh downloaded the
+model zip again: Hugging Face answers it with a redirect to a fresh signed URL marked `no-store`, so the browser
+cache never kept it, and each refresh (or each switch between phone only and copilot only) restarted everything. Now:
+- the zip is named by its content hash and kept in the browser's Cache Storage under that name; Pyodide and its
+  packages (versioned CDN URLs) are kept there too. A refresh downloads nothing: measured in Chrome, first visit
+  15 s, every refresh 6.6 s from the device (the rest is Python starting), and the start-up card says so.
+- a new deploy has a new zip name and a new build id (`?v=` on every script and stylesheet), so a stale copy is
+  never served; old zips are deleted from the cache.
+- scikit-learn (6.3 MB, plus its import time on every start) is no longer loaded: LightGBM only needs it for its
+  scikit-learn wrapper, which serving does not use.
+- switching Both / Phone only / Copilot only and ↺ reset happen on the page, without a reload.
+- the server version sends `Cache-Control: no-cache` for the UI (revalidate with the ETag), fonts for a week.
 
 **Server version on Hugging Face Docker Spaces (needs PRO) or any Docker host.** One command uploads only what the image
 needs (Dockerfile, pinned requirements, `config.yaml`, `src/`, `ui/`, three artifacts: about 9.5 MB):
