@@ -5,38 +5,58 @@ on:
   pull_request:
 
 jobs:
-  backend:
+  prohori:
+    name: Prohori (tests on the committed models + static build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            constraints.txt
+      - run: pip install -r requirements.txt -c constraints.txt
+      - name: Tests (data invariants, leakage, policy, models, product, wrong-number check, complaints, federated learning)
+        run: python -m pytest
+      - name: Static in-browser build
+        run: python tools/build_static.py
+
+  ferot-archive:
+    name: Ferot archive (Track 06 backend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: archive/ferot/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: archive/ferot/backend/requirements.txt
       - run: pip install -r requirements.txt
       - name: Build synthetic data and train models
         run: |
           python -m ferot.cli data
           python -m ferot.cli train
-      - name: Tests (rules R1-R20, models, API, injection suite)
+      - name: Tests
         run: python -m pytest
 
-  web:
+  ferot-web:
+    name: Ferot archive (web build)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: web
+        working-directory: archive/ferot/web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: archive/ferot/web/package-lock.json
       - run: npm ci
       - run: npm run build
 
@@ -46,7 +66,5 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Secret scan (rule R18)
+      - name: Secret scan
         uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
