@@ -2,6 +2,35 @@
 
 What changed in Ferot, newest first. All results are on synthetic data (held-out test window, days 75–90).
 
+## Unreleased — 2 October 2026: the upay-style app runs on the real API
+
+### Added
+- **upay-style wallet app at `/upay/`.** The team's upay-look phone app (`upay frontend clone/`) is served by
+  FastAPI and calls the live API through `ferot-api.js`:
+  - Send money runs the real Guard check: the typo sheet shows the real "Did you mean" number and how often it was
+    paid; the risk sheet lists the grounded reasons and advice, with the 30-second pause only for "review".
+    Cancel, fix the number and send anyway are recorded as Guard decisions.
+  - Contacts, balance and transaction history come from the synthetic ledger. Replaying the wrong transfer reuses
+    its real TrxID, so the complaint matches it.
+  - Report a problem creates a real case and shows its status, deadline, escalation route and contest option.
+  - The showcase page (`/upay/`) adds an inspector with the real Guard scores, the case's M4 verdict and reasons,
+    the M5 holdable curve, and a link to the case in the agent console.
+  - With no backend (e.g. the static Vercel copy) the pages keep their built-in simulation and say so. Add
+    `?api=https://<ferot-host>` to point them at a backend (list the page's origin in `FEROT_CORS_ORIGINS`).
+- `POST /api/v1/complaints/preview`: what the rules read from the customer's words (amount, number, time),
+  shown back before they submit. No model verdict and no LLM call.
+- `GET /api/v1/demo/customers` now includes each demo customer's balance and phone-book contacts.
+- 4 new tests (121 in total).
+
+### Changed
+- `POST /api/v1/guard/check` returns 404 for a number with no wallet in the demo data, instead of scoring it as a
+  wallet "opened 0 days ago".
+- On the upay-style pages: consent is no longer pre-ticked, the notice states purpose, retention, who sees the
+  data and how to withdraw (R8), and the sender's responsibility (R1). Claims nothing backed were removed
+  ("99.7% accurate", "95% stopped within 3 minutes", fixed probabilities), and the status step no longer says
+  "refund". The customer sees what was read from their words, never the model's verdict.
+- The 30-second countdown now restarts correctly when the risk sheet opens a second time.
+
 ## 0.2.0 — 1 October 2026: Ferot Guard and the redesign
 
 ### Added

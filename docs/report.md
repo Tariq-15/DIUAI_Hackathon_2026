@@ -44,7 +44,7 @@ action, measured by recovery, time-to-action and handling time.*
   with logged reveals, export for compliance, and a hash-chained audit trail.
 - **Evidence view:** alerting metrics, confusion matrix, baselines, queue simulation, fairness by customer group,
   mule clusters, AML queue, Guard warnings and a monthly dispute report for Bangladesh Bank (§16.3).
-- **Engineering:** FastAPI + React, one Docker image, 117 automated tests, CI with secret scanning.
+- **Engineering:** FastAPI + React, one Docker image, 121 automated tests, CI with secret scanning.
 
 ## 4. Key features and AI approach
 
