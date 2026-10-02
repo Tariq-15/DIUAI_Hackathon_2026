@@ -47,6 +47,9 @@ export default function App() {
                 </a>
               )
             })}
+            <a href="/upay/" className="px-3 py-3 md:py-5 text-[14.5px] whitespace-nowrap text-mist hover:text-paper transition-colors">
+              upay-style app ↗
+            </a>
           </nav>
           <span className="ml-auto hidden lg:flex items-center gap-2 text-[12.5px] text-mist">
             <span className={`w-2 h-2 rounded-full ${health ? 'bg-[#9fe0c3]' : health === null ? 'bg-signal' : 'bg-mist'}`} aria-hidden="true" />

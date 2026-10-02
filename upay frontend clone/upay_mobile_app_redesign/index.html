@@ -46,6 +46,9 @@
   <!-- Confetti library for celebration animations -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
+  <!-- Ferot API bridge: real Guard checks, complaints and case status when the backend is reachable -->
+  <script src="ferot-api.js"></script>
+
   <style>
     body {
       font-family: 'Hind Siliguri', sans-serif;
@@ -107,8 +110,9 @@
           <div class="flex items-center space-x-1.5">
             <span class="font-bold text-sm tracking-tight text-white">উপায় <span class="text-upayYellow">AI Showcase</span></span>
             <span class="text-[10px] bg-sky-900 text-sky-200 px-1.5 py-0.2 rounded font-semibold border border-sky-700">Hackathon 2026</span>
+            <span id="ferot-live-badge" class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.2 rounded font-semibold border border-slate-600">সংযোগ হচ্ছে…</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-sans">Ferot Guard (M1-M6) • Synthetic Data Only (Rule R16)</p>
+          <p class="text-[10px] text-slate-400 font-sans">প্রোটোটাইপ • সিন্থেটিক ডেটা (R16) • upay-এর আসল অ্যাপ নয়</p>
         </div>
       </div>
     </div>
@@ -362,7 +366,7 @@
                       <div class="z-10 w-20 h-20 bg-white/10 rounded-2xl border border-white/20 backdrop-blur-sm flex flex-col items-center justify-center p-2 text-center shadow-inner">
                         <span class="text-2xl mb-0.5">🛡️</span>
                         <span class="text-[9px] font-extrabold text-upayYellow uppercase leading-none">Ferot M1-6</span>
-                        <span class="text-[8px] text-sky-200 leading-none mt-1">99.7% নির্ভুল</span>
+                        <span class="text-[8px] text-sky-200 leading-none mt-1">পাঠানোর আগেই যাচাই</span>
                       </div>
                       <div class="absolute -right-4 -bottom-4 w-28 h-28 bg-sky-400/20 rounded-full blur-xl pointer-events-none"></div>
                     </div>
@@ -562,15 +566,15 @@
                     <!-- Quick Demo Scenario Pills (To trigger models easily) -->
                     <div class="mt-3 flex flex-wrap gap-1.5">
                       <span class="text-[10px] text-gray-500 w-full font-medium">শোকেস বাটন (১ ক্লিকে টেস্ট করুন):</span>
-                      <button onclick="App.selectContact('01012345687', 'রহিমের ভাই (টাইপো টেস্ট)', 'typo')" class="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-1 rounded-full hover:bg-amber-200 transition flex items-center space-x-1">
+                      <button onclick="App.loadScenario('typo')" class="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-1 rounded-full hover:bg-amber-200 transition flex items-center space-x-1">
                         <span>🟡</span>
                         <span>কেস ১: রহিমের ভুল ডিজিট (টাইপো গার্ড)</span>
                       </button>
-                      <button onclick="App.selectContact('01099988877', 'অজ্ঞাত প্রতারক চক্র (স্ক্যাম টেস্ট)', 'scam')" class="text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300 px-2 py-1 rounded-full hover:bg-rose-200 transition flex items-center space-x-1">
+                      <button onclick="App.loadScenario('scam')" class="text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300 px-2 py-1 rounded-full hover:bg-rose-200 transition flex items-center space-x-1">
                         <span>🔴</span>
                         <span>কেস ২: সন্দেহভাজন স্ক্যাম ওয়ালেট</span>
                       </button>
-                      <button onclick="App.selectContact('01033344455', 'Abdullah Al Abid', 'safe')" class="text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-1 rounded-full hover:bg-emerald-200 transition flex items-center space-x-1">
+                      <button onclick="App.loadScenario('safe')" class="text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-1 rounded-full hover:bg-emerald-200 transition flex items-center space-x-1">
                         <span>🟢</span>
                         <span>কেস ৩: নিরাপদ লেনদেন</span>
                       </button>
@@ -828,7 +832,7 @@
                       </div>
                       <div class="flex justify-between items-center text-xs">
                         <span class="text-gray-500">সময়:</span>
-                        <span class="font-sans text-gray-700">আজ দুপুর ১১:৪৭</span>
+                        <span id="success-time" class="font-sans text-gray-700">আজ দুপুর ১১:৪৭</span>
                       </div>
                     </div>
 
@@ -839,10 +843,10 @@
                         <div>
                           <h4 class="text-xs font-bold text-amber-950 leading-tight">ভুল নম্বরে পাঠিয়েছেন? এখনই জানান!</h4>
                           <p class="text-[11px] text-amber-900 mt-1 leading-snug">
-                            যত দ্রুত জানাবেন, তত বেশি টাকা রিকভারি সম্ভব (৩ মিনিটের মধ্যে ৯৫% অর্থ ক্যাশ-আউট ঠেকানো যায়)।
+                            যত তাড়াতাড়ি জানাবেন, তত বেশি টাকা আটকানো যেতে পারে। ফেরত পাওয়া প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে।
                           </p>
                           <button onclick="App.reportDisputeFromSuccess()" class="mt-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center space-x-1.5 active:scale-95 transition">
-                            <span>🛡️ সমস্যা জানান / রিকভারি শুরু করুন</span>
+                            <span>🛡️ এখনই সমস্যা জানান</span>
                             <span>→</span>
                           </button>
                         </div>
@@ -995,7 +999,7 @@
                       <p class="text-[10px] text-sky-300">Model 2: M1 NLP + M4 Classifier + M5 Recovery</p>
                     </div>
                   </div>
-                  <span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">BB Rule R14</span>
+                  <span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">SLA ১০ কর্মদিবস (R2)</span>
                 </header>
 
                 <!-- Workflow Stepper / Step 1 to 4 -->
@@ -1053,10 +1057,10 @@
                     <!-- Pre-filled Sample Complaint Chips -->
                     <div class="mt-2 flex flex-wrap gap-1">
                       <span class="text-[9px] text-gray-500 w-full">দ্রুত টেস্ট প্রম্পট:</span>
-                      <button onclick="App.fillSampleComplaint('typo')" class="text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full transition">
+                      <button id="sample-chip-typo" onclick="App.fillSampleComplaint('typo')" class="text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full transition">
                         🟡 "ভাইকে ৫০০০ টাকা পাঠাতে ভুলে অন্য নাম্বারে দিয়েছি..."
                       </button>
-                      <button onclick="App.fillSampleComplaint('scam')" class="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 px-2 py-0.5 rounded-full transition">
+                      <button id="sample-chip-scam" onclick="App.fillSampleComplaint('scam')" class="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 px-2 py-0.5 rounded-full transition">
                         🔴 "অনলাইন জবের কথা বলে ৫০০০ নিল, এখন কল ধরছে না..."
                       </button>
                     </div>
@@ -1067,7 +1071,7 @@
                     <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-700/80">
                       <div class="flex items-center space-x-1.5">
                         <span class="text-sm">⚡</span>
-                        <h4 class="text-xs font-bold text-sky-300">রিয়েল-টাইম AI পার্সিং ও প্রিভিউ (M1-M5)</h4>
+                        <h4 id="ai-preview-title" class="text-xs font-bold text-sky-300">রিয়েল-টাইম AI পার্সিং ও প্রিভিউ (M1-M5)</h4>
                       </div>
                       <span class="text-[9px] bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded font-mono font-bold">NLP Live</span>
                     </div>
@@ -1079,13 +1083,13 @@
                         <strong id="extracted-amount" class="text-amber-300 font-bold text-xs">৳ ৫,০০০</strong>
                       </div>
                       <div class="bg-white/10 rounded-lg p-2">
-                        <span class="text-slate-400 block text-[9px]">সম্ভাব্য মূল নম্বর (M3):</span>
+                        <span id="extracted-intended-label" class="text-slate-400 block text-[9px]">সম্ভাব্য মূল নম্বর (M3):</span>
                         <strong id="extracted-intended" class="text-emerald-300 font-bold text-xs">01012345678 (98.4%)</strong>
                       </div>
                     </div>
 
                     <!-- AI Classification & Recoverability Bar -->
-                    <div class="space-y-2 pt-1 border-t border-slate-700/60">
+                    <div id="ai-verdict-block" class="space-y-2 pt-1 border-t border-slate-700/60">
                       <div class="flex justify-between items-center text-xs">
                         <span class="text-slate-300 text-[11px]">AI রায় (M4 Classifier):</span>
                         <span id="ai-verdict-badge" class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-bold px-2 py-0.5 rounded">
@@ -1115,14 +1119,15 @@
                   <div class="bg-amber-50 rounded-xl p-3 border border-amber-200 text-slate-800 text-[11px] leading-relaxed">
                     <p class="font-bold text-amber-900 mb-1 flex items-center space-x-1">
                       <span>📜</span>
-                      <span>বাংলাদেশ ব্যাংক কমপ্লায়েন্স ও দায়িত্ব বিজ্ঞপ্তি (Rule R14):</span>
+                      <span>আপনার তথ্য ও দায়িত্ব বিজ্ঞপ্তি (R1, R4, R8):</span>
                     </p>
                     <p class="text-[10px] text-gray-700 mb-2">
-                      অভিযোগ নিষ্পত্তিতে বাংলাদেশ ব্যাংক নির্দেশিকা মোতাবেক ১০ কর্মদিবসের মধ্যে ফলাফল জানানো হবে। আপনার বিবরণী ৬ বছর সুরক্ষিত অডিট চেইনে সংরক্ষিত থাকবে।
+                      আপনার অভিযোগ প্রক্রিয়া করতে আমরা আপনার লেখা বিবরণ ও লেনদেনের তথ্য ব্যবহার করব। উদ্দেশ্য: বিরোধ নিষ্পত্তি ও প্রতারণা প্রতিরোধ। সংরক্ষণ: অন্তত ৬ বছর (বাংলাদেশ ব্যাংকের নিয়ম)। কারা দেখবেন: গ্রাহকসেবা, প্রতারণা প্রতিরোধ ও কমপ্লায়েন্স টিম। ১৬২৬৮ নম্বরে কল করে পরবর্তী প্রক্রিয়ার সম্মতি প্রত্যাহার করতে পারেন; আইন অনুযায়ী যে রেকর্ড রাখতে হয় তা রাখা হবে।</p>
+                  <p class="text-[10px] text-amber-900 font-semibold mb-2">মনে রাখবেন: সঠিক নম্বরে টাকা পাঠানোর দায়িত্ব প্রেরকের। অর্থ ফেরত পাওয়া প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে। ১০ কর্মদিবসের মধ্যে আমরা আপনাকে জানাব। সন্তুষ্ট না হলে বাংলাদেশ ব্যাংকে অভিযোগ করতে পারবেন।
                     </p>
                     <label class="flex items-center space-x-2 text-xs font-semibold text-gray-900 cursor-pointer">
-                      <input id="dispute-consent-checkbox" type="checkbox" checked class="rounded text-upayBlue focus:ring-0">
-                      <span>আমি বিবরণটি সত্য নিশ্চিত করছি ও শর্তাবলীতে সম্মত।</span>
+                      <input id="dispute-consent-checkbox" type="checkbox" class="rounded text-upayBlue focus:ring-0">
+                      <span>আমি পড়েছি, বিবরণটি সত্য এবং আমি সম্মতি দিচ্ছি।</span>
                     </label>
                   </div>
 
@@ -1157,66 +1162,42 @@
 
                 <main class="flex-1 overflow-y-auto p-4 space-y-4">
                   <!-- Case Header Pill -->
-                  <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                    <div class="flex justify-between items-start mb-2">
-                      <div>
-                        <span class="text-[10px] text-gray-500 block">কেস রেফারেন্স নম্বর:</span>
-                        <strong id="status-case-id" class="text-sm font-bold text-gray-900 font-mono">UPAY-DISPUTE-2026-8821</strong>
-                      </div>
-                      <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
-                        পদক্ষেপ গ্রহণ চলছে
-                      </span>
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <span class="text-[10px] text-gray-500 block">কেস রেফারেন্স নম্বর:</span>
+                      <strong id="status-case-id" class="text-sm font-bold text-gray-900 font-mono">—</strong>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200 text-gray-700">
-                      <div>
-                        <span class="text-[10px] text-gray-500 block">বিরোধকৃত অর্থ:</span>
-                        <span class="font-bold text-slate-900 font-sans">৳ ৫,০০০.০০</span>
-                      </div>
-                      <div>
-                        <span class="text-[10px] text-gray-500 block">বাংলাদেশ ব্যাংক SLA:</span>
-                        <span class="font-bold text-indigo-700">১০ কর্মদিবস বাকি</span>
-                      </div>
+                    <span id="status-pill" class="text-[10px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-300">পর্যালোচনা চলছে</span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200 text-gray-700">
+                    <div>
+                      <span class="text-[10px] text-gray-500 block">বিরোধকৃত অর্থ:</span>
+                      <span id="status-amount" class="font-bold text-slate-900 font-sans">—</span>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-gray-500 block">জানানোর শেষ দিন (SLA):</span>
+                      <span id="status-sla" class="font-bold text-indigo-700">১০ কর্মদিবস</span>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Visual Progress Stepper (4 steps) -->
-                  <div class="bg-white border border-gray-200 rounded-2xl p-4">
-                    <h3 class="text-xs font-bold text-gray-900 mb-3">অগ্রগতি পর্যায়সমূহ</h3>
-                    
-                    <div class="space-y-4 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 pl-8">
-                      <!-- Step 1: Received -->
-                      <div class="relative">
-                        <span class="absolute -left-8 top-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
-                        <h4 class="text-xs font-bold text-gray-900">১. অভিযোগ গৃহীত (Received)</h4>
-                        <p class="text-[11px] text-gray-500 mt-0.5">গ্রাহকের আবেদন লিপিবদ্ধ ও অডিট চেইনে সংরক্ষিত।</p>
-                      </div>
+                <!-- Visual Progress Stepper (4 steps), filled by renderCaseStatus() -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4">
+                  <h3 class="text-xs font-bold text-gray-900 mb-3">অগ্রগতি পর্যায়সমূহ</h3>
+                  <div id="status-steps" class="space-y-4 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 pl-8"></div>
+                </div>
 
-                      <!-- Step 2: Evaluated by M4 & Policy -->
-                      <div class="relative">
-                        <span class="absolute -left-8 top-0.5 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
-                        <h4 class="text-xs font-bold text-gray-900">২. এআই ও পলিসি যাচাই সম্পন্ন</h4>
-                        <p class="text-[11px] text-gray-500 mt-0.5">মডেল ৪ অনুযায়ী "প্রকৃত ভুল প্রেরণ" হিসেবে চিহ্নিত (আস্থা ৮২%)।</p>
-                      </div>
+                <!-- What happens next and where to escalate (R1, R4) -->
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-[11px] leading-relaxed text-amber-950 space-y-1.5">
+                  <p id="status-message">১০ কর্মদিবসের মধ্যে আপনাকে জানানো হবে। অর্থ ফেরত পাওয়া প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে।</p>
+                  <p id="status-escalation">সন্তুষ্ট না হলে বাংলাদেশ ব্যাংকের কাস্টমার্স ইন্টারেস্ট প্রটেকশন সেন্টারে অভিযোগ করতে পারবেন (হটলাইন ১৬২৩৬)। উপায় হেল্পলাইন: ১৬২৬৮।</p>
+                  <p class="font-bold text-rose-700">উপায় কখনো আপনার পিন বা ওটিপি চায় না।</p>
+                </div>
 
-                      <!-- Step 3: Temporary Hold -->
-                      <div class="relative">
-                        <span class="absolute -left-8 top-0.5 w-6 h-6 rounded-full bg-upayBlue text-white flex items-center justify-center text-xs font-bold shadow-xs animate-pulse">৩</span>
-                        <h4 class="text-xs font-bold text-upayBlue">৩. সাময়িক তহবিল হোল্ড কার্যকর</h4>
-                        <p class="text-[11px] text-gray-600 mt-0.5">প্রাপকের ওয়ালেটে বিদ্যমান ৳৪,২০০ সাময়িক সংরক্ষিত ও সম্মতি বার্তা প্রেরিত।</p>
-                      </div>
-
-                      <!-- Step 4: Resolution -->
-                      <div class="relative opacity-60">
-                        <span class="absolute -left-8 top-0.5 w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">৪</span>
-                        <h4 class="text-xs font-bold text-gray-700">৪. চূড়ান্ত নিষ্পত্তি ও অর্থ ফেরত</h4>
-                        <p class="text-[11px] text-gray-500 mt-0.5">প্রাপকের সম্মতি সাপেক্ষে অর্থ ফেরত বা আইনি সিদ্ধান্ত।</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Actions: Contest / Helpline / Done -->
+                <!-- Actions: Contest / Helpline / Done -->
                   <div class="space-y-2 pt-2">
-                    <button onclick="App.showQuickModal('মানব পর্যালোচনার অনুরোধ', 'আপনার আবেদনটি স্পেশালিস্ট অ্যানালিস্টের ম্যানুয়াল রিভিউ কিউতে যুক্ত করা হয়েছে।')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition border border-slate-300">
+                    <button onclick="App.contestCase()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-2.5 rounded-xl text-xs transition border border-slate-300">
                       🧑‍💼 মানব পর্যালোচনার অনুরোধ জানান
                     </button>
                     <button onclick="App.openScreen('home')" class="w-full bg-upayBlue hover:bg-[#004280] text-white font-bold py-2.5 rounded-xl text-xs transition">
@@ -1889,11 +1870,11 @@
                   </div>
                   <div>
                     <h3 class="text-base font-bold text-gray-900 leading-tight">একটু থামুন! সঠিক নম্বর তো?</h3>
-                    <p class="text-[11px] text-amber-700 font-semibold">Ferot Guard টাইপো অ্যালার্ট (Keypad Distance 1.2)</p>
+                    <p id="typo-guard-sub" class="text-[11px] text-amber-700 font-semibold">Ferot Guard টাইপো সতর্কতা</p>
                   </div>
                 </div>
 
-                <p class="text-xs text-gray-600 mb-3 leading-relaxed">
+                <p id="typo-guard-text" class="text-xs text-gray-600 mb-3 leading-relaxed">
                   আপনি যে নম্বরে টাকা পাঠাচ্ছেন, সেটি আপনার নিয়মিত প্রেরিত নম্বরের সাথে প্রায় মিলে যায় (১ ডিজিটের ব্যবধান)।
                 </p>
 
@@ -1902,9 +1883,9 @@
                   <!-- Regular contact -->
                   <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-amber-100">
                     <div>
-                      <span class="text-[10px] text-gray-500 block">নিয়মিত পাঠান (১১ বার পাঠানো হয়েছে):</span>
-                      <span class="font-bold text-emerald-800 text-sm tracking-wide">010123456<span class="bg-emerald-200 text-emerald-900 px-0.5 rounded font-black">78</span></span>
-                      <span class="text-[10px] text-gray-500 ml-1">(রহিমের ভাই)</span>
+                      <span id="typo-usual-label" class="text-[10px] text-gray-500 block">নিয়মিত পাঠান (১১ বার পাঠানো হয়েছে):</span>
+                      <span id="typo-usual-number" class="font-bold text-emerald-800 text-sm tracking-wide">010123456<span class="bg-emerald-200 text-emerald-900 px-0.5 rounded font-black">78</span></span>
+                      <span id="typo-usual-name" class="text-[10px] text-gray-500 ml-1">(রহিমের ভাই)</span>
                     </div>
                     <span class="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded">সঠিক নম্বর</span>
                   </div>
@@ -1913,7 +1894,7 @@
                   <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-rose-100">
                     <div>
                       <span class="text-[10px] text-gray-500 block">এখন লিখেছেন (ডিজিট অদলবদল):</span>
-                      <span class="font-bold text-rose-800 text-sm tracking-wide">010123456<span class="bg-rose-200 text-rose-900 px-0.5 rounded font-black">87</span></span>
+                      <span id="typo-typed-number" class="font-bold text-rose-800 text-sm tracking-wide">010123456<span class="bg-rose-200 text-rose-900 px-0.5 rounded font-black">87</span></span>
                     </div>
                     <span class="text-[10px] bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded">টাইপো অদলবদল</span>
                   </div>
@@ -1922,7 +1903,7 @@
                 <!-- Action Buttons -->
                 <div class="space-y-2">
                   <button onclick="App.fixTypoAndSend()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-2.5 rounded-xl shadow-md text-xs flex items-center justify-center space-x-1.5 transition">
-                    <span>✓ সঠিক নম্বরে পাঠান (01012345678)</span>
+                    <span id="typo-fix-label">✓ সঠিক নম্বরে পাঠান (01012345678)</span>
                   </button>
                   <div class="flex space-x-2">
                     <button onclick="App.cancelGuardModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-2 rounded-xl text-xs transition">
@@ -1946,13 +1927,13 @@
                     🚨
                   </div>
                   <div>
-                    <h3 class="text-base font-bold text-gray-900 leading-tight">এই লেনদেনটি অত্যন্ত ঝুঁকিপূর্ণ!</h3>
-                    <p class="text-[11px] text-rose-700 font-semibold">Ferot Guard উচ্চ ঝুঁকি সতর্কতা (Scam Probability 91%)</p>
+                    <h3 id="scam-guard-title" class="text-base font-bold text-gray-900 leading-tight">এই লেনদেনটি অত্যন্ত ঝুঁকিপূর্ণ!</h3>
+                    <p id="scam-guard-sub" class="text-[11px] text-rose-700 font-semibold">Ferot Guard ঝুঁকি সতর্কতা</p>
                   </div>
                 </div>
 
                 <!-- Red Flags Identified by ML -->
-                <div class="bg-rose-50 rounded-2xl p-3 border border-rose-200 space-y-1.5 mb-3 text-xs">
+                <div id="scam-guard-reasons" class="bg-rose-50 rounded-2xl p-3 border border-rose-200 space-y-1.5 mb-3 text-xs">
                   <div class="flex items-start space-x-1.5 text-rose-900">
                     <span>🚩</span>
                     <span class="leading-tight">প্রাপক ওয়ালেটটি মাত্র <strong>২৩ দিন পুরানো</strong> (নতুন ড্রপ অ্যাকাউন্ট)।</span>
@@ -1968,7 +1949,8 @@
                 </div>
 
                 <!-- 30-Second Cooldown Safety Timer -->
-                <div class="bg-slate-100 rounded-2xl p-3 text-center mb-3">
+                <p id="scam-guard-advice" class="hidden bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-2.5 mb-3 text-[11px] leading-snug"></p>
+              <div id="scam-cooldown-box" class="bg-slate-100 rounded-2xl p-3 text-center mb-3">
                   <div class="text-[11px] text-gray-600 mb-1">
                     ঝুঁকিপূর্ণ লেনদেনে ভাবার জন্য <strong>৩০ সেকেন্ড সময়</strong> প্রদান করা হয়:
                   </div>
@@ -2060,7 +2042,7 @@
               <h2 class="text-sm font-bold text-white tracking-wide uppercase">AI Model Live Inspector & Telemetry</h2>
             </div>
             <span class="text-[10px] font-mono bg-sky-950 text-sky-300 px-2 py-0.5 rounded border border-sky-800">
-              v2026.10-FEROT
+              <span id="telemetry-version">v2026.10-FEROT</span>
             </span>
           </div>
           <p class="text-[11px] text-slate-400 mt-1">
@@ -2086,7 +2068,7 @@
             <!-- Features & Scores Grid -->
             <div class="grid grid-cols-3 gap-2 text-[10px] font-sans">
               <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
-                <span class="text-slate-400 block text-[9px]">Keypad Distance:</span>
+                <span class="text-slate-400 block text-[9px]">টাইপো মিল (M3):</span>
                 <strong id="telemetry-keypad-dist" class="text-amber-400 text-xs font-bold">0.0 (স্বাভাবিক)</strong>
               </div>
               <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800">
@@ -2120,14 +2102,15 @@
               </span>
             </div>
 
-            <!-- TreeSHAP Feature Attribution Bar Chart Simulator -->
+            <!-- M4 verdict and its top reasons: the real case file in live mode -->
+            <p id="telemetry-m2-verdict" class="text-[11px] text-slate-300 leading-snug mb-2">গ্রাহক অভিযোগ জমা দিলে আসল কেস ফাইল এখানে দেখাবে।</p>
             <div class="space-y-1.5 text-[10px]">
               <div class="flex justify-between text-slate-400">
-                <span>M4 TreeSHAP মূল প্রভাবকসমূহ:</span>
+                <span>M4 মূল প্রভাবকসমূহ:</span>
                 <span class="text-sky-300">যোগদান মাত্রা (+SHAP)</span>
               </div>
               
-              <div class="space-y-1">
+              <div id="telemetry-m2-reasons" class="space-y-1">
                 <div>
                   <div class="flex justify-between text-[9px] text-slate-300">
                     <span>প্রেরক-প্রাপক সম্পর্কের ইতিহাস</span>
@@ -2164,9 +2147,9 @@
             <div class="mt-3 pt-2 border-t border-slate-800/80">
               <div class="flex justify-between items-center text-[10px] mb-1">
                 <span class="text-slate-300 font-bold">M5 রিকভারিবিলিটি টাইম ডিকে:</span>
-                <span class="text-emerald-400 font-mono">Holdable: ৳৪,২০০</span>
+                <span id="telemetry-m2-holdable" class="text-emerald-400 font-mono">Holdable: ৳৪,২০০</span>
               </div>
-              <div class="grid grid-cols-3 gap-1.5 text-center text-[9px] font-sans">
+              <div id="telemetry-m2-curve" class="grid grid-cols-3 gap-1.5 text-center text-[9px] font-sans">
                 <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
                   <span class="text-slate-400 block">০-১০ মিনিট</span>
                   <strong class="text-emerald-400 text-[10px]">৮৪% সম্ভাব্যতা</strong>
@@ -2183,6 +2166,8 @@
             </div>
           </div>
 
+          <a id="telemetry-m2-console" href="#" target="_blank" rel="noopener" class="hidden -mt-2 block text-[11px] text-sky-300 hover:text-white underline px-1">এজেন্ট কনসোলে এই কেস খুলুন (মানুষ অনুমোদন দেবেন) ↗</a>
+
           <!-- COMPLIANCE & GOVERNANCE PANEL -->
           <div class="bg-slate-900/70 rounded-2xl p-3 border border-slate-800 text-[11px]">
             <h4 class="text-xs font-bold text-emerald-400 mb-1 flex items-center space-x-1.5">
@@ -2190,16 +2175,17 @@
               <span>Bangladesh Bank & Upay পলিসি কমপ্লায়েন্স:</span>
             </h4>
             <ul class="space-y-1 text-slate-300 text-[10px] list-disc list-inside">
-              <li><strong>Rule R14:</strong> সর্বোচ্চ ১০ কার্যদিবসের মধ্যে অভিযোগের বাধ্যবাধকতা নিষ্পত্তি।</li>
-              <li><strong>Rule R16:</strong> শতভাগ সিন্থেটিক ডেটাসেটে মডেল ট্রেন্ড ও ভ্যালিডেটেড।</li>
-              <li><strong>Rule R1:</strong> কোনো টাকা সরাসরি অটো-রিফান্ড প্রতিশ্রুতি নয়; গ্রাহক স্বায়ত্তশাসন ও সম্মতি রক্ষা।</li>
+              <li><strong>R2:</strong> সর্বোচ্চ ১০ কার্যদিবসের মধ্যে অভিযোগ নিষ্পত্তি, প্রতিটি কেসে SLA টাইমার।</li>
+              <li><strong>R6:</strong> প্রতিটি হোল্ড বা সিদ্ধান্ত একজন কর্মকর্তা অনুমোদন করেন; এআই শুধু সুপারিশ দেয়।</li>
+              <li><strong>R16:</strong> শতভাগ সিন্থেটিক ডেটাসেটে মডেল ট্রেন্ড ও ভ্যালিডেটেড।</li>
+              <li><strong>R1:</strong> কোনো টাকা সরাসরি অটো-রিফান্ড প্রতিশ্রুতি নয়; গ্রাহক স্বায়ত্তশাসন ও সম্মতি রক্ষা।</li>
             </ul>
           </div>
         </div>
 
         <!-- Telemetry Bottom Bar: Quick Trigger Scenarios -->
         <div class="border-t border-slate-800 pt-3 flex items-center justify-between">
-          <span class="text-[10px] text-slate-400 font-mono">Inference Engine: Ready</span>
+          <span id="telemetry-engine" class="text-[10px] text-slate-400 font-mono">সংযোগ হচ্ছে…</span>
           <div class="flex space-x-1.5">
             <button onclick="App.loadScenario('typo')" class="text-[10px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-2.5 py-1 rounded font-semibold border border-amber-500/30 transition">
               টাইপো টেস্ট
@@ -2245,14 +2231,14 @@
           <div class="w-9 h-9 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center text-sm">র</div>
           <div>
             <h4 class="text-xs font-bold text-gray-900">রহিম উদ্দিন (সাধারণ গ্রাহক, রাজশাহী)</h4>
-            <p class="text-[10px] text-gray-600 font-sans">010555-01234 • ব্যালেন্স: ৳ ২৫,৪৭৫.৫০</p>
+            <p id="profile-meta-rahim" class="text-[10px] text-gray-600 font-sans">010555-01234 • ব্যালেন্স: ৳ ২৫,৪৭৫.৫০</p>
           </div>
         </button>
         <button onclick="App.switchUser('shirin')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:bg-slate-50 flex items-center space-x-3 transition">
           <div class="w-9 h-9 rounded-full bg-rose-500 text-white font-bold flex items-center justify-center text-sm">শি</div>
           <div>
             <h4 class="text-xs font-bold text-gray-900">শিরিন আক্তার (অবসরপ্রাপ্ত শিক্ষিকা, সিলেট)</h4>
-            <p class="text-[10px] text-gray-600 font-sans">010777-00111 • ব্যালেন্স: ৳ ১২,৩০০.০০</p>
+            <p id="profile-meta-shirin" class="text-[10px] text-gray-600 font-sans">010777-00111 • ব্যালেন্স: ৳ ১২,৩০০.০০</p>
           </div>
         </button>
       </div>
@@ -2334,6 +2320,18 @@
         enteredPin: '',
         // Active history filter
         historyFilter: 'all',
+        // Live Ferot API (ferot-api.js). false = the built-in offline simulation.
+        live: false,
+        who: null,
+        customers: [],
+        check: null,
+        guardBusy: false,
+        submitting: false,
+        caseId: null,
+        caseAmount: null,
+        caseStatus: null,
+        previewTimer: null,
+        disputeTxId: null,
         // Selected txn for modal
         selectedTxn: null,
         // Cooldown timer
@@ -2407,9 +2405,11 @@
       // Initialize
       function init() {
         startClock();
+        connectFerot();
         renderContacts(state.contacts);
         renderHistory();
         renderDisputeTransactions();
+        renderCaseStatus({ case_id: 'UPAY-DISPUTE-2026-8821', step: 1, deadline: null, can_contest: false }, 5000);
         updateBalanceDisplay();
         updateLayout();
         calculateCashoutFee(1000);
@@ -2446,6 +2446,307 @@
           container.classList.add('justify-center');
           container.classList.remove('lg:justify-between');
           toggleBtnLabel.textContent = 'স্প্লিট শোকেস ভিউ';
+        }
+      }
+
+      // ==============================================================
+      // FEROT API (live mode): real customers, Guard checks and cases
+      // ==============================================================
+      const BN_NAMES = { rahim: 'রহিম উদ্দিন', shirin: 'শিরিন আক্তার' };
+      const CONTACT_NAMES = ['Abdullah Al Abid', 'ফারহানা হক', 'নুসরাত জাহান', 'তানভীর আহমেদ', 'সাবরিনা ইসলাম'];
+      const STATUS_STEPS = [
+        ['গৃহীত', 'অভিযোগ লিপিবদ্ধ ও অডিট লগে সংরক্ষিত।'],
+        ['পর্যালোচনা চলছে', 'একজন কর্মকর্তা প্রমাণ দেখে সিদ্ধান্ত নেবেন। এআই শুধু তথ্য গুছিয়ে দেয়।'],
+        ['পদক্ষেপ নেওয়া হয়েছে', 'প্রয়োজনে শুধু বিরোধকৃত পরিমাণ সাময়িক হোল্ড, আর প্রাপককে জানানো।'],
+        ['নিষ্পত্তি', 'অর্থ ফেরত প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে।']
+      ];
+
+      function setLiveBadge(health) {
+        const badge = document.getElementById('ferot-live-badge');
+        if (!badge) return;
+        if (health) {
+          badge.textContent = 'লাইভ Ferot API';
+          badge.className = 'text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded font-semibold border border-emerald-700 whitespace-nowrap';
+          badge.title = `Guard, অভিযোগ ও কেস স্ট্যাটাস আসল Ferot ব্যাকএন্ড থেকে আসছে (মডেল ${health.model_version})`;
+        } else {
+          badge.textContent = 'অফলাইন সিমুলেশন';
+          badge.className = 'text-[10px] bg-amber-950 text-amber-300 px-1.5 py-0.2 rounded font-semibold border border-amber-700 whitespace-nowrap';
+          badge.title = 'Ferot API পাওয়া যায়নি, তাই পেজটি নিজস্ব সিমুলেশন দেখাচ্ছে। ?api=https://… দিয়ে ব্যাকএন্ড যুক্ত করুন।';
+        }
+      }
+
+      async function connectFerot() {
+        const health = window.Ferot ? await Ferot.connect() : null;
+        if (health) {
+          try {
+            state.customers = await Ferot.customers();
+          } catch (e) {
+            state.customers = [];
+          }
+        }
+        if (!health || !state.customers.length) {
+          setLiveBadge(null);
+          onLiveChange(null);
+          return;
+        }
+        state.live = true;
+        setLiveBadge(health);
+        applyLiveLayout();
+        applyCustomer(state.customers.find(c => c.key === state.user.key) || state.customers[0]);
+        onLiveChange(health);
+      }
+
+      function applyLiveLayout() {
+        const title = document.getElementById('ai-preview-title');
+        if (title) title.textContent = 'আপনার লেখা থেকে যা বুঝেছি (M1)';
+        const label = document.getElementById('extracted-intended-label');
+        if (label) label.textContent = 'লেখায় পাওয়া নম্বর:';
+        // The customer never sees a model verdict: a person decides (R6, R19).
+        const block = document.getElementById('ai-verdict-block');
+        if (block) block.innerHTML = '<p class="text-[10px] text-slate-300 leading-snug">ভুল পড়লে লেখাটি ঠিক করে দিন। কোন লেনদেন, কত টাকা আর কী করা হবে, সেই সিদ্ধান্ত নেবেন একজন কর্মকর্তা; এআই শুধু তথ্য গুছিয়ে দেয়।</p>';
+        const scamChip = document.getElementById('sample-chip-scam');
+        if (scamChip) scamChip.classList.add('hidden');
+      }
+
+      function applyCustomer(c) {
+        state.who = c;
+        state.user = { key: c.key, name: BN_NAMES[c.key] || c.label, phone: Ferot.phone(c.wallet), wallet: c.wallet, balance: c.balance };
+        document.getElementById('user-display-name').textContent = state.user.name;
+        document.getElementById('user-display-phone').textContent = state.user.phone;
+        const accName = document.getElementById('acc-user-name');
+        const accPhone = document.getElementById('acc-user-phone');
+        if (accName) accName.textContent = state.user.name;
+        if (accPhone) accPhone.textContent = state.user.phone;
+        updateBalanceDisplay();
+        state.contacts = buildContacts(c);
+        renderContacts(state.contacts);
+        state.disputes = c.transactions.map(t => ({
+          id: t.trx_id, trx: t.trx_id, phone: t.to, recipient: t.to, type: 'out', amount: t.amount,
+          date: Ferot.when(t.ts), status: 'সফল'
+        }));
+        state.disputeTxId = null;
+        renderHistory();
+        renderDisputeTransactions();
+        const chip = document.getElementById('sample-chip-typo');
+        if (chip) chip.textContent = `“${c.sample_text.slice(0, 42)}…”`;
+        const box = document.getElementById('complaint-text-input');
+        if (box) {
+          box.value = '';
+          onComplaintTextChange('');
+        }
+        updateProfileMeta();
+      }
+
+      function updateProfileMeta() {
+        state.customers.forEach(c => {
+          const el = document.getElementById(`profile-meta-${c.key}`);
+          const balance = c.key === state.user.key ? state.user.balance : c.balance;
+          if (el) el.textContent = `${Ferot.phone(c.wallet)} • ব্যালেন্স: ${Ferot.taka(balance)}`;
+        });
+      }
+
+      function buildContacts(c) {
+        const out = [];
+        const usual = c.send_scenarios.find(s => s.key === 'usual');
+        let k = 0;
+        c.contacts.forEach(x => {
+          const family = usual && x.wallet === usual.recipient;
+          out.push({
+            name: family ? 'রহিমের ভাই' : CONTACT_NAMES[k++ % CONTACT_NAMES.length],
+            phone: x.wallet, type: 'safe', regular: x.sent_before > 0
+          });
+        });
+        // Demo test numbers. The badges only help the presenter; the real Guard decides.
+        const risky = (key) => {
+          const cu = state.customers.find(x => x.key === key);
+          return cu && cu.send_scenarios.find(s => s.key === 'risky');
+        };
+        const scam = risky('shirin');
+        if (scam && !out.some(o => o.phone === scam.recipient)) {
+          out.unshift({ name: 'অপরিচিত কলার (স্ক্যাম টেস্ট)', phone: scam.recipient, type: 'scam' });
+        }
+        const typo = c.key === 'rahim' && risky('rahim');
+        if (typo && !out.some(o => o.phone === typo.recipient)) {
+          out.unshift({ name: 'ভাই? (টাইপো টেস্ট)', phone: typo.recipient, type: 'typo' });
+        }
+        return out;
+      }
+
+      function liveScenario(type) {
+        const key = type === 'scam' ? 'shirin' : 'rahim';
+        const cu = state.customers.find(c => c.key === key);
+        if (!cu) return false;
+        if (state.user.key !== key) applyCustomer(cu);
+        const sc = cu.send_scenarios.find(s => s.key === (type === 'safe' ? 'usual' : 'risky')) || cu.send_scenarios[0];
+        if (!sc) return false;
+        const contact = state.contacts.find(c => c.phone === sc.recipient);
+        selectContact(sc.recipient, contact ? contact.name : sc.recipient, contact ? contact.type : 'safe');
+        setSendAmount(sc.amount);
+        return true;
+      }
+
+      function setSendAmount(v) {
+        state.amount = v;
+        const input = document.getElementById('send-amount-input');
+        if (input) input.value = v;
+        updateChargeDisplay();
+      }
+
+      // The demo clock: the synthetic ledger's "now" for this customer, moved to a ledger minute
+      function minuteDate(minute) {
+        const w = state.who;
+        return new Date(new Date(w.now).getTime() - (w.now_minute - minute) * 60000);
+      }
+
+      function guardErrorText(e) {
+        const msg = String((e && e.message) || e);
+        if (msg.includes('no wallet')) return 'এই নম্বরে কোনো উপায় অ্যাকাউন্ট পাওয়া যায়নি (ডেমো ডেটা)।';
+        return `যাচাই করা যায়নি: ${msg}`;
+      }
+
+      async function runGuard(recipient) {
+        state.guardBusy = true;
+        const arrow = document.getElementById('pin-submit-arrow');
+        if (arrow) arrow.disabled = true;
+        try {
+          const check = await Ferot.guardCheck({
+            sender: state.user.wallet, recipient, amount: state.amount, as_of_minute: state.who.send_minute
+          });
+          state.check = check;
+          inspectGuard(check);
+          if (check.band === 'allow') {
+            completeTransfer(check.recipient, state.recipient.name);
+          } else if (check.typo) {
+            playSound('warn');
+            showTypoGuard(check);
+          } else {
+            playSound('warn');
+            showScamGuard(check);
+          }
+        } catch (e) {
+          playSound('warn');
+          showToast(guardErrorText(e));
+        } finally {
+          state.guardBusy = false;
+          updatePinDots();
+        }
+      }
+
+      function markDigits(num, positions, cls) {
+        return [...num].map((d, i) => (positions.includes(i) ? `<span class="${cls} px-0.5 rounded font-black">${d}</span>` : d)).join('');
+      }
+
+      function showTypoGuard(check) {
+        const t = check.typo;
+        const known = state.contacts.find(c => c.phone === t.candidate);
+        const others = check.reasons.filter(r => r.key !== 'typo').map(r => r.bn);
+        document.getElementById('typo-guard-sub').textContent = check.band === 'review' ? 'Ferot Guard: টাইপো ও ঝুঁকি সতর্কতা' : 'Ferot Guard টাইপো সতর্কতা';
+        document.getElementById('typo-guard-text').textContent =
+          ['আপনি যে নম্বরে টাকা পাঠাচ্ছেন, সেটি আপনার নিয়মিত একটি নম্বরের সাথে প্রায় মিলে যায়।', ...others].join(' ');
+        document.getElementById('typo-usual-label').textContent = `নিয়মিত পাঠান (${Ferot.bn(t.count)} বার পাঠানো হয়েছে):`;
+        document.getElementById('typo-usual-number').innerHTML = markDigits(t.candidate, t.positions, 'bg-emerald-200 text-emerald-900');
+        document.getElementById('typo-usual-name').textContent = known ? `(${known.name})` : '';
+        document.getElementById('typo-typed-number').innerHTML = markDigits(check.recipient, t.positions, 'bg-rose-200 text-rose-900');
+        document.getElementById('typo-fix-label').textContent = `✓ সঠিক নম্বরে পাঠান (${t.candidate})`;
+        document.getElementById('modal-typo-guard').classList.remove('hidden');
+      }
+
+      function showScamGuard(check) {
+        const review = check.band === 'review';
+        document.getElementById('scam-guard-title').textContent = review ? 'এই লেনদেনটি ঝুঁকিপূর্ণ মনে হচ্ছে' : 'একটু থামুন! পাঠানোর আগে দেখে নিন';
+        document.getElementById('scam-guard-sub').textContent = 'Ferot Guard ঝুঁকি সতর্কতা';
+        document.getElementById('scam-guard-reasons').innerHTML = check.reasons.map(r =>
+          `<div class="flex items-start space-x-1.5 text-rose-900"><span>🚩</span><span class="leading-tight">${Ferot.esc(r.bn)}</span></div>`).join('');
+        const advice = document.getElementById('scam-guard-advice');
+        if (check.advice) {
+          advice.textContent = check.advice.bn;
+          advice.classList.remove('hidden');
+        } else {
+          advice.classList.add('hidden');
+        }
+        // the 30-second pause is only for "review"; a plain warning can be passed at once
+        document.getElementById('scam-cooldown-box').classList.toggle('hidden', !review);
+        document.getElementById('modal-scam-guard').classList.remove('hidden');
+        if (review) startScamCooldownTimer();
+        else enableSendAnyway();
+      }
+
+      function enableSendAnyway() {
+        if (state.scamTimer) clearInterval(state.scamTimer);
+        const btn = document.getElementById('scam-send-anyway-btn');
+        btn.disabled = false;
+        btn.classList.remove('cursor-not-allowed', 'text-gray-400');
+        btn.classList.add('text-rose-600', 'hover:underline', 'font-bold');
+        btn.innerHTML = 'তবুও পাঠান (আমি সিদ্ধান্ত নিয়েছি)';
+      }
+
+      function hideGuardModals() {
+        document.getElementById('modal-typo-guard').classList.add('hidden');
+        document.getElementById('modal-scam-guard').classList.add('hidden');
+        if (state.scamTimer) clearInterval(state.scamTimer);
+      }
+
+      function previewComplaint(text) {
+        clearTimeout(state.previewTimer);
+        const amountEl = document.getElementById('extracted-amount');
+        const numEl = document.getElementById('extracted-intended');
+        if (!text.trim()) {
+          amountEl.textContent = '—';
+          numEl.textContent = '—';
+          return;
+        }
+        state.previewTimer = setTimeout(async () => {
+          try {
+            const p = await Ferot.preview(text);
+            amountEl.textContent = p.amount ? `৳ ${Ferot.bn(Number(p.amount).toLocaleString('en-US'))}` : 'পাওয়া যায়নি';
+            numEl.textContent = p.number || 'পাওয়া যায়নি';
+            numEl.className = `${p.number ? 'text-emerald-300' : 'text-slate-400'} font-bold text-xs`;
+          } catch (e) {
+            /* the preview is a convenience; submitting still works */
+          }
+        }, 400);
+      }
+
+      function renderCaseStatus(st, amount) {
+        state.caseStatus = st;
+        const current = Math.min(st.step, STATUS_STEPS.length - 1);
+        document.getElementById('status-case-id').textContent = st.case_id;
+        document.getElementById('status-pill').textContent = STATUS_STEPS[current][0];
+        document.getElementById('status-amount').textContent = amount ? Ferot.taka(amount) : '—';
+        document.getElementById('status-sla').textContent = st.deadline ? `${Ferot.day(st.deadline)} এর মধ্যে` : '১০ কর্মদিবস';
+        document.getElementById('status-steps').innerHTML = STATUS_STEPS.map(([title, text], i) => {
+          const done = i < st.step;
+          const now = i === st.step;
+          const dot = done ? 'bg-emerald-500 text-white' : now ? 'bg-upayBlue text-white animate-pulse' : 'bg-slate-200 text-slate-600';
+          return `<div class="relative ${done || now ? '' : 'opacity-60'}">
+              <span class="absolute -left-8 top-0.5 w-6 h-6 rounded-full ${dot} flex items-center justify-center text-xs font-bold shadow-xs">${done ? '✓' : Ferot.bn(i + 1)}</span>
+              <h4 class="text-xs font-bold ${now ? 'text-upayBlue' : 'text-gray-900'}">${Ferot.bn(i + 1)}. ${title}</h4>
+              <p class="text-[11px] text-gray-500 mt-0.5">${text}</p>
+            </div>`;
+        }).join('');
+        if (st.deadline) {
+          document.getElementById('status-message').textContent =
+            `${Ferot.day(st.deadline)} এর মধ্যে আপনাকে জানানো হবে। অর্থ ফেরত পাওয়া প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে।`;
+        }
+        const helpline = st.helpline ? Ferot.bn(st.helpline) : '১৬২৬৮';
+        document.getElementById('status-escalation').textContent =
+          `সন্তুষ্ট না হলে বাংলাদেশ ব্যাংকের কাস্টমার্স ইন্টারেস্ট প্রটেকশন সেন্টারে অভিযোগ করতে পারবেন (হটলাইন ১৬২৩৬)। উপায় হেল্পলাইন: ${helpline}।`;
+      }
+
+      async function contestCase() {
+        if (!state.live || !state.caseId) {
+          showQuickModal('মানব পর্যালোচনার অনুরোধ', 'আপনার আবেদনটি একজন কর্মকর্তার পর্যালোচনা তালিকায় যুক্ত করা হয়েছে।');
+          return;
+        }
+        if (!state.caseStatus || !state.caseStatus.can_contest) {
+          showQuickModal('মানব পর্যালোচনা', 'আপনার অভিযোগ এখনো একজন কর্মকর্তার পর্যালোচনায় আছে। সিদ্ধান্ত জানানোর পর আপত্তি জানাতে পারবেন।');
+          return;
+        }
+        try {
+          renderCaseStatus(await Ferot.contest(state.caseId, 'গ্রাহক মানুষের পর্যালোচনা চান'), state.caseAmount);
+          showQuickModal('মানব পর্যালোচনার অনুরোধ', 'আপনার আপত্তি নথিভুক্ত হয়েছে। একজন কর্মকর্তা কেসটি আবার দেখবেন।');
+        } catch (e) {
+          showToast(`অনুরোধ পাঠানো যায়নি: ${e.message}`);
         }
       }
 
@@ -2528,7 +2829,7 @@
           const initial = c.name.charAt(0);
           const badge = c.type === 'typo' ? '<span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">টাইপো টেস্ট</span>' :
                         c.type === 'scam' ? '<span class="text-[9px] bg-rose-100 text-rose-800 font-bold px-1.5 py-0.5 rounded">স্ক্যাম টেস্ট</span>' :
-                        '<span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">নিয়মিত</span>';
+                        `<span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${c.regular === false ? 'ফোনবুক' : 'নিয়মিত'}</span>`;
 
           div.innerHTML = `
             <div class="w-10 h-10 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700 font-bold text-sm shrink-0 mr-3">
@@ -2595,6 +2896,10 @@
       }
 
       function proceedToPin() {
+        if (state.amount > 25000) {
+          showToast('সেন্ড মানিতে একবারে সর্বোচ্চ ৳২৫,০০০ পাঠানো যায়');
+          return;
+        }
         if (!state.amount || state.amount <= 0) {
           showToast('অনুগ্রহ করে সঠিক পরিমাণ লিখুন');
           return;
@@ -2671,6 +2976,10 @@
       // ==============================================================
       function evaluatePinAndModel() {
         if (state.enteredPin.length < 4) return;
+        if (state.live) {
+          if (!state.guardBusy) runGuard(Ferot.ascii(state.recipient.phone));
+          return;
+        }
 
         // Check Scenario Type
         if (state.recipient.scenarioType === 'typo') {
@@ -2692,21 +3001,40 @@
 
       function cancelGuardModal() {
         playSound('tap');
-        document.getElementById('modal-typo-guard').classList.add('hidden');
-        document.getElementById('modal-scam-guard').classList.add('hidden');
-        if (state.scamTimer) clearInterval(state.scamTimer);
+        hideGuardModals();
+        if (state.live && state.check) {
+          Ferot.guardDecision(state.check.check_id, 'cancelled').catch(() => {});
+          state.check = null;
+          clearPin();
+          showToast('পাঠানো হয়নি। আপনার ওয়ালেট থেকে কোনো টাকা যায়নি।');
+        }
       }
 
       // When customer clicks "নম্বর সংশোধন করুন" in Typo Guard
       function fixTypoAndSend() {
-        cancelGuardModal();
+        if (state.live && state.check && state.check.typo) {
+          const check = state.check;
+          hideGuardModals();
+          Ferot.guardDecision(check.check_id, 'changed_number').catch(() => {});
+          const known = state.contacts.find(c => c.phone === check.typo.candidate);
+          state.recipient = { phone: check.typo.candidate, name: known ? known.name : check.typo.candidate, scenarioType: 'safe' };
+          showToast(`নম্বর সংশোধন করা হয়েছে: ${check.typo.candidate}`);
+          runGuard(check.typo.candidate); // the corrected number is checked like any other send
+          return;
+        }
+        hideGuardModals();
         showToast('নম্বর সংশোধন করা হয়েছে: 01012345678');
         completeTransfer('01012345678', 'রহিমের ভাই (সংশোধিত)');
       }
 
       // Bypass guard (Customer decides)
       function bypassGuardAndSend(type) {
-        cancelGuardModal();
+        hideGuardModals();
+        if (state.live && state.check) {
+          Ferot.guardDecision(state.check.check_id, 'sent_anyway').catch(() => {});
+          completeTransfer(state.check.recipient, state.recipient.name + ' (সতর্কবার্তা সত্ত্বেও)');
+          return;
+        }
         completeTransfer(state.recipient.phone, state.recipient.name + ' (সতর্কবার্তা সত্ত্বেও)');
       }
 
@@ -2714,19 +3042,21 @@
       function startScamCooldownTimer() {
         state.scamSecondsLeft = 30;
         const timerEl = document.getElementById('scam-countdown-timer');
-        const btnCount = document.getElementById('send-anyway-countdown');
         const sendAnywayBtn = document.getElementById('scam-send-anyway-btn');
 
         sendAnywayBtn.disabled = true;
         sendAnywayBtn.classList.add('cursor-not-allowed', 'text-gray-400');
-        sendAnywayBtn.classList.remove('text-rose-600', 'hover:underline');
+        sendAnywayBtn.classList.remove('text-rose-600', 'hover:underline', 'font-bold');
+        sendAnywayBtn.innerHTML = 'ঝুঁকি সত্ত্বেও পাঠান (<span id="send-anyway-countdown">30</span>s)';
+        if (timerEl) timerEl.textContent = '30s';
 
         if (state.scamTimer) clearInterval(state.scamTimer);
 
         state.scamTimer = setInterval(() => {
           state.scamSecondsLeft--;
           if (timerEl) timerEl.textContent = `${state.scamSecondsLeft}s`;
-          if (btnCount) btnCount.textContent = state.scamSecondsLeft;
+          const counter = document.getElementById('send-anyway-countdown');
+          if (counter) counter.textContent = state.scamSecondsLeft;
 
           if (state.scamSecondsLeft <= 0) {
             clearInterval(state.scamTimer);
@@ -2767,12 +3097,31 @@
           date: 'আজ দুপুর ১১:৪৭',
           status: 'সফল'
         };
+        if (state.live) {
+          // The demo replays a transfer from the synthetic ledger: keep its real TrxID so a complaint matches it.
+          const ledgerTx = state.disputes.find(t => t.trx && t.phone === finalPhone && t.amount === state.amount);
+          newTx.type = 'out';
+          newTx.phone = finalPhone;
+          newTx.date = Ferot.when(minuteDate(state.who.send_minute));
+          if (ledgerTx) {
+            newTx.id = ledgerTx.id;
+            newTx.trx = ledgerTx.trx;
+            state.disputes = state.disputes.filter(t => t !== ledgerTx);
+          } else {
+            newTx.id = `DEMO-${Math.floor(100000 + Math.random() * 900000)}`;
+            newTx.trx = null;
+          }
+          state.disputeTxId = newTx.id;
+          updateProfileMeta();
+        }
         state.disputes.unshift(newTx);
         renderHistory();
         renderDisputeTransactions();
 
         // Update Success Screen
         document.getElementById('success-tx-id').textContent = newTx.id;
+        const timeEl = document.getElementById('success-time');
+        if (timeEl) timeEl.textContent = newTx.date;
         document.getElementById('success-recipient').textContent = `${finalName} (${finalPhone})`;
         document.getElementById('success-amount').textContent = `৳ ${state.amount.toLocaleString()}.00`;
         document.getElementById('success-new-balance').textContent = `৳ ${state.user.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
@@ -3252,6 +3601,10 @@
 
       function reportDisputeFromTxnModal() {
         document.getElementById('modal-txn-details').classList.add('hidden');
+        if (state.selectedTxn) {
+          state.disputeTxId = state.selectedTxn.id;
+          renderDisputeTransactions();
+        }
         openScreen('dispute_flow');
         fillSampleComplaint('typo');
       }
@@ -3266,7 +3619,7 @@
         container.innerHTML = '';
 
         state.disputes.slice(0, 3).forEach((tx, idx) => {
-          const isChecked = idx === 0;
+          const isChecked = state.disputeTxId ? tx.id === state.disputeTxId : idx === 0;
           const label = document.createElement('label');
           label.className = `flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition ${isChecked ? 'border-upayBlue bg-blue-50/50' : 'border-slate-200 hover:bg-slate-50'}`;
           label.innerHTML = `
@@ -3291,6 +3644,11 @@
       function fillSampleComplaint(type) {
         playSound('tap');
         const box = document.getElementById('complaint-text-input');
+        if (state.live && state.who) {
+          box.value = state.who.sample_text;
+          onComplaintTextChange(box.value);
+          return;
+        }
         if (type === 'typo') {
           box.value = 'ভাইকে ৫,০০০ টাকা পাঠাতে গিয়ে ভুলে অন্য নম্বরে পাঠিয়ে ফেলেছি। ০১০১২৩৪৫৬৮৭ এ চলে গেছে, ভাইয়ের আসল নম্বর ০১০১২৩৪৫৬৭৮। প্লিজ রিভার্স করতে হেল্প করুন।';
         } else {
@@ -3300,6 +3658,10 @@
       }
 
       function onComplaintTextChange(text) {
+        if (state.live) {
+          previewComplaint(text);
+          return;
+        }
         // Real-time NLP entity extraction simulator
         const amountEl = document.getElementById('extracted-amount');
         const intendedEl = document.getElementById('extracted-intended');
@@ -3328,27 +3690,167 @@
         }
       }
 
-      function submitDisputeComplaint() {
+      async function submitDisputeComplaint() {
         const consent = document.getElementById('dispute-consent-checkbox');
         if (!consent || !consent.checked) {
-          showToast('দয়া করে বাংলাদেশ ব্যাংক কমপ্লায়েন্স বক্সে সম্মতি দিন');
+          showToast('বিজ্ঞপ্তিটি পড়ে সম্মতি বক্সে টিক দিন');
           return;
         }
+        const text = document.getElementById('complaint-text-input').value.trim();
+        const picked = document.querySelector('input[name="selected-dispute-tx"]:checked');
+        const tx = picked ? state.disputes.find(t => t.id === picked.value) : null;
+        const problem = (document.querySelector('input[name="dispute-problem"]:checked') || {}).value || 'wrong_number';
 
-        playSound('success');
-        openScreen('case_status');
-        showToast('অভিযোগ সফলভাবে গৃহীত হয়েছে (SLA: ১০ কার্যদিবস)');
+        if (!state.live) {
+          playSound('success');
+          renderCaseStatus({ case_id: 'UPAY-DISPUTE-2026-8821', step: 1, deadline: null, can_contest: false }, tx ? tx.amount : 5000);
+          openScreen('case_status');
+          showToast('অভিযোগ সফলভাবে গৃহীত হয়েছে (SLA: ১০ কার্যদিবস)');
+          return;
+        }
+        if (text.length < 3) {
+          showToast('কী হয়েছে সংক্ষেপে লিখুন');
+          return;
+        }
+        if (state.submitting) return;
+        state.submitting = true;
+        try {
+          const res = await Ferot.complain({
+            claimant: state.user.wallet, text, channel: 'app', problem, trx_id: tx && tx.trx ? tx.trx : null,
+            consent: { accepted: true, version: '2026-10-01', language: state.lang }, as_of_minute: state.who.now_minute
+          });
+          state.caseId = res.case_id;
+          state.caseAmount = tx ? tx.amount : null;
+          if (tx) tx.status = 'বিতর্কিত (Disputed)';
+          renderHistory();
+          playSound('success');
+          renderCaseStatus(res.status, state.caseAmount);
+          openScreen('case_status');
+          showToast(`অভিযোগ গৃহীত: ${res.case_id}`);
+          inspectCase(res.case_id);
+        } catch (e) {
+          playSound('warn');
+          showToast(`জমা দেওয়া যায়নি: ${e.message}`);
+        } finally {
+          state.submitting = false;
+        }
       }
 
-      function refreshCaseStatus() {
+      async function refreshCaseStatus() {
         playSound('tap');
-        showToast('কেস স্ট্যাটাস হালনাগাদ করা হয়েছে (হোল্ড সক্রিয়)');
+        if (state.live && state.caseId) {
+          try {
+            renderCaseStatus(await Ferot.status(state.caseId), state.caseAmount);
+            inspectCase(state.caseId);
+            showToast('কেস স্ট্যাটাস হালনাগাদ করা হয়েছে');
+          } catch (e) {
+            showToast(`হালনাগাদ করা যায়নি: ${e.message}`);
+          }
+          return;
+        }
+        showToast('কেস স্ট্যাটাস হালনাগাদ করা হয়েছে');
       }
 
 
 
-      // Telemetry Deck Updater
+      // ==============================================================
+      // INSPECTOR (live mode): the real Guard check and case file
+      // ==============================================================
+      const BAND_BADGE = {
+        allow: 'text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2 py-0.5 rounded font-mono font-bold',
+        warn: 'text-[10px] bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded font-mono font-bold',
+        review: 'text-[10px] bg-rose-500/20 text-rose-300 border border-rose-400/40 px-2 py-0.5 rounded font-mono font-bold'
+      };
+
+      function onLiveChange(health) {
+        const engine = document.getElementById('telemetry-engine');
+        const verdict = document.getElementById('telemetry-m2-verdict');
+        if (!health) {
+          engine.textContent = 'অফলাইন সিমুলেশন';
+          verdict.textContent = 'অফলাইন: Ferot API পাওয়া যায়নি। নিচের মানগুলো উদাহরণ, আসল মডেলের ফল নয়।';
+          return;
+        }
+        engine.textContent = `Ferot API লাইভ • LLM: ${health.llm_provider === 'offline' ? 'বন্ধ (নিয়ম + টেমপ্লেট)' : health.llm_provider}`;
+        document.getElementById('telemetry-version').textContent = health.model_version;
+        document.getElementById('telemetry-m1-badge').textContent = 'STANDBY';
+        document.getElementById('telemetry-m1-explanation').textContent = 'পিন দিয়ে পাঠান চাপলে আসল Ferot Guard যাচাই এখানে দেখাবে।';
+        ['telemetry-keypad-dist', 'telemetry-scam-prob', 'telemetry-anomaly-score'].forEach(id => {
+          document.getElementById(id).textContent = '—';
+        });
+        verdict.textContent = 'গ্রাহক অভিযোগ জমা দিলে আসল কেস ফাইল এখানে দেখাবে: M4 রায় ও কারণ, M5 রিকভারি, নীতিমালার সুপারিশ।';
+        document.getElementById('telemetry-m2-reasons').innerHTML = '';
+        document.getElementById('telemetry-m2-curve').innerHTML = '';
+        document.getElementById('telemetry-m2-holdable').textContent = '';
+      }
+
+      function pct(p) {
+        return p < 0.0001 ? '<0.01%' : `${(p * 100).toFixed(p < 0.01 ? 2 : 0)}%`;
+      }
+
+      function inspectGuard(check) {
+        const badge = document.getElementById('telemetry-m1-badge');
+        const label = { allow: 'ALLOW', warn: check.typo ? 'TYPO WARN' : 'WARN', review: 'REVIEW + 30s' }[check.band];
+        badge.textContent = `RISK ${check.risk} · ${label}`;
+        badge.className = BAND_BADGE[check.band];
+        document.getElementById('telemetry-keypad-dist').textContent = check.typo ? `${check.typo.candidate} (${check.typo.count} বার)` : 'নেই';
+        document.getElementById('telemetry-scam-prob').textContent = pct(check.p_scam);
+        document.getElementById('telemetry-anomaly-score').textContent = check.anomaly.toFixed(2);
+        const why = check.reasons.length ? check.reasons.map(r => r.bn).join(' ') : 'কোনো সতর্কতা নেই, লেনদেন সরাসরি যায়।';
+        document.getElementById('telemetry-m1-explanation').textContent = `${check.check_id}: ${why} সিদ্ধান্ত গ্রাহকের; Guard কখনো লেনদেন আটকায় না।`;
+      }
+
+      async function inspectCase(caseId) {
+        const badge = document.getElementById('telemetry-m2-badge');
+        const verdict = document.getElementById('telemetry-m2-verdict');
+        badge.textContent = 'LOADING';
+        try {
+          const c = await Ferot.caseFile(caseId);
+          const p = c.prediction;
+          const rec = c.recommendation;
+          badge.textContent = p ? p.case_type.toUpperCase() : 'NO MATCH';
+          badge.className = 'text-[10px] bg-sky-500/20 text-sky-300 border border-sky-400/40 px-2 py-0.5 rounded font-mono font-bold';
+          verdict.textContent = p
+            ? `${c.case_id}: ${p.label} (আস্থা ${Math.round(p.confidence * 100)}%)। সুপারিশ ${rec.rule_id}: ${rec.summary} অনুমোদন দেবেন: ${rec.approval}।`
+            : `${c.case_id}: কোনো লেনদেন মেলেনি। সুপারিশ ${rec.rule_id}: ${rec.summary}`;
+          const reasons = (p ? p.reasons : []).slice(0, 4);
+          const max = Math.max(1e-9, ...reasons.map(r => Math.abs(r.weight)));
+          document.getElementById('telemetry-m2-reasons').innerHTML = reasons.map(r => {
+            const up = r.weight >= 0;
+            return `<div>
+                <div class="flex justify-between text-[9px] text-slate-300">
+                  <span>${Ferot.esc(r.text || r.label)}</span>
+                  <span class="font-mono ${up ? 'text-emerald-400' : 'text-amber-400'}">${up ? '+' : ''}${r.weight.toFixed(2)}</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div class="${up ? 'bg-emerald-500' : 'bg-amber-500'} h-full rounded-full" style="width: ${Math.round((Math.abs(r.weight) / max) * 100)}%"></div>
+                </div>
+              </div>`;
+          }).join('');
+          const curve = (c.recoverability && c.recoverability.curve) || [];
+          const near = (m) => curve.reduce((best, pt) => (Math.abs(pt.minutes - m) < Math.abs(best.minutes - m) ? pt : best), curve[0]);
+          document.getElementById('telemetry-m2-holdable').textContent = `এখন হোল্ডযোগ্য: ${Ferot.taka(c.recoverability.now)}`;
+          document.getElementById('telemetry-m2-curve').innerHTML = curve.length
+            ? [[0, 'এখন'], [60, '১ ঘণ্টা পর'], [360, '৬ ঘণ্টা পর']].map(([m, label]) => {
+              const pt = near(m);
+              return `<div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+                  <span class="text-slate-400 block">${label}</span>
+                  <strong class="text-emerald-400 text-[10px]">${Ferot.taka(pt.expected)}</strong>
+                  <span class="text-slate-500 block">হোল্ড সম্ভাবনা ${Math.round(pt.p_hold * 100)}%</span>
+                </div>`;
+            }).join('')
+            : '';
+          const link = document.getElementById('telemetry-m2-console');
+          link.href = Ferot.consoleUrl(c.case_id);
+          link.classList.remove('hidden');
+        } catch (e) {
+          badge.textContent = 'ERROR';
+          verdict.textContent = `কেস ফাইল আনা যায়নি: ${e.message}`;
+        }
+      }
+
+      // Telemetry Deck Updater (offline simulation; live mode uses inspectGuard)
       function updateInspectorTelemetry(scenario) {
+        if (state.live) return;
         const m1Badge = document.getElementById('telemetry-m1-badge');
         const keypadDist = document.getElementById('telemetry-keypad-dist');
         const scamProb = document.getElementById('telemetry-scam-prob');
@@ -3382,6 +3884,12 @@
       // Quick Demo Scenario Switcher
       function loadScenario(type) {
         playSound('tap');
+        if (state.live && liveScenario(type)) {
+          showToast(type === 'typo' ? 'রহিম: ভাইয়ের নম্বরের শেষ দুই ডিজিট উল্টো। পিন দিন, আসল Guard যাচাই করবে।'
+            : type === 'scam' ? 'শিরিন: অপরিচিত কলারকে "ফেরত" পাঠানো। পিন দিন, আসল Guard যাচাই করবে।'
+            : 'রহিম: ভাইকে নিয়মিত পাঠানো টাকা। পিন দিন।');
+          return;
+        }
         if (type === 'typo') {
           selectContact('01012345687', 'রহিমের ভাই (টাইপো টেস্ট)', 'typo');
           showToast('সিনারিও ১: টাইপো গার্ড লোড হয়েছে। পরবর্তী ধাপে পিন দিন।');
@@ -3448,6 +3956,13 @@
 
       function switchUser(userKey) {
         playSound('tap');
+        const live = state.live && state.customers.find(c => c.key === userKey);
+        if (live) {
+          applyCustomer(live);
+          closeProfileModal();
+          showToast(`গ্রাহক পরিবর্তন: ${state.user.name}`);
+          return;
+        }
         if (userKey === 'rahim') {
           state.user = { key: 'rahim', name: 'রহিম উদ্দিন', phone: '010555-01234', balance: 25475.50 };
         } else {
@@ -3520,7 +4035,8 @@
         claimOffer,
         filterHistory,
         showTxnDetailsModal,
-        reportDisputeFromTxnModal
+        reportDisputeFromTxnModal,
+        contestCase
       };
     })();
 
