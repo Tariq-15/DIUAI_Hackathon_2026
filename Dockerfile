@@ -20,6 +20,8 @@ COPY sop sop
 COPY reports reports
 COPY backend backend
 COPY --from=web /app/web/dist web/dist
+# upay-style wallet pages, served at /upay/ and wired to the API
+COPY ["upay frontend clone", "upay frontend clone"]
 
 # Size of the synthetic world: 2500 customers fits a 512 MB host (~390 MB); 4000 needs ~450 MB.
 ARG FEROT_CUSTOMERS=2500

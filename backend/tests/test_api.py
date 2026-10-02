@@ -120,3 +120,22 @@ def test_unmatched_complaint_asks_for_more_information(client, rahim):
     assert r.status_code == 201
     case = client.get(f"/api/v1/cases/{r.json()['case_id']}", headers=AGENT).json()
     assert case["prediction"] is None and case["recommendation"]["rule_id"] == "R-LOW-01"
+
+
+def test_complaint_preview_reads_the_text_without_a_verdict(client, rahim):
+    """The customer sees what was read from their words before submitting; no model label leaks out."""
+    r = client.post("/api/v1/complaints/preview", json={"text": rahim["sample_text"]})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["amount"] == 5000 and body["number"] == "01012345687"
+    assert "prediction" not in body and "label" not in body
+
+
+def test_upay_style_app_is_served(client):
+    """The upay-style wallet pages are served next to the API (R15: labelled as a prototype)."""
+    assert client.get("/upay", follow_redirects=False).status_code in (307, 308)
+    for page in ("/upay/", "/upay/customer.html"):
+        r = client.get(page)
+        assert r.status_code == 200 and "ferot-api.js" in r.text
+        assert "প্রোটোটাইপ" in r.text
+    assert client.get("/upay/ferot-api.js").status_code == 200

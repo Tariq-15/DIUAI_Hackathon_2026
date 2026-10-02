@@ -117,3 +117,20 @@ def test_case_report_and_network(client, demo):
     assert {"center", "this_customer", "complainant"} <= kinds
     ids = {n["id"] for n in net["nodes"]}
     assert all(e["source"] in ids and e["target"] in ids for e in net["edges"])
+
+
+def test_phone_book_contacts_go_straight_through(client, demo):
+    """The wallet app's contacts are real wallets; ordinary ones are not interrupted."""
+    for c in demo.values():
+        assert c["balance"] >= 0 and c["contacts"]
+        for contact in c["contacts"]:
+            r = client.post("/api/v1/guard/check", json={"sender": c["wallet"], "recipient": contact["wallet"],
+                                                         "amount": 500, "as_of_minute": c["send_minute"]})
+            assert r.status_code == 200 and r.json()["band"] == "allow", contact
+
+
+def test_unknown_wallet_is_reported_not_scored(client, demo):
+    """A number with no wallet gets a plain 404 instead of a misleading 'opened 0 days ago' warning."""
+    r = client.post("/api/v1/guard/check", json={"sender": demo["rahim"]["wallet"], "recipient": "01000000009",
+                                                 "amount": 100})
+    assert r.status_code == 404

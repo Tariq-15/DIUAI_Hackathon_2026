@@ -466,8 +466,32 @@ class FerotService:
                                      "recipient": c["intended_number"], "amount": 2000.0, "minute": send_at})
             out.append({"key": name, "label": label, "wallet": c["claimant"], "language": c["text_language"],
                         "now_minute": minute, "now": self.dt(minute).isoformat(), "sample_text": c["complaint_text"],
-                        "transactions": txs, "send_minute": send_at, "send_scenarios": scenarios})
+                        "transactions": txs, "send_minute": send_at, "send_scenarios": scenarios,
+                        "balance": round(self.ledger.balance_at(c["claimant"], send_at), 2),
+                        "contacts": self.demo_contacts(c["claimant"], send_at)})
         return out
+
+    def demo_contacts(self, wallet: str, minute: int, n: int = 5) -> list[dict]:
+        """A phone book for the wallet app mock: people this customer has paid, then ordinary neighbours."""
+        idx = self.ledger.outgoing(wallet, minute - 180 * 1440, minute - 1)
+        sends = idx[self.ledger.type[idx] == "send_money"]
+        counts: dict[str, int] = {}
+        for r in self.ledger.receiver[sends]:
+            counts[str(r)] = counts.get(str(r), 0) + 1
+        out = [{"wallet": w, "sent_before": k} for w, k in sorted(counts.items(), key=lambda kv: -kv[1])[:n]]
+        w = self.ledger.wallets
+        if wallet in w.index and len(out) < n:
+            ordinary = w[(w["owner_type"] == "customer") & (w["behaviour"] == "") & (w["ring"] == -1)
+                         & (w["district"] == w.at[wallet, "district"]) & (w["opened_minute"] < minute - 365 * 1440)]
+            for other in sorted(ordinary.index):
+                if len(out) >= n:
+                    break
+                if other != wallet and other not in counts:
+                    out.append({"wallet": str(other), "sent_before": 0})
+        return out
+
+    def wallet_exists(self, wallet: str) -> bool:
+        return wallet in self.ledger.wallets.index
 
     def seed_demo(self, n: int = 36) -> int:
         cases = self.ledger.world.cases

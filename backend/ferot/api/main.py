@@ -11,13 +11,14 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from ferot import __version__, config
 from ferot.api.security import Caller, require, staff
 from ferot.llm.provider import get_provider
+from ferot.models.extract import extract
 from ferot.service import get_service
 from ferot.store import audit
 
@@ -43,6 +44,10 @@ class ComplaintIn(BaseModel):
     trx_id: str | None = Field(default=None, description="Transaction the customer picked in the app, if any")
     consent: Consent
     as_of_minute: int | None = Field(default=None, description="Demo clock (minutes since the synthetic start)")
+
+
+class PreviewIn(BaseModel):
+    text: str = Field(min_length=1, max_length=4000)
 
 
 class GuardIn(BaseModel):
@@ -102,6 +107,14 @@ def create_complaint(body: ComplaintIn):
     return {"case_id": case["case_id"], "status": s.customer_status(case["case_id"])}
 
 
+@app.post(f"{API}/complaints/preview")
+def complaint_preview(body: PreviewIn):
+    """What the rules read from the customer's words, shown back before they submit. No model verdict, no LLM."""
+    e = extract(body.text, use_llm=False)
+    return {"amount": e.amount, "number": e.number, "day_offset": e.day_offset, "hour": e.hour, "trx_id": e.trx_id,
+            "language": e.language}
+
+
 @app.get(f"{API}/cases/{{case_id}}/status")
 def case_status(case_id: str):
     try:
@@ -123,6 +136,8 @@ def contest(case_id: str, body: ContestIn):
 def guard_check_endpoint(body: GuardIn):
     """Score a transfer before it is sent: allow, warn or review. The customer always decides."""
     s = svc()
+    if not s.wallet_exists(body.recipient):
+        raise HTTPException(404, f"no wallet uses {body.recipient} in the demo data")
     minute = body.as_of_minute if body.as_of_minute is not None else s.demo_now()
     return s.guard(body.sender, body.recipient, body.amount, minute)
 
@@ -252,6 +267,15 @@ def reset(caller: Caller = Depends(staff)):
     n = s.seed_demo()
     return {"seeded": n}
 
+
+# ---------- upay-style wallet app (static pages that call this API) ----------
+UPAY_UI = config.ROOT / "upay frontend clone" / "upay_mobile_app_redesign"
+if UPAY_UI.exists():
+    @app.get("/upay", include_in_schema=False)
+    def upay_root():
+        return RedirectResponse("/upay/")
+
+    app.mount("/upay", StaticFiles(directory=UPAY_UI, html=True), name="upay")
 
 # ---------- web app ----------
 WEB_DIST = config.ROOT / "web" / "dist"
