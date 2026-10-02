@@ -115,6 +115,18 @@ class Dispatcher:
         m = re.fullmatch(r"/api/v1/customers/(\w+)/transfers", p)
         if m and method == "GET":
             return w.transfers(m.group(1))
+        m = re.fullmatch(r"/api/v1/customers/(\w+)/recharges", p)
+        if m and method == "GET":
+            return w.recharges_of(m.group(1))
+        if method == "POST" and p == "/api/v1/recharge":
+            amount = b.get("amount")
+            if not isinstance(amount, (int, float)) or amount <= 0 or amount > 1000:
+                raise HTTPError(422, "amount must be more than 0 and at most 1000")
+            if not b.get("customer") or not 11 <= len(str(b.get("number") or "")) <= 20:
+                raise HTTPError(422, "customer and number are required")
+            return w.recharge(b["customer"], str(b["number"]), float(amount))
+        if method == "GET" and p == "/api/v1/test-kit":
+            return w.test_kit()
         if method == "POST" and p == "/api/v1/demo/reset":
             w.reset()
             return {"status": "reset", "clock": w.iso(w.clock())}

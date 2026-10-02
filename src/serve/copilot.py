@@ -78,6 +78,10 @@ def facts_for(alert: dict, network: dict, context: dict) -> dict:
         anomaly_pct=None if alert.get("anomaly") is None else round(100 * alert["anomaly"]),
         graph_score_2dp=None if alert.get("graph") is None else round(alert["graph"], 2),
     )
+    hb = alert.get("habit") or {}
+    if hb.get("unusual"):
+        f.update(habit_usual=hb["usual"], habit_low=hb["low"], habit_high=hb["high"], habit_n=hb["n"], habit_ratio=hb["ratio"],
+                 habit_threshold=hb["threshold"], habit_day_total=hb["day_total"], habit_day_usual=hb["day_usual"])
     if f["hours_on_new_phone"] >= 72:
         f["hours_on_new_phone"] = None
     return f
@@ -156,6 +160,10 @@ def template_report(f: dict) -> dict:
     if f.get("honest_warning_rate_pct") is not None:
         limits.append(f"On the held-out test days, {_num(f['honest_warning_rate_pct'])}% of honest transactions also got "
                       "a warning, so a busy shop or a family wallet can look like this.")
+    if f.get("habit_usual") is not None:
+        limits.append(f"The amount habit compares this transfer with the customer's own last {f['habit_n']} transfers only "
+                      f"(usual {_tk(f['habit_usual'])}); the threshold ({_num(f['habit_threshold'])} times the usual amount) was "
+                      "learned across phones with federated analytics. A large one-off (rent, hospital, Eid) also crosses it.")
     limits.append(f"Trained and tested on synthetic data. A person approves every freeze; the customer can call {f['helpline']}.")
     return dict(what_happened=what, why_risky=why, recommended_action=act, confidence_limits=limits,
                 actions=codes, generated_by="template")
@@ -294,6 +302,38 @@ def complaint_report(a: dict, network: dict, context: dict) -> dict:
               f"A person approves every hold; the customer can escalate to Bangladesh Bank ({f['escalation']})."]
     return dict(what_happened=what, why_risky=why, recommended_action=act, confidence_limits=limits, actions=codes,
                 generated_by="template (complaint)", facts=f,
+                action_labels={k: {"en": ACTIONS[k][0], "bn": ACTIONS[k][1]} for k in ACTIONS})
+
+
+def recharge_report(a: dict, context: dict) -> dict:
+    """A mobile recharge that crossed the customer's own habit or the rapid-recharge rule. No model score: the
+    fraud model is not trained on recharges, so the report says so."""
+    hb, rc = a.get("habit") or {}, a["recharge"]
+    whose = "the customer's own number" if rc["own"] else (f"a saved contact ({rc['contact']})" if rc["contact"]
+                                                          else "a number that is not the customer's and not a saved contact")
+    what = [f"{context.get('when')}: {a['sender_id']} tried to recharge {_tk(a['amount'])} to {rc['number']}, {whose}."]
+    if hb.get("n"):
+        what.append(f"Recharge habit (last {hb['n']} recharges): usually {_tk(hb['usual'])} ({_tk(hb['low'])} to "
+                    f"{_tk(hb['high'])}), largest {_tk(hb['max'])}, about {_num(hb['per_week'])} a week.")
+    if rc["recent"]:
+        what.append(f"In the hour before: {len(rc['recent'])} recharge(s), "
+                    + ", ".join(f"{_tk(r['amount'])} to {r['number']}" for r in rc["recent"][-4:]) + ".")
+    choice = {"cancelled": "cancelled it", "confirmed": "confirmed after the warning", None: "has not answered yet"}
+    what.append(f"The customer {choice.get(a.get('customer_choice'), a.get('customer_choice'))}.")
+    why = [r["en"] + "." for r in a.get("reasons", [])]
+    codes = (["VERIFY_OWNER", "WATCHLIST"] if rc.get("burst") or not rc["own"] else ["DISMISS"])
+    act = [ACTIONS[c][0] + "." for c in codes]
+    if codes == ["DISMISS"]:
+        act.append("A large recharge to the customer's own number is usually a one-off; dismiss with a note unless the "
+                   "customer reports pressure from a caller.")
+    limits = ["The fraud model is not trained on recharges; this check is the customer's own habit and one plain rule.",
+              f"The habit threshold ({_num(hb.get('threshold') or 0)} times the usual recharge) was learned across phones "
+              "with federated analytics; recharge amounts in the synthetic data barely depend on the customer, so this "
+              "habit is weaker than the Send Money one.",
+              "A recharge is small money; the point is the pattern (a caller asking for recharges to numbers that are not yours).",
+              "Synthetic data. The customer decides; nothing was blocked."]
+    return dict(what_happened=what, why_risky=why, recommended_action=act, confidence_limits=limits, actions=codes,
+                generated_by="template (recharge)", facts=dict(alert_id=a["id"], amount=a["amount"], number=rc["number"]),
                 action_labels={k: {"en": ACTIONS[k][0], "bn": ACTIONS[k][1]} for k in ACTIONS})
 
 

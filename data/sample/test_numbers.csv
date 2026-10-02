@@ -1,0 +1,28 @@
+group,what,kind,sender,number,amount,expected,role,source,why
+1. Everyday transfers: no friction,Tk 800 to Mother (usual),send,rahim,01076254257,800,ALLOW,,persona contact,No warning: it goes through.
+1. Everyday transfers: no friction,"Tk 1,000 to Younger brother",send,rahim,01003036844,1000,ALLOW,,persona contact,No warning: it goes through.
+2. Wrong number and unusual amount,Mother's number with the last two digits swapped,send,rahim,01076254275,800,NUDGE,,dataset wallet (someone else's),Did you mean Mother (01076254257)? You have sent money there 14 times; digits 10 and 11 are swapped: you typed 75 instead of 57
+2. Wrong number and unusual amount,"Tk 15,000 to Mother (Rahim usually sends about Tk 600)",send,rahim,01076254257,15000,NUDGE,,persona contact,"Unusual amount for you: you usually send about Tk 600 (Tk 232 to Tk 1,590 in your last 30); Tk 15,000 is 25 times that"
+3. Staged scams (this morning),"Tk 15,000 'job deposit' to a new number",send,rahim,01090000001,15000,HOLD,collector,staged scam,14 different people sent money to this number in the last 24 hours
+3. Staged scams (this morning),"Tk 4,500 advance to a Facebook-page seller",send,rahim,01090000020,4500,HOLD,fake_seller,staged scam,Other customers have reported this number (or wallets it trades with) to 16268
+3. Staged scams (this morning),"Tk 6,000 loan to a new number",send,rahim,01098215927,6000,NUDGE,,dataset wallet (found by the model),"Tk 6,000 is 1.0x the largest amount this customer has sent"
+3. Staged scams (this morning),"Salma's account: SIM swap + new phone, large transfer",send,salma,01090000011,50000.0,HOLD,mule,staged takeover,A phone first seen on this account 0.7 hour(s) ago is being used
+"4. Fraud wallets from the dataset (try Tk 5,000)",Collector wallet (job / lottery scams),send,rahim,01000000007,5000.0,HOLD,collector,dataset (fraud role),The phone involved is used by 9 different wallets
+"4. Fraud wallets from the dataset (try Tk 5,000)",Collector wallet (job / lottery scams),send,rahim,01037833434,5000.0,HOLD,collector,dataset (fraud role),Other customers have reported this number (or wallets it trades with) to 16268
+"4. Fraud wallets from the dataset (try Tk 5,000)",Scam recipient,send,rahim,01091890412,5000.0,HOLD,scam_recipient,dataset (fraud role),Recipient wallet was opened only 26 day(s) ago
+"4. Fraud wallets from the dataset (try Tk 5,000)",Scam recipient,send,rahim,01029584611,5000.0,HOLD,scam_recipient,dataset (fraud role),Other customers have reported this number (or wallets it trades with) to 16268
+"4. Fraud wallets from the dataset (try Tk 5,000)",Fake online seller,send,rahim,01017853775,5000.0,HOLD,fake_seller,dataset (fraud role),Recipient wallet was opened only 13 day(s) ago
+"4. Fraud wallets from the dataset (try Tk 5,000)",Fake online seller,send,rahim,01084005669,5000.0,HOLD,fake_seller,dataset (fraud role),Other customers have reported this number (or wallets it trades with) to 16268
+"4. Fraud wallets from the dataset (try Tk 5,000)",Mule (passes stolen money on),send,rahim,01067787082,5000.0,HOLD,mule,dataset (fraud role),A wallet silent for 36 days suddenly became active
+"4. Fraud wallets from the dataset (try Tk 5,000)",Mule (passes stolen money on),send,rahim,01063654761,5000.0,HOLD,mule,dataset (fraud role),Other customers have reported this number (or wallets it trades with) to 16268
+"4. Fraud wallets from the dataset (try Tk 5,000)",Card-fraud wallet,send,rahim,01025548536,5000.0,HOLD,card_fraud,dataset (fraud role),A wallet silent for 18 days suddenly became active
+"4. Fraud wallets from the dataset (try Tk 5,000)",Card-fraud wallet,send,rahim,01079825566,5000.0,HOLD,card_fraud,dataset (fraud role),Other customers have reported this number (or wallets it trades with) to 16268
+"5. Reported, ordinary and quiet wallets",Already reported to 16268,send,rahim,01034381369,5000.0,HOLD,,dataset (reported),Other customers have reported this number (or wallets it trades with) to 16268
+"5. Reported, ordinary and quiet wallets",Already reported to 16268,send,rahim,01064134086,5000.0,HOLD,,dataset (reported),Other customers have reported this number (or wallets it trades with) to 16268
+"5. Reported, ordinary and quiet wallets",Ordinary established wallet (first transfer),send,rahim,01038011180,1000,ALLOW,,dataset (no fraud role),No warning: it goes through.
+"5. Reported, ordinary and quiet wallets",Ordinary established wallet (first transfer),send,rahim,01082349852,1000,ALLOW,,dataset (no fraud role),No warning: it goes through.
+"5. Reported, ordinary and quiet wallets","Old mule wallet, quiet for weeks",send,rahim,01016206094,5000.0,ALLOW,mule,dataset (fraud role),No warning: it goes through.
+"5. Reported, ordinary and quiet wallets",A number no wallet uses,send,rahim,01099999999,1000,NO_ACCOUNT,,none,No upay account uses this number (demo data).
+6. Mobile recharge,Tk 50 to your own number,recharge,rahim,01051923924,50.0,ALLOW,,persona,No warning: the recharge goes through.
+6. Mobile recharge,"Tk 1,000 to your own number (Rahim usually recharges about Tk 99)",recharge,rahim,01051923924,1000.0,NUDGE,,persona,"Unusual amount for you: you usually recharge about Tk 74 (Tk 49 to Tk 187 in your last 10); Tk 1,000 is 13 times that"
+6. Mobile recharge,Tk 100 each to three different numbers within an hour,recharge,rahim,01087840599,100.0,NUDGE,,persona contacts,"Recharge number 3 in the last hour, to 2 numbers that are not yours: scammers ask victims to recharge the scammers' own numbers"

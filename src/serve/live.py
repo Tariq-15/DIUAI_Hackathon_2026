@@ -10,6 +10,11 @@ Start-up:
   3. rebuild the 24-hour graph snapshot from the recent edges plus the staged ones
 Every transfer the app sends is then scored live by the real model (nothing is pre-recorded).
 
+On top of the model, two plain rules can add a one-tap check (NUDGE), never a block: a likely keypad slip from
+someone the customer pays often (src/serve/recipient.py), and an amount far above the customer's own habit
+(src/serve/habits.py, thresholds learned with federated analytics in src/fl/amounts.py). Mobile recharges are not
+scored by the model (it was not trained on them); they get the amount-habit check and a rapid-recharge rule.
+
 Policy, in plain code: bands come from the bundle's policy; on top of it an analyst's freeze puts any
 later transfer to that wallet on HOLD. People decide: the customer cancels or confirms a warning,
 an analyst approves every freeze or release. Every decision lands in a hash-chained audit log.
@@ -37,6 +42,7 @@ from src.models.explain import bn as bn_num
 from . import complaints as cmp
 from . import copilot
 from . import recipient as rcheck
+from .habits import Habits
 from src.features.graph import graph_snapshot, nx
 from .scorer import RiskEngine, kind_of
 
@@ -56,6 +62,7 @@ CASE_LABELS = {"genuine_wrong_send": "Genuine wrong send (keypad slip)", "likely
                "needs_review": "Wrong send: needs review", "needs_details": "No matching transfer: ask for details"}
 SCAM_EVIDENCE = {"reported", "many_senders", "new_recipient", "chain", "collector_cashout", "network_pattern", "shared_device"}
 COMPLAINT_STEPS_BN = ["গৃহীত", "পর্যালোচনা চলছে", "পদক্ষেপ নেওয়া হয়েছে", "নিষ্পত্তি"]
+RECHARGE = dict(min=10.0, max=1000.0, biller="B009", burst_window=HOUR, burst_count=3)   # synthetic limits
 
 FEATURE_LABELS = {
     "cp_age_days": "Recipient wallet age (days)", "cp_in_uniq_24h": "Different senders to recipient, 24 h",
@@ -106,6 +113,7 @@ class LiveWorld:
         self.seller_cfg = dict(SELLER, **(seller or {}))
         self.lock = threading.RLock()
         self._base_world = joblib.load(self.dir / "demo_world.joblib")
+        self.habits = Habits(self.dir)
         self.reset()
 
     @classmethod
@@ -117,6 +125,7 @@ class LiveWorld:
         self.lock = threading.RLock()
         self.seller_cfg = dict(SELLER)
         self._snapshot_path, self._bundle, self.engine = Path(path), bundle, None
+        self.habits = Habits(self.dir)
         self.reset()
         return self
 
@@ -124,7 +133,7 @@ class LiveWorld:
         """Everything a fresh, staged world needs, without the model (that is saved separately)."""
         return dict(state=self.engine.state, now=self.engine.now, edges=self.edges, complained=self.complained,
                     alerts=self.alerts, order=self.order, personas=self.personas, staged_agent=self.staged_agent,
-                    world={k: v for k, v in self.world.items() if k != "edges"})
+                    habit_extra=self.habits.extra, world={k: v for k, v in self.world.items() if k != "edges"})
 
     def _restore(self):
         self.engine = self.edges = self.alerts = None
@@ -137,6 +146,7 @@ class LiveWorld:
         self.edges, self.complained = snap["edges"], snap["complained"]
         self.alerts, self.order, self.personas = snap["alerts"], snap["order"], snap["personas"]
         self.staged_agent = snap["staged_agent"]
+        self.habits.reset(snap.get("habit_extra"))
         self.frozen, self.audit, self.n_live = {}, [], 0
         self._lookups()
         self.t0, self.wall0 = LIVE_START, time.time()
@@ -149,7 +159,9 @@ class LiveWorld:
             self.msisdn_of.setdefault(w, m)
         here = [self.dir / "slip_costs.json", self.dir / "portable" / "slip_costs.json"]
         self.costs = rcheck.load_costs(next((c for c in here if c.exists()), None))
-        self.typed, self.n_tx, self.n_complaints = {}, 0, 0
+        kit = next((k for k in (self.dir / "test_kit.json", self.dir / "portable" / "test_kit.json") if k.exists()), None)
+        self.kit = json.loads(kit.read_text(encoding="utf-8")) if kit else None
+        self.typed, self.n_tx, self.n_complaints, self.recharges = {}, 0, 0, []
 
     # ------------------------------------------------------------------ set-up
     def reset(self):
@@ -177,6 +189,7 @@ class LiveWorld:
             self.audit: list[dict] = []
             self.n_live = 0
             self.personas = self._personas()
+            self.habits.reset()
             self._stage()
             self._rebuild_graph(LIVE_START)
             self.engine.now = LIVE_START
@@ -218,6 +231,8 @@ class LiveWorld:
                                device_id=device, channel=channel, ts_sec=int(t)), commit=True)
         txn_id = txn_id or f"S-{len(self.edges)}"
         self.edges.append((int(t), src, dst, float(amount), typ, txn_id))
+        if typ == "SEND_MONEY" and src.startswith("W"):
+            self.habits.add(src, "send", amount, t)
         return txn_id
 
     def _stage(self):
@@ -384,62 +399,91 @@ class LiveWorld:
                   channel: str = "APP") -> dict:
         """The stable risk-score contract: any sender, any recipient (wallet id or 010 number), scored live."""
         with self.lock:
-            src = self.resolve(sender)
-            if src is None:
-                raise LookupError("unknown sender wallet")
-            dst = self.resolve(to)
-            if dst is None:
-                raise LookupError("no upay wallet uses this number in the demo data")
-            if dst == src:
-                raise ValueError("cannot send money to yourself")
-            ws = self.engine.store.w.get(src)
-            t = max(self.clock(), self.engine.now + 1)
-            txn = dict(sender_id=src, receiver_id=dst, amount=float(amount), txn_type="SEND_MONEY",
-                       device_id=device or (ws.last_device if ws else None), channel=channel, ts_sec=t)
-            res = self.engine.score(txn, commit=False)
-            typed = to.strip() if re.fullmatch(r"01\d{9}", to.strip()) else self.msisdn_of.get(dst)
-            sent_to = ws.sent_to if ws else {}
-            slip = rcheck.check(sent_to, self.msisdn_of, typed, self.costs) if dst not in sent_to else None
-            if slip:
-                slip["name"] = self._contact_name(persona, slip["msisdn"])
-                slip["name_en"] = self._contact_name(persona, slip["msisdn"], "en")
-                slip["typed"] = typed
-                who = f"{slip['name']} " if slip["name"] else ""
-                who_en = f"{slip['name_en']} " if slip["name_en"] else ""
-                res["reasons"] = [dict(
-                    code="wrong_recipient", feature="recipient_check", shap=None,
-                    en=f"Did you mean {who_en}({slip['msisdn']})? You have sent money there {slip['count']} times; "
-                       f"{slip['slip']['en']}",
-                    bn=f"আপনি কি {who}({slip['msisdn']}) নম্বরে পাঠাতে চেয়েছিলেন? সেখানে আপনি আগে {bn_num(slip['count'])} বার "
-                       f"টাকা পাঠিয়েছেন; {slip['slip']['bn']}")] + res["reasons"]
-                if res["band"] == "ALLOW":                    # plain rule: a likely slip always gets a one-tap check
-                    res["band"], res["policy_override"] = "NUDGE", "possible_wrong_recipient"
-                if res["band"] == "NUDGE":
-                    res["customer_message"] = dict(en=f"Check the number: {res['reasons'][0]['en']}.",
-                                                   bn=f"নম্বরটি দেখে নিন: {res['reasons'][0]['bn']}।")
-            txn["typed"] = typed
-            if dst in self.frozen:                            # an analyst's freeze outranks the model
-                res["band"], res["policy_override"] = "HOLD", "recipient_frozen_by_analyst"
-                res["customer_message"] = dict(
-                    en="This number is under review by upay. We have paused the transfer for your safety. Call 16268 if you need help.",
-                    bn="এই নম্বরটি upay-এর পর্যালোচনায় আছে। আপনার নিরাপত্তার জন্য লেনদেনটি স্থগিত রাখা হয়েছে। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।")
+            res, slip, hb, txn, src, dst, t = self._assess(sender, to, amount, device, persona, channel)
             alert_id = txn_id = None
             if res["band"] == "ALLOW":
                 txn_id = self._commit_live(txn)
             else:
-                alert_id = self._new_alert(persona, txn, res, slip)
-            choices = list(CHOICES.get(res["band"], ())) + (["use_suggested"] if slip and dst not in self.frozen else [])
-            ask = res["band"] in ("NUDGE", "STEP_UP")
-            question = ("আপনি কি ঠিক নম্বরে পাঠাচ্ছেন?" if slip else "আপনি কি এই ব্যক্তিকে ব্যক্তিগতভাবে চেনেন?") if ask else None
-            question_en = ("Is this the right number?" if slip else "Do you personally know this person?") if ask else None
-            return dict(
-                band=res["band"], risk_score=res["risk_score"], alert_id=alert_id, txn_id=txn_id, receiver_id=dst,
-                reasons=[dict(code=r["code"], bn=r["bn"], en=r["en"]) for r in res["reasons"]],
-                message=res["customer_message"], choices=choices, suggestion=slip,
-                policy_override=res.get("policy_override"), at=self.iso(t),
-                balance=round(float(self.engine.state["balances"].get(src, 0.0)), 2), question_bn=question,
-                question_en=question_en,
-            )
+                alert_id = self._new_alert(persona, txn, res, slip, hb)
+            return self._answer(res, slip, hb, src, dst, t, alert_id, txn_id)
+
+    def preview(self, persona: str, to: str, amount: float, device: str | None = None) -> dict:
+        """What Prohori would answer for this transfer right now, without sending it or raising an alert."""
+        p = self.personas.get(persona)
+        if p is None:
+            raise KeyError(f"unknown customer {persona}")
+        with self.lock:
+            res, slip, hb, _txn, src, dst, t = self._assess(p["wallet"], to, amount, device or p["device"], persona, "APP")
+            return self._answer(res, slip, hb, src, dst, t, None, None)
+
+    def _assess(self, sender, to, amount, device, persona, channel):
+        """Model score, then the plain rules: keypad slip, amount habit, an analyst's freeze. Changes nothing."""
+        src = self.resolve(sender)
+        if src is None:
+            raise LookupError("unknown sender wallet")
+        dst = self.resolve(to)
+        if dst is None:
+            raise LookupError("no upay wallet uses this number in the demo data")
+        if dst == src:
+            raise ValueError("cannot send money to yourself")
+        ws = self.engine.store.w.get(src)
+        t = max(self.clock(), self.engine.now + 1)
+        txn = dict(sender_id=src, receiver_id=dst, amount=float(amount), txn_type="SEND_MONEY",
+                   device_id=device or (ws.last_device if ws else None), channel=channel, ts_sec=t)
+        res = self.engine.score(txn, commit=False)
+        model_flagged = res["band"] != "ALLOW"
+        typed = to.strip() if re.fullmatch(r"01\d{9}", to.strip()) else self.msisdn_of.get(dst)
+        sent_to = ws.sent_to if ws else {}
+        slip = rcheck.check(sent_to, self.msisdn_of, typed, self.costs) if dst not in sent_to else None
+        if slip:
+            slip["name"] = self._contact_name(persona, slip["msisdn"])
+            slip["name_en"] = self._contact_name(persona, slip["msisdn"], "en")
+            slip["typed"] = typed
+            who = f"{slip['name']} " if slip["name"] else ""
+            who_en = f"{slip['name_en']} " if slip["name_en"] else ""
+            res["reasons"] = [dict(
+                code="wrong_recipient", feature="recipient_check", shap=None,
+                en=f"Did you mean {who_en}({slip['msisdn']})? You have sent money there {slip['count']} times; "
+                   f"{slip['slip']['en']}",
+                bn=f"আপনি কি {who}({slip['msisdn']}) নম্বরে পাঠাতে চেয়েছিলেন? সেখানে আপনি আগে {bn_num(slip['count'])} বার "
+                   f"টাকা পাঠিয়েছেন; {slip['slip']['bn']}")] + res["reasons"]
+            if res["band"] == "ALLOW":                    # plain rule: a likely slip always gets a one-tap check
+                res["band"], res["policy_override"] = "NUDGE", "possible_wrong_recipient"
+            if res["band"] == "NUDGE":
+                res["customer_message"] = dict(en=f"Check the number: {res['reasons'][0]['en']}.",
+                                               bn=f"নম্বরটি দেখে নিন: {res['reasons'][0]['bn']}।")
+        hb = self.habits.check(src, "send", amount, t)
+        if hb and hb["unusual"]:                          # plain rule: far above the customer's own habit -> one-tap check
+            why = self.habits.reason(hb)
+            k = (1 if slip else 0) + (1 if model_flagged else 0)      # the model's own top reason stays first
+            res["reasons"] = res["reasons"][:k] + [why] + res["reasons"][k:]
+            if res["band"] == "ALLOW":
+                res["band"], res["policy_override"] = "NUDGE", "unusual_amount"
+                res["customer_message"] = dict(en=f"Check the amount: {why['en']}.", bn=f"পরিমাণটি দেখে নিন: {why['bn']}।")
+        txn["typed"] = typed
+        if dst in self.frozen:                            # an analyst's freeze outranks the model
+            res["band"], res["policy_override"] = "HOLD", "recipient_frozen_by_analyst"
+            res["customer_message"] = dict(
+                en="This number is under review by upay. We have paused the transfer for your safety. Call 16268 if you need help.",
+                bn="এই নম্বরটি upay-এর পর্যালোচনায় আছে। আপনার নিরাপত্তার জন্য লেনদেনটি স্থগিত রাখা হয়েছে। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।")
+        return res, slip, hb, txn, src, dst, t
+
+    def _answer(self, res, slip, hb, src, dst, t, alert_id, txn_id) -> dict:
+        choices = list(CHOICES.get(res["band"], ())) + (["use_suggested"] if slip and dst not in self.frozen else [])
+        ask = res["band"] in ("NUDGE", "STEP_UP")
+        amount_q = bool(hb and hb["unusual"]) and not slip and res.get("policy_override") == "unusual_amount"
+        question = (("আপনি কি ঠিক নম্বরে পাঠাচ্ছেন?" if slip else "পরিমাণটি কি ঠিক আছে?" if amount_q
+                     else "আপনি কি এই ব্যক্তিকে ব্যক্তিগতভাবে চেনেন?") if ask else None)
+        question_en = (("Is this the right number?" if slip else "Is this amount right?" if amount_q
+                        else "Do you personally know this person?") if ask else None)
+        return dict(
+            band=res["band"], risk_score=res["risk_score"], alert_id=alert_id, txn_id=txn_id, receiver_id=dst,
+            reasons=[dict(code=r["code"], bn=r["bn"], en=r["en"]) for r in res["reasons"]],
+            message=res["customer_message"], choices=choices, suggestion=slip, habit=hb,
+            policy_override=res.get("policy_override"), at=self.iso(t),
+            balance=round(float(self.engine.state["balances"].get(src, 0.0)), 2), question_bn=question,
+            question_en=question_en,
+        )
 
     def _contact_name(self, persona: str | None, msisdn: str, lang: str = "bn") -> str | None:
         p = self.personas.get(persona) if persona else None
@@ -492,7 +536,7 @@ class LiveWorld:
         p = self.personas[persona]
         return round(float(self.engine.state["balances"].get(p["wallet"], 0.0)), 2)
 
-    def _new_alert(self, persona: str, txn: dict, res: dict, slip: dict | None = None) -> str:
+    def _new_alert(self, persona: str, txn: dict, res: dict, slip: dict | None = None, hb: dict | None = None) -> str:
         self.n_live += 1
         aid = f"L-{self.n_live:04d}"
         feats = self.engine.bundle["features"]
@@ -508,7 +552,7 @@ class LiveWorld:
                   for f, v in sorted(zip(feats, shap), key=lambda kv: -abs(kv[1]))[:10]] if shap is not None else [],
             evidence=ev, status="held_for_review" if res["band"] == "HOLD" else "awaiting_customer",
             customer_choice=None, title=None, planted_id=None, truth=None, suggestion=slip, typed=txn.get("typed"),
-            kind="presend",
+            kind="presend", habit=hb,
         )
         self.order.insert(0, aid)
         self._audit("prohori-model", "system", f"alert.{res['band'].lower()}", aid,
@@ -537,6 +581,9 @@ class LiveWorld:
             a["customer_choice"] = "cancelled" if choice == "cancel" else ("confirmed_pin" if choice == "confirm_pin" else "confirmed")
             if choice == "cancel":
                 a["status"] = "cancelled_by_customer"
+            elif a.get("kind") == "recharge":
+                a["txn_id"] = self._commit_recharge(a["sender_id"], a["recharge"]["number"], a["amount"], a.get("device_id"))
+                a["status"] = "sent_after_warning"
             else:
                 a["txn_id"] = self._commit_live(dict(sender_id=a["sender_id"], receiver_id=a["receiver_id"], amount=a["amount"],
                                                      txn_type=a["txn_type"], device_id=a.get("device_id"), typed=a.get("typed")))
@@ -562,6 +609,96 @@ class LiveWorld:
         }.get(a["status"], ("", ""))
         return dict(alert_id=alert_id, status=a["status"], band=a["band"], message_bn=msg[0], message_en=msg[1],
                     balance=round(float(self.engine.state["balances"].get(a["sender_id"], 0.0)), 2))
+
+    # ------------------------------------------------------------------ mobile recharge: amount habit + rapid-recharge rule
+    def recharge(self, persona: str, number: str, amount: float) -> dict:
+        """A mobile recharge from the customer's wallet. The fraud model is not trained on recharges, so the check is
+        the customer's own recharge habit (thresholds learned with federated analytics) and one plain rule: a third
+        recharge within an hour to two or more numbers that are not the customer's own. Either one asks once (NUDGE)."""
+        with self.lock:
+            p = self.personas.get(persona)
+            if p is None:
+                raise KeyError(f"unknown customer {persona}")
+            number = re.sub(r"\D", "", cmp.to_ascii_digits(str(number or "")))
+            if not re.fullmatch(r"01\d{9}", number):
+                raise ValueError("enter an 11-digit mobile number starting with 01")
+            amount = float(amount)
+            if not RECHARGE["min"] <= amount <= RECHARGE["max"]:
+                raise ValueError(f"a recharge is Tk {RECHARGE['min']:.0f} to Tk {RECHARGE['max']:,.0f} (synthetic limit)")
+            src = p["wallet"]
+            if amount > self.engine.state["balances"].get(src, 0.0):
+                raise ValueError("not enough balance")
+            t = max(self.clock(), self.engine.now + 1)
+            own = number == p["msisdn"]
+            contact = self._contact_name(persona, number)
+            hb = self.habits.check(src, "recharge", amount, t)
+            unusual = bool(hb and hb["unusual"])
+            reasons = [self.habits.reason(hb)] if unusual else []
+            recent = [r for r in self.recharges if r["wallet"] == src and t - r["t"] <= RECHARGE["burst_window"]]
+            others = {r["number"] for r in recent if not r["own"]} | (set() if own else {number})
+            burst = len(recent) + 1 >= RECHARGE["burst_count"] and len(others) >= 2
+            if burst:
+                reasons.append(dict(code="recharge_burst",
+                                    en=f"Recharge number {len(recent) + 1} in the last hour, to {len(others)} numbers that are not "
+                                       "yours: scammers ask victims to recharge the scammers' own numbers",
+                                    bn=f"গত এক ঘণ্টায় {bn_num(len(recent) + 1)}তম রিচার্জ, আপনার নয় এমন {bn_num(len(others))}টি নম্বরে: "
+                                       "প্রতারকেরা ভুক্তভোগীদের দিয়ে নিজেদের নম্বরে রিচার্জ করিয়ে নেয়"))
+            if not own and not contact:
+                reasons.append(dict(code="recharge_stranger", en="This number is not yours and not in your saved contacts",
+                                    bn="নম্বরটি আপনার নয়, আপনার পরিচিত তালিকাতেও নেই"))
+            band = "NUDGE" if unusual or burst else "ALLOW"
+            alert_id = txn_id = None
+            if band == "ALLOW":
+                txn_id = self._commit_recharge(src, number, amount, p["device"], t)
+            else:
+                self.n_live += 1
+                alert_id = f"L-{self.n_live:04d}"
+                self.alerts[alert_id] = dict(
+                    id=alert_id, source="live", persona=persona, kind="recharge", txn_id=alert_id, ts_sec=t, created=self.iso(t),
+                    sender_id=src, receiver_id=number, txn_type="MOBILE_RECHARGE", amount=amount, device_id=p["device"],
+                    risk_score=0.0, band="NUDGE", policy_override="unusual_amount" if unusual else "recharge_burst",
+                    p_fraud=0.0, p_fraud_calibrated=0.0, anomaly=None, graph=0.0, reasons=reasons, customer_message=None,
+                    shap=[], evidence={}, status="awaiting_customer", customer_choice=None,
+                    title="Unusual recharge amount for this customer" if unusual else "Rapid recharges to other numbers",
+                    planted_id=None, truth=None, suggestion=None, typed=number, habit=hb,
+                    recharge=dict(number=number, own=own, contact=contact, burst=burst,
+                                  recent=[dict(r, at=self.iso(r["t"])) for r in recent]))
+                self.order.insert(0, alert_id)
+                self._audit("prohori-rules", "system", "alert.recharge", alert_id,
+                            {"reasons": [r["code"] for r in reasons], "amount": amount})
+            msg = None
+            if band == "NUDGE":
+                msg = dict(en="Check before you recharge: " + reasons[0]["en"] + ".", bn="রিচার্জের আগে দেখে নিন: " + reasons[0]["bn"] + "।")
+            return dict(band=band, alert_id=alert_id, txn_id=txn_id, number=number, own=own, contact=contact,
+                        contact_en=self._contact_name(persona, number, "en"), amount=amount,
+                        reasons=[dict(code=r["code"], bn=r["bn"], en=r["en"]) for r in reasons], habit=hb, message=msg,
+                        choices=list(CHOICES["NUDGE"]) if band == "NUDGE" else [], at=self.iso(t),
+                        question_bn="রিচার্জটি কি আপনি নিজে, জেনে-বুঝে করছেন?" if band == "NUDGE" else None,
+                        question_en="Are you making this recharge yourself, knowingly?" if band == "NUDGE" else None,
+                        balance=round(float(self.engine.state["balances"].get(src, 0.0)), 2))
+
+    def _commit_recharge(self, src: str, number: str, amount: float, device: str | None, t: int | None = None) -> str:
+        """The recharge enters the same feature store (as MOBILE_RECHARGE, like the training replay) and the habit."""
+        t = max(t or self.clock(), self.engine.now + 1)
+        store, bal, dst = self.engine.store, self.engine.state["balances"], RECHARGE["biller"]
+        dow = int((self.start + pd.Timedelta(seconds=t)).dayofweek)
+        _f, depth = store.compute(t, "MOBILE_RECHARGE", src, "C", dst, "B", amount, bal.get(src, np.nan), bal.get(dst, np.nan),
+                                  device, "APP", None, dow)
+        store.update(t, "MOBILE_RECHARGE", src, "C", dst, "B", amount, True, device, "APP", None, depth)
+        bal[src] = bal.get(src, 0.0) - amount
+        bal[dst] = bal.get(dst, 0.0) + amount
+        self.engine.now = max(self.engine.now, t)
+        self.habits.add(src, "recharge", amount, t)
+        own = any(p["wallet"] == src and p["msisdn"] == number for p in self.personas.values())
+        self.recharges.append(dict(wallet=src, number=number, amount=float(amount), t=int(t), own=own))
+        self.n_tx += 1
+        return f"TR-{self.n_tx:04d}"
+
+    def recharges_of(self, persona: str) -> list[dict]:
+        p = self.personas.get(persona)
+        if p is None:
+            raise KeyError(f"unknown customer {persona}")
+        return [dict(r, at=self.iso(r["t"])) for r in reversed(self.recharges) if r["wallet"] == p["wallet"]]
 
     # ------------------------------------------------------------------ complaints: "I sent it to the wrong person"
     def preview_complaint(self, text: str) -> dict:
@@ -694,6 +831,7 @@ class LiveWorld:
             row["truth"] = a.get("truth")
             row["kind"] = a.get("kind", "historical" if a["source"] == "historical" else "presend")
             row["wrong_number"] = bool(a.get("suggestion"))
+            row["unusual_amount"] = bool((a.get("habit") or {}).get("unusual"))
             row["case_type"] = a["complaint"]["case_type"] if a.get("kind") == "complaint" else None
             if a.get("kind") == "complaint":
                 row["top_reason"] = "“" + a["complaint"]["text"][:90] + ("…" if len(a["complaint"]["text"]) > 90 else "") + "”"
@@ -779,10 +917,14 @@ class LiveWorld:
             if a.get("kind") == "complaint" and not a["receiver_id"]:
                 net = dict(nodes=[dict(id=a["sender_id"], kind="customer", role="claimant", frozen=False, age_days=None,
                                        reported=False)], edges=[])
+            elif a.get("kind") == "recharge":
+                net = dict(nodes=[], edges=[])
             else:
                 net = self.network(a)
             if a.get("kind") == "complaint":
                 rep = copilot.complaint_report(a, net, self._context(a))
+            elif a.get("kind") == "recharge":
+                rep = copilot.recharge_report(a, self._context(a))
             else:
                 rep = copilot.case_report(a, net, self._context(a), use_llm=use_llm)
             out = {k: v for k, v in a.items() if k not in ("network",)}
@@ -863,5 +1005,13 @@ class LiveWorld:
                                     typical_amount=p["typical_amount"],
                                     contacts=[dict(name=c["name"], name_en=c.get("name_en", c["name"]), msisdn=c["msisdn"],
                                                    sent_before=c["sent_before"]) for c in p["contacts"]],
-                                    scenarios=p["scenarios"]) for k, p in self.personas.items()],
-                    slip_costs=self.costs.get("source"))
+                                    scenarios=p["scenarios"], habits=self.habits.summary(p["wallet"], self.clock()))
+                               for k, p in self.personas.items()],
+                    slip_costs=self.costs.get("source"), amount_habits=self.habits.source if self.habits.ok else None,
+                    recharge_limits=dict(min=RECHARGE["min"], max=RECHARGE["max"]), test_kit=bool(self.kit))
+
+    def test_kit(self) -> dict:
+        """Numbers from the dataset to try on the phone, each with what Prohori said on a fresh demo (src/serve/testkit.py)."""
+        if not self.kit:
+            raise LookupError("no test kit packaged (python -m src.serve.testkit)")
+        return self.kit

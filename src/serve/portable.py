@@ -12,7 +12,8 @@ behaves like the original object in `score_frame`:
 tests/test_product.py checks the adapters reproduce the original models on real transactions.
 
 The live demo world is also saved here after staging (world.pkl.gz), so the browser starts in seconds
-instead of re-staging the scenarios.
+instead of re-staging the scenarios. Then the test kit (src/serve/testkit.py) is built on that world, when the
+generated dataset is present.
 """
 from __future__ import annotations
 
@@ -146,6 +147,13 @@ def export(artifacts: Path | None = None, verbose=True) -> Path:
     export_bundle(joblib.load(art / "serve_bundle.joblib"), out)
     lw = LiveWorld(art)                                   # stages the scenarios with the original models
     save_world(lw, out / "world.pkl.gz")
+    from src.common.config import load_config, resolve
+    from .testkit import build as build_kit, write as write_kit
+    data = resolve(load_config(), "data_dir")
+    if (data / "wallet_truth.parquet").exists():          # after the snapshot: the kit's recharge tests move money
+        write_kit(build_kit(lw, data), out)
+    elif verbose:
+        print("[portable] no generated dataset here: test_kit.json kept as it is")
     if verbose:
         size = sum(p.stat().st_size for p in out.iterdir()) / 1e6
         print(f"[portable] {', '.join(sorted(p.name for p in out.iterdir()))} -> {out} ({size:.1f} MB)")

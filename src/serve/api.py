@@ -167,6 +167,30 @@ def customer_transfers(key: str):
     return _call(world().transfers, key)
 
 
+class RechargeIn(BaseModel):
+    customer: str
+    number: str = Field(..., min_length=11, max_length=20, description="the mobile number to recharge (01...)")
+    amount: float = Field(..., gt=0, le=1000, description="Tk 10 to 1,000 (synthetic limit)")
+
+
+@app.post("/api/v1/recharge")
+def recharge(body: RechargeIn):
+    """Mobile recharge: the customer's own recharge habit (federated thresholds) + a rapid-recharge rule. ALLOW goes
+    through; NUDGE asks once (answer with /alerts/{id}/decision, like a transfer warning)."""
+    return _call(world().recharge, body.customer, body.number, body.amount)
+
+
+@app.get("/api/v1/customers/{key}/recharges")
+def customer_recharges(key: str):
+    return _call(world().recharges_of, key)
+
+
+@app.get("/api/v1/test-kit")
+def test_kit():
+    """Numbers from the dataset to try on the phone, each with what Prohori answered on a fresh demo."""
+    return _call(world().test_kit)
+
+
 class PreviewIn(BaseModel):
     text: str = Field(..., max_length=2000)
 
@@ -253,6 +277,18 @@ def reset():
 # ---------------------------------------------------------------- web UI (customer app, analyst copilot, showcase)
 UI = ROOT / "ui"
 mimetypes.add_type("font/woff2", ".woff2")      # bundled Noto Sans Bengali
+
+
+@app.middleware("http")
+async def revalidate_ui(request, call_next):
+    """The pages, scripts and styles change with every deploy: the browser keeps them but asks first (ETag), so a new
+    version is never hidden behind a stale cache. Fonts never change and are cached for a week."""
+    res = await call_next(request)
+    if request.url.path.startswith("/ui"):
+        res.headers["Cache-Control"] = "public, max-age=604800" if request.url.path.endswith(".woff2") else "no-cache"
+    return res
+
+
 if UI.exists():
     @app.get("/", include_in_schema=False)
     def root():
