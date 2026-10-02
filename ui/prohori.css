@@ -207,7 +207,12 @@ table.t th { color: var(--ink-3); font-weight: 600; font-size: 12px; }
 .show-body { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 12px; padding: 12px; height: calc(100vh - 92px); background: #10172a; }
 .show-body iframe { width: 100%; height: 100%; border: 0; border-radius: 16px; background: transparent; }
 .show-body iframe.an-frame { background: #f3f5f9; }
-@media (max-width: 1000px) { .show-body { grid-template-columns: 1fr; height: auto; } .show-body iframe { height: 860px; } }
+@media (max-width: 1000px) and (min-width: 901px) { .show-body[data-view="both"] { grid-template-columns: 380px minmax(0, 1fr); } }
+/* phone only / copilot only: the same page, one screen hidden (nothing reloads, the engine and the demo state stay) */
+.show-body[data-view="phone"], .show-body[data-view="copilot"] { grid-template-columns: minmax(0, 1fr); }
+.show-body[data-view="phone"] .an-frame, .show-body[data-view="copilot"] .phone-frame { display: none; }
+.show-body[data-view="phone"] .phone-frame { max-width: 440px; margin: 0 auto; }
+.view-switch span { cursor: pointer; user-select: none; }
 
 /* ================= in-browser engine start-up (static hosting) ================= */
 .boot { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; background: rgba(16, 23, 42, .88); padding: 16px; }
@@ -216,6 +221,12 @@ table.t th { color: var(--ink-3); font-weight: 600; font-size: 12px; }
 .boot-card b { font-size: 18px; display: block; margin-bottom: 6px; }
 .boot-bar { height: 8px; border-radius: 999px; background: #eef1f6; overflow: hidden; margin: 12px 0; }
 .boot-bar i { display: block; height: 100%; width: 0; background: var(--upay-blue); transition: width .4s; }
+.boot.mini { inset: auto 12px 12px auto; background: none; padding: 0; pointer-events: none; }
+.boot.mini .boot-card { max-width: 290px; padding: 10px 14px; text-align: left; }
+.boot.mini .boot-card .spin { display: none; }
+.boot.mini .boot-card b { font-size: 14px; margin-bottom: 2px; }
+.boot.mini .boot-bar { margin: 6px 0; }
+.boot.mini #boot-note { margin: 0; font-size: 11.5px; }
 
 /* ================= language switch, wrong-number check, complaints (merged from Ferot) ================= */
 .langsw { display: inline-flex; border: 1.5px solid rgba(0, 0, 0, .18); border-radius: 999px; padding: 2px; background: rgba(255, 255, 255, .7); gap: 2px; }
@@ -262,7 +273,6 @@ blockquote.words { margin: 0; padding: 10px 12px; border-left: 4px solid #6b2fb3
 .heat { display: inline-grid; grid-template-columns: 26px repeat(10, 26px); gap: 2px; font-size: 11px; font-family: ui-monospace, Consolas, monospace; }
 .heat span { display: grid; place-items: center; height: 24px; border-radius: 4px; }
 .heat .h { color: var(--ink-3); font-weight: 700; }
-.mob-switch { display: none; }
 
 /* ================= small screens: analyst copilot and showcase ================= */
 @media (max-width: 900px) {
@@ -281,8 +291,7 @@ blockquote.words { margin: 0; padding: 10px 12px; border-left: 4px solid #6b2fb3
   .show-head .steps { display: none; }
   .show-body { grid-template-columns: minmax(0, 1fr); height: auto; padding: 8px; }
   .show-body iframe { height: calc(100vh - 120px); height: calc(100dvh - 120px); min-height: 560px; }
-  .mob-switch { display: inline-flex; }
-  .show-body[data-pane="phone"] .an-frame, .show-body[data-pane="copilot"] .phone-frame { display: none; }
+  .view-switch [data-view="both"] { display: none; }
 }
 @media (max-width: 480px) {
   .an-head .brand { font-size: 16px; }
@@ -301,10 +310,42 @@ blockquote.words { margin: 0; padding: 10px 12px; border-left: 4px solid #6b2fb3
   .an-tabs { order: 3; width: 100%; }
 }
 @media (max-width: 600px) {
-  .show-head a.chip { display: none; }
+  .show-head .kit-btn { padding: 4px 8px; }
   .show-head .brand { font-size: 16px; }
   .show-head .brand span[data-en] { display: block; font-size: 12.5px !important; }
 }
 .flbar { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr) 54px; gap: 8px; align-items: center; font-size: 12.5px; margin: 4px 0; }
 .flbar .bar { height: 12px; background: #f0f2f6; border-radius: 4px; position: relative; overflow: hidden; }
 .flbar .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+
+/* ================= amount habit, recharge, test numbers, modal ================= */
+.habit { font-size: 13px; line-height: 1.45; margin-top: 10px; padding: 8px 10px; background: #f3f7fc; border-radius: 10px; }
+.habit-warn { margin: 8px 0 0; }
+.habit-note { margin-top: 6px; line-height: 1.4; }
+.habitbox { background: #fffaf0; border: 1px solid #f3d58c; border-radius: 12px; padding: 8px 10px; margin: 10px 0; }
+.hstrip { width: 100%; height: auto; display: block; margin: 4px 0; }
+.band-NONE { background: #eef1f6; color: var(--ink-2); }
+details.kit { margin-top: 16px; border: 1.5px dashed #b9c4d6; border-radius: 12px; background: #f7f9fc; }
+details.kit > summary { cursor: pointer; padding: 10px 12px; font-weight: 700; font-size: 13.5px; color: var(--upay-blue-dark); }
+details.kit[open] > summary { border-bottom: 1px dashed #c9d3e3; }
+details.kit > div { padding: 4px 10px 10px; }
+.kit-g { margin-top: 10px; }
+.kit-gt { font-weight: 700; color: var(--ink-2); margin-bottom: 4px; }
+.kit-item { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 10px; margin: 6px 0; cursor: pointer; }
+.kit-item:hover, .kit-item:focus { outline: 2px solid var(--upay-cyan); outline-offset: -1px; }
+.kit-item .kit-why { margin-top: 3px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kit-item .kit-role { padding: 1px 7px; font-size: 11px; }
+.kit-steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.modal { position: fixed; inset: 0; z-index: 900; background: rgba(16, 23, 42, .72); display: grid; place-items: center; padding: 16px; }
+.modal-card { background: #fff; border-radius: 16px; width: min(1100px, 100%); max-height: calc(100vh - 32px); overflow: auto; padding: 18px; box-shadow: var(--shadow); }
+.kit-table h3 { font-size: 14.5px; margin: 16px 0 6px; }
+.kit-table td { vertical-align: top; }
+.kit-try { padding: 6px 12px; font-size: 13px; white-space: nowrap; }
+@media (max-width: 600px) {
+  .modal { padding: 0; } .modal-card { border-radius: 0; max-height: 100vh; height: 100%; padding: 12px; }
+  .kit-table thead { display: none; }
+  .kit-table table, .kit-table tbody, .kit-table tr, .kit-table td { display: block; width: 100%; }
+  .kit-table tr { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 8px 0; }
+  .kit-table td { border: 0; padding: 2px 0; }
+  .kit-table .kit-try { width: 100%; margin-top: 6px; }
+}

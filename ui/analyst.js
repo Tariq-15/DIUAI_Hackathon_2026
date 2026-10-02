@@ -1,5 +1,6 @@
-/* Analyst copilot (Layer 3): live alert queue, complaint cases, SHAP evidence, money network, 4-part case report,
-   human actions, and the federated-learning results. English or Bangla (the case report itself stays English). */
+/* Analyst copilot (Layer 3): live alert queue, complaint cases, recharges, SHAP evidence, money network, the
+   customer's amount habit, 4-part case report, human actions, and the federated-learning results.
+   English or Bangla (the case report itself stays English). */
 (function () {
   const P = window.Prohori;
   const { L } = P;
@@ -73,11 +74,15 @@
     if (S.filter === 'planted') a = a.filter((x) => x.planted_id);
     if (S.filter === 'complaint') a = a.filter((x) => x.kind === 'complaint');
     if (S.filter === 'wrong') a = a.filter((x) => x.wrong_number || x.case_type === 'genuine_wrong_send');
+    if (S.filter === 'amount') a = a.filter((x) => x.unusual_amount);
+    if (S.filter === 'recharge') a = a.filter((x) => x.kind === 'recharge');
     $('count').textContent = `(${P.n(a.length)})`;
     $('feed').innerHTML = a.map((x) => `
       <div class="al ${x.id === S.sel ? 'sel' : ''} ${flash.includes(x.id) ? 'fresh' : ''}" data-id="${x.id}">
         <div class="t"><span><span class="band band-${x.band}">${x.band === 'COMPLAINT' ? L('অভিযোগ', 'COMPLAINT') : x.band}</span>
-          ${x.kind === 'complaint' ? '' : `<b class="num">${Math.round(x.risk_score)}</b>`}
+          ${x.kind === 'complaint' || x.kind === 'recharge' ? '' : `<b class="num">${Math.round(x.risk_score)}</b>`}
+          ${x.kind === 'recharge' ? `<span class="chip" style="padding:1px 7px">📱 ${L('রিচার্জ', 'recharge')}</span>` : ''}
+          ${x.unusual_amount ? `<span class="chip" style="padding:1px 7px">💰 ${L('অস্বাভাবিক পরিমাণ', 'unusual amount')}</span>` : ''}
           ${x.source === 'live' ? '<span class="chip" style="padding:1px 7px">LIVE</span>' : ''}
           ${x.wrong_number ? `<span class="chip" style="padding:1px 7px">🔢 ${L('ভুল নম্বর?', 'wrong number?')}</span>` : ''}
           ${x.planted_id ? `<span class="chip" style="padding:1px 7px">${P.esc(x.planted_id)}</span>` : ''}</span>
@@ -125,6 +130,26 @@
       ${choice ? `<div class="small" style="margin-top:6px"><b>${L('গ্রাহক', 'Customer')}:</b> ${P.esc(choice)}</div>` : ''}</div>`;
   }
 
+  // the customer's own habit next to this amount (src/serve/habits.py; thresholds from federated analytics)
+  function habitPanel(h) {
+    if (!h || !h.n) return '';
+    const kind = h.kind === 'recharge' ? L('রিচার্জ', 'recharge') : L('সেন্ড মানি', 'Send Money');
+    const x = (v) => (v == null ? '—' : `${v >= 10 ? Math.round(v) : (+v).toFixed(1)}×`);
+    return `<div class="panel"><h3>💰 ${L(`পরিমাণের অভ্যাস (${kind}): গ্রাহক সাধারণত কত পাঠান`, `Amount habit (${kind}): how much this customer usually moves`)}
+        ${h.unusual ? `<span class="chip" style="background:#fff4e5;border-color:#f3d58c">${L('অস্বাভাবিক', 'unusual')}</span>` : `<span class="chip">${L('স্বাভাবিকের মধ্যে', 'within habit')}</span>`}</h3>
+      <div class="kv">
+        <div><span>${L(`সাধারণ পরিমাণ (শেষ ${P.n(h.n)}টি)`, `Usual amount (last ${h.n})`)}</span><b class="num">${P.tk(h.usual)}</b></div>
+        <div><span>${L('মাঝের অর্ধেক', 'Middle half')}</span><b class="num">${P.tk(h.low)} – ${P.tk(h.high)}</b></div>
+        <div><span>${L('সবচেয়ে বড়', 'Largest')}</span><b class="num">${P.tk(h.max)}</b></div>
+        <div><span>${L('কত ঘন ঘন', 'How often')}</span><b class="num">${h.per_week} ${L('বার / সপ্তাহ', 'a week')}</b></div>
+        <div><span>${L('এই পরিমাণ / সাধারণ', 'This amount / usual')}</span><b class="num">${x(h.ratio)} <span class="muted">(${L('সীমা', 'limit')} ${x(h.threshold)})</span></b></div>
+        <div><span>${L('২৪ ঘণ্টার মোট / সাধারণ দিন', '24 h total / usual day')}</span><b class="num">${x(h.day_ratio)} <span class="muted">(${L('সীমা', 'limit')} ${x(h.day_threshold)})</span></b></div>
+      </div>
+      <div style="max-width:520px;margin-top:8px">${P.habitStrip(h, { h: 60 })}</div>
+      <div class="small muted">${L(`সীমাগুলো ${P.esc(h.source || 'ফেডারেটেড অ্যানালিটিক্স')} থেকে; ছোট অঙ্ক (${P.tk(h.floor)}-এর কম) কখনো চিহ্নিত হয় না। এটি নিয়ম, মডেল নয়: শুধু একবার জিজ্ঞেস করে।`,
+    `Limits from ${P.esc(h.source || 'federated analytics')}; small amounts (under ${P.tk(h.floor)}) are never flagged. A plain rule, not the model: it only asks once.`)}</div></div>`;
+  }
+
   function header(d, extra) {
     const truth = d.truth ? `<span class="chip" title="Known only because the data is synthetic">${L('সিন্থেটিক সত্য', 'synthetic truth')}: ${d.truth.is_fraud ? `fraud ${P.esc(d.truth.scenario)} (${P.esc(d.truth.role)})` : 'legitimate'}</span>` : '';
     return `<div class="row" style="flex-wrap:wrap;gap:10px">
@@ -167,7 +192,8 @@
     const rep = d.report;
     const rec = new Set(rep.actions);
     const labels = rep.action_labels;
-    const fits = (k) => (d.kind === 'complaint' ? !['RELEASE_TRANSACTION', 'VERIFY_OWNER', 'REVIEW_AGENT'].includes(k) : !COMPLAINT_ONLY.includes(k));
+    const fits = (k) => (d.kind === 'complaint' ? !['RELEASE_TRANSACTION', 'VERIFY_OWNER', 'REVIEW_AGENT'].includes(k)
+      : d.kind === 'recharge' ? ['VERIFY_OWNER', 'WATCHLIST', 'DISMISS'].includes(k) : !COMPLAINT_ONLY.includes(k));
     const order = [...rep.actions, ...Object.keys(labels).filter((k) => !rec.has(k) && fits(k))];
     const can = (k) => !(k === 'RELEASE_TRANSACTION' && !(d.source === 'live' && d.status === 'held_for_review'));
     return `<div class="panel">
@@ -198,6 +224,7 @@
 
   function renderDetail(d) {
     if (d.kind === 'complaint') { renderComplaint(d); return; }
+    if (d.kind === 'recharge') { renderRecharge(d); return; }
     const choice = d.customer_choice ? (CHOICE[d.customer_choice] ? L(...CHOICE[d.customer_choice]) : d.customer_choice)
       : (d.source === 'live' ? L('এখনো উত্তর দেননি', 'no answer yet') : '—');
     $('detail').innerHTML = `
@@ -217,7 +244,34 @@
         <div class="row small muted" style="justify-content:space-between"><span>ALLOW</span><span>NUDGE 30</span><span>STEP-UP 60</span><span>HOLD 80</span></div>
       </div>
       ${wrongNumberPanel(d.suggestion, d.typed, d.customer_choice ? choice : null)}
+      ${habitPanel(d.habit)}
       ${evidence(d)}${report(d)}${decide(d)}`;
+    wire(d);
+  }
+
+  function renderRecharge(d) {
+    const rc = d.recharge;
+    const choice = d.customer_choice ? (CHOICE[d.customer_choice] ? L(...CHOICE[d.customer_choice]) : d.customer_choice) : L('এখনো উত্তর দেননি', 'no answer yet');
+    const whose = rc.own ? L('গ্রাহকের নিজের নম্বর', "the customer's own number") : rc.contact ? `${L('পরিচিত', 'contact')}: ${P.esc(rc.contact)}`
+      : L('গ্রাহকের নয়, পরিচিত তালিকাতেও নেই', 'not theirs, not a saved contact');
+    $('detail').innerHTML = `
+      <div class="panel">
+        <div class="row" style="flex-wrap:wrap;gap:10px">
+          <span class="band band-${d.band}" style="font-size:14px">${d.band}</span><span class="chip">📱 ${L('মোবাইল রিচার্জ', 'Mobile recharge')}</span>
+          <b style="font-size:20px" class="num">${P.tk(d.amount)}</b><span class="num">${P.esc(d.sender_id)} → ${P.esc(rc.number)}</span>
+          <span class="chip">${P.esc(d.title || '')}</span></div>
+        <div class="kv" style="margin-top:10px">
+          <div><span>${L('কার নম্বর', 'Whose number')}</span><b>${whose}</b></div>
+          <div><span>${L('সময়', 'When')}</span><b class="num">${P.esc(String(d.created).replace('T', ' '))}</b></div>
+          <div><span>${L('গত এক ঘণ্টায় রিচার্জ', 'Recharges in the hour before')}</span><b class="num">${P.n(rc.recent.length)}</b></div>
+          <div><span>${L('অবস্থা', 'Status')}</span><b>${P.esc(status(d.status))}</b></div>
+          <div><span>${L('গ্রাহক', 'Customer')}</span><b>${P.esc(choice)}</b></div>
+          <div><span>${L('মডেল', 'Model')}</span><b>${L('রিচার্জে প্রশিক্ষিত নয়: অভ্যাস + নিয়ম', 'not trained on recharges: habit + rule')}</b></div>
+        </div>
+        <ul style="margin:10px 0 0;padding-left:18px;font-size:13.5px;line-height:1.5">${d.reasons.map((r) => `<li>${P.esc(L(r.bn, r.en))}</li>`).join('')}</ul>
+        ${rc.recent.length ? `<div class="small muted" style="margin-top:8px">${rc.recent.map((r) => `${P.esc(r.at.slice(11, 16))} ${P.tk(r.amount)} → ${P.esc(r.number)}${r.own ? L(' (নিজের)', ' (own)') : ''}`).join(' · ')}</div>` : ''}
+      </div>
+      ${habitPanel(d.habit)}${report(d)}${decide(d)}`;
     wire(d);
   }
 
@@ -471,8 +525,64 @@
               : L('কেন্দ্রীয় LightGBM (HOLD recall বেশি)। ফেডারেটেড মডেল সরাসরি বদলে বসানো যায়: PROHORI_SCORER=federated।', 'central LightGBM (higher HOLD recall). The federated model is a drop-in: PROHORI_SCORER=federated.')}</div></div></div>
         <div class="small muted" style="margin-top:6px">${P.esc(cs.method)}</div></div>`;
     }
-    if (!od && !cs) html += `<div class="empty">${L('ফেডারেটেড ফলাফল পাওয়া যায়নি (python -m src.fl.summary)।', 'No federated results packaged (python -m src.fl.summary).')}</div>`;
+    const am = f.amounts;
+    if (am) {
+      const ev = am.evaluation || {}, th = am.thresholds || {}, hs = am.histograms || {};
+      const x = (v) => (v == null ? '—' : `${v >= 10 ? Math.round(v) : (+v).toFixed(1)}×`);
+      const roles = Object.entries((ev.send || {}).by_role || {}).map(([k, v]) => `<tr><td>${P.esc(k.replace(/_/g, ' '))}</td><td class="num">${v.rows}</td><td class="num">${pct(v.checked)}</td></tr>`).join('');
+      const thrRow = (kind, key, label) => {
+        const h = (hs[kind] || {})[key] || {};
+        return `<tr><td>${label}</td><td class="num"><b>${x(h.federated_threshold)}</b></td><td class="num">${x(h.central_threshold)}</td><td class="num">${P.n((h.phones || 0).toLocaleString('en-US'))}</td></tr>`;
+      };
+      html += `<div class="panel" style="margin-top:10px"><h3>③ ${L('পরিমাণের অভ্যাস: গ্রাহক সাধারণত কত পাঠান ও রিচার্জ করেন (ফেডারেটেড অ্যানালিটিক্স)', 'Amount habits: how much each customer usually sends and recharges (federated analytics)')}</h3>
+        <p class="small muted" style="margin-top:0">${L('প্রতিটি ফোন নিজের শেষ ৩০টি সেন্ড মানি ও ৩০টি রিচার্জের পরিমাণ নিজের কাছে রাখে। “অস্বাভাবিক” কতটা, তা শেখা হয়েছে সব ফোন মিলে: প্রতিটি ফোন শুধু একটি নয়েজ মেশানো, মাস্ক করা হিস্টোগ্রাম পাঠায় (এই লেনদেন নিজের সাধারণ পরিমাণের কত গুণ), সার্ভার কেবল যোগফল দেখে। আসল ৬৮৩k-সারির ডেটাসেটে, প্রতিটি ওয়ালেট একটি ফোন।',
+    'Each phone keeps its own last 30 Send Money amounts and last 30 recharges. What counts as unusual was learned across all phones: each phone sends one noisy, masked histogram (how many times its own usual amount each transfer was) and the server sees only the sum. Run on the real 683k-row dataset, one phone per wallet.')}</p>
+        <div class="kv" style="margin-bottom:10px">
+          <div><span>${L('ফোন (ওয়ালেট)', 'Phones (wallets)')}</span><b class="num">${(am.phones || 0).toLocaleString('en-US')}</b></div>
+          <div><span>${L('গোপনীয়তা', 'Privacy')}</span><b class="num">ε ${am.epsilon_total} (δ 10⁻⁵)</b></div>
+          <div><span>${L('সেন্ড মানি: অস্বাভাবিক যদি', 'Send Money: unusual from')}</span><b class="num">${x((th.send || {}).amount_ratio)} ${L('সাধারণের', 'the usual')}</b></div>
+          <div><span>${L('রিচার্জ: অস্বাভাবিক যদি', 'Recharge: unusual from')}</span><b class="num">${x((th.recharge || {}).amount_ratio)} ${L('সাধারণের', 'the usual')}</b></div>
+          <div><span>${L('টেস্ট উইন্ডো: সৎ সেন্ড মানিতে একবার জিজ্ঞেস', 'Test window: honest Send Money asked once')}</span><b class="num">${pct((ev.send || {}).honest_checked_share)}</b></div>
+          <div><span>${L('টেস্ট উইন্ডো: ভুক্তভোগীর প্রতারণা-লেনদেন ধরা', 'Test window: victim-side scam transfers caught')}</span><b class="num">${pct((ev.send || {}).victim_side_checked_share)}</b></div>
+          <div><span>${L('টেস্ট উইন্ডো: সৎ রিচার্জে জিজ্ঞেস', 'Test window: honest recharges asked once')}</span><b class="num">${pct((ev.recharge || {}).honest_checked_share)}</b></div></div>
+        <div class="two"><div>${tailChart(am, 'send', 'amount_ratio')}
+          <div class="small muted">${L('কতগুলো লেনদেন নিজের সাধারণ পরিমাণের অন্তত এত গুণ (লগ স্কেল)। সীমা বসে যেখানে ০.৭৫% লেনদেন তার উপরে; নীল = কেন্দ্রীয় (কাঁচা ডেটা), কমলা = ফেডারেটেড (নয়েজসহ)।',
+    'Share of transfers at least this many times the customer\'s own usual amount (log scale). The limit sits where 0.75% of transfers are above it; blue = central (raw data), orange = federated (with noise).')}</div></div>
+          <div>${tbl([L('পরীক্ষা', 'Check'), L('ফেডারেটেড (ব্যবহৃত)', 'Federated (used)'), L('কেন্দ্রীয়', 'Central'), L('ফোন', 'Phones')],
+            thrRow('send', 'amount_ratio', L('সেন্ড মানি: এই পরিমাণ', 'Send Money: this amount')) + thrRow('send', 'day_ratio', L('সেন্ড মানি: ২৪ ঘণ্টার মোট', 'Send Money: 24 h total'))
+            + thrRow('recharge', 'amount_ratio', L('রিচার্জ: এই পরিমাণ', 'Recharge: this amount')) + thrRow('recharge', 'day_ratio', L('রিচার্জ: ২৪ ঘণ্টার মোট', 'Recharge: 24 h total')))}
+            <h3 style="margin-top:12px">${L('টেস্ট উইন্ডোতে প্রতারণার ধরন অনুযায়ী ধরা', 'Test window: caught by fraud role')}</h3>${tbl([L('ভূমিকা', 'Role'), L('লেনদেন', 'Transfers'), L('জিজ্ঞেস করা হতো', 'Would be asked')], roles)}</div></div>
+        <div class="two" style="margin-top:10px">
+          <div><b class="small">${L('ফোনে থাকে', 'Stays on the phone')}</b><ul class="small" style="padding-left:18px">${(am.on_phone || []).map((v) => `<li>${P.esc(v)}</li>`).join('')}</ul>
+            <b class="small">${L('ফোন থেকে যায়', 'Leaves the phone')}</b><ul class="small" style="padding-left:18px">${(am.leaves_phone || []).map((v) => `<li>${P.esc(v)}</li>`).join('')}</ul>
+            <b class="small">${L('কখনো যায় না', 'Never leaves')}</b><ul class="small" style="padding-left:18px">${(am.never_leaves || []).map((v) => `<li>${P.esc(v)}</li>`).join('')}</ul></div>
+          <div><b class="small">${L('সীমাবদ্ধতা', 'Limits')}</b><ul class="small" style="padding-left:18px">${(am.limits || []).map((v) => `<li>${P.esc(v)}</li>`).join('')}</ul>
+            <div class="small"><b>${L('লাইভ ব্যবহার', 'Used live')}:</b> ${L('সেন্ড মানির পরিমাণ ও মোবাইল রিচার্জ: সীমা পার হলে একবার জিজ্ঞেস (NUDGE), গ্রাহক নিজের সাধারণ পরিমাণ পাশে দেখেন।', 'Send Money amounts and mobile recharges: past the limit the customer is asked once (NUDGE), with their own usual amount shown next to it.')}</div></div></div>
+        <div class="small muted" style="margin-top:6px">${P.esc(am.method || '')}</div></div>`;
+    }
+    if (!od && !cs && !am) html += `<div class="empty">${L('ফেডারেটেড ফলাফল পাওয়া যায়নি (python -m src.fl.summary)।', 'No federated results packaged (python -m src.fl.summary).')}</div>`;
     $('fl').innerHTML = html;
+  }
+
+  /* Share of transfers at or above each ratio, central vs federated, log y; the threshold where it crosses the target. */
+  function tailChart(am, kind, key) {
+    const h = ((am.histograms || {})[kind] || {})[key];
+    if (!h || !am.edges) return '';
+    const E = am.edges, n = h.phones || 1, target = (am.target_share || {})[kind] || 0.0075;
+    const tail = (arr) => { const out = []; let acc = 0; for (let i = arr.length - 1; i >= 0; i--) { acc += arr[i]; out[i] = Math.max(acc / n, 1e-5); } return out; };
+    const tc = tail(h.central), tf = tail(h.federated);
+    const W = 320, H = 150, l = 34, b = 22, lo = 0, hi = 6;                 // x: log2 ratio 0..6 (1x..64x)
+    const X = (e) => l + ((Math.min(Math.max(e, lo), hi) - lo) / (hi - lo)) * (W - l - 8);
+    const Y = (p) => 8 + ((Math.log10(1) - Math.log10(p)) / 4) * (H - b - 8);   // 100% .. 0.01%
+    const path = (t) => E.slice(0, -1).map((e, i) => (e >= lo - 0.01 && e <= hi ? `${X(e).toFixed(1)},${Y(t[i]).toFixed(1)}` : null)).filter(Boolean).join(' L');
+    const thr = Math.log2(h.federated_threshold);
+    const grid = [1, 0.1, 0.01, 0.001].map((p) => `<line x1="${l}" x2="${W - 8}" y1="${Y(p)}" y2="${Y(p)}" stroke="#eef1f6"/><text x="${l - 4}" y="${Y(p) + 3}" font-size="9" text-anchor="end" fill="#7b8597">${p * 100}%</text>`).join('');
+    const xt = [0, 1, 2, 3, 4, 5, 6].map((e) => `<text x="${X(e)}" y="${H - 6}" font-size="9" text-anchor="middle" fill="#7b8597">${2 ** e}×</text>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:420px" role="img" aria-label="tail share chart">${grid}${xt}
+      <line x1="${l}" x2="${W - 8}" y1="${Y(target)}" y2="${Y(target)}" stroke="#c2570c" stroke-dasharray="2 3"/>
+      <line x1="${X(thr)}" x2="${X(thr)}" y1="8" y2="${H - b}" stroke="#c62828" stroke-width="1.5"/>
+      <text x="${X(thr) - 3}" y="16" font-size="10" text-anchor="end" fill="#c62828">${L('সীমা', 'limit')} ${Math.round(h.federated_threshold * 10) / 10}×</text>
+      <path d="M${path(tc)}" fill="none" stroke="#005bac" stroke-width="2"/><path d="M${path(tf)}" fill="none" stroke="#e07a10" stroke-width="1.6" stroke-dasharray="5 3"/></svg>`;
   }
 
   function heatmap(costs) {
@@ -505,14 +615,27 @@
   });
 
   // ---------------------------------------------------------------- start
-  (async function boot() {
+  async function boot() {
     try { S.health = await P.api('/health'); } catch (e) { S.health = null; }
     await poll();
     const firstLive = S.alerts.find((a) => a.source === 'live') || S.alerts.find((a) => a.planted_id === 'SC-03') || S.alerts[0];
     if (firstLive) select(firstLive.id);
+  }
+  boot().then(() => {
     setInterval(poll, 2500);
     setInterval(async () => {
       try { const h = await P.api('/health'); $('clock').textContent = `${L('ডেমো ঘড়ি', 'demo clock')} ${h.clock.replace('T', ' ').slice(0, 16)}`; } catch (e) { /* offline */ }
     }, 5000);
-  })();
+  });
+
+  // the showcase's reset: start over without reloading the page (the in-browser engine stays up)
+  window.ProhoriCopilot = {
+    async restart() {
+      Object.assign(S, { alerts: [], sel: null, detail: null, pinned: false, first: true, model: null });
+      S.seen.clear();
+      $('detail').innerHTML = `<div class="panel empty">${L('একটি অ্যালার্ট বেছে নিন।', 'Pick an alert.')}</div>`;
+      await boot();
+      if (S.tab !== 'alerts') openTab(S.tab);
+    },
+  };
 })();

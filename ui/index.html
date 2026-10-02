@@ -16,37 +16,128 @@
       <span data-en="① Rahim → Mother Tk 800: ALLOW">① রহিম → মা ৳৮০০: ALLOW</span>
       <span data-en="② Two digits swapped: “Did you mean Mother?” shows which digits">② দুই ডিজিট উল্টে গেলে: “মা-কে পাঠাতে চেয়েছিলেন?” কোন ডিজিট ভুল দেখায়</span>
       <span data-en="③ New number Tk 15,000: HOLD + warning">③ নতুন নম্বরে ৳১৫,০০০: HOLD + সতর্কতা</span>
-      <span data-en="④ Right: SHAP, money network, case report, analyst freeze">④ ডানে: SHAP, নেটওয়ার্ক, কেস রিপোর্ট, বিশ্লেষক Freeze</span>
-      <span data-en="⑤ Complaint in Banglish → matched transfer → hold">⑤ Banglish-এ অভিযোগ → লেনদেন মেলানো → টাকা আটকানো</span>
-      <span data-en="⑥ Federated tab: the data stays where it is">⑥ ফেডারেটেড ট্যাব: ডেটা যেখানে, সেখানেই</span>
-      <span data-en="⑦ Salma: SIM swap + new phone → HOLD">⑦ সালমা: সিম বদল + নতুন ফোন → HOLD</span>
+      <span data-en="④ Mother Tk 15,000: “25 times your usual”: amount habit">④ মা-কে ৳১৫,০০০: “সাধারণের ২৫ গুণ”: পরিমাণের অভ্যাস</span>
+      <span data-en="⑤ Right: SHAP, money network, case report, analyst freeze">⑤ ডানে: SHAP, নেটওয়ার্ক, কেস রিপোর্ট, বিশ্লেষক Freeze</span>
+      <span data-en="⑥ Complaint in Banglish → matched transfer → hold">⑥ Banglish-এ অভিযোগ → লেনদেন মেলানো → টাকা আটকানো</span>
+      <span data-en="⑦ Federated tab: the data stays where it is">⑦ ফেডারেটেড ট্যাব: ডেটা যেখানে, সেখানেই</span>
+      <span data-en="⑧ Salma: SIM swap + new phone → HOLD">⑧ সালমা: সিম বদল + নতুন ফোন → HOLD</span>
     </div>
     <span class="grow"></span>
-    <span class="langsw mob-switch" id="pane-switch" role="tablist" aria-label="screen">
-      <span data-pane="phone" class="on" data-en="Phone">ফোন</span><span data-pane="copilot" data-en="Copilot">কোপাইলট</span></span>
+    <span class="langsw view-switch" id="view-switch" role="tablist" aria-label="view">
+      <span data-view="both" role="tab" data-en="Both">দুটোই</span><span data-view="phone" role="tab" data-en="Phone only">শুধু ফোন</span><span data-view="copilot" role="tab" data-en="Copilot only">শুধু কোপাইলট</span></span>
     <button class="langsw" data-lang-toggle></button>
-    <a class="chip" href="app.html" style="color:#1d2433" data-en="phone only">শুধু ফোন</a>
-    <a class="chip" href="analyst.html" style="color:#1d2433" data-en="copilot only">শুধু কোপাইলট</a>
-    <button class="chip" id="reset" title="Restage the demo world and clear alerts" data-en="↺ reset demo">↺ ডেমো রিসেট</button>
+    <button class="chip kit-btn" id="kit-open" style="color:#1d2433" data-en="🧪 Test numbers">🧪 টেস্ট নম্বর</button>
+    <button class="chip" id="reset" style="color:#1d2433" title="Restage the demo world and clear alerts" data-en="↺ reset demo">↺ ডেমো রিসেট</button>
   </header>
-  <div class="show-body" id="show-body" data-pane="phone">
-    <iframe class="phone-frame" src="app.html?embed=1" title="Customer app (upay-style wallet)"></iframe>
-    <iframe class="an-frame" src="analyst.html?embed=1" title="Analyst investigation copilot"></iframe>
+  <div class="show-body" id="show-body" data-view="both">
+    <iframe class="phone-frame" id="phone-frame" src="app.html?embed=1" title="Customer app (upay-style wallet)"></iframe>
+    <iframe class="an-frame" id="an-frame" src="analyst.html?embed=1" title="Analyst investigation copilot"></iframe>
   </div>
+
+  <!-- test numbers from the dataset: judges do not have the 683k rows, so the demo carries what to type -->
+  <div class="modal hidden" id="kit-modal" role="dialog" aria-modal="true" aria-labelledby="kit-title">
+    <div class="modal-card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+        <div><h2 id="kit-title" style="margin:0 0 4px" data-en="🧪 Test numbers from the dataset">🧪 ডেটাসেটের টেস্ট নম্বর</h2>
+          <div class="small muted" id="kit-intro"></div></div>
+        <button class="btn btn-ghost" id="kit-close" aria-label="close">✕</button>
+      </div>
+      <div id="kit-body" class="kit-table"></div>
+    </div>
+  </div>
+
   <script src="prohori.js"></script>
   <script>
-    document.getElementById('reset').addEventListener('click', async (e) => {
-      e.target.textContent = '…';
-      try { await Prohori.api('/api/v1/demo/reset', { method: 'POST' }); } catch (err) { alert(err.message); }
-      location.reload();
-    });
-    // narrow screens show one screen at a time
-    document.getElementById('pane-switch').addEventListener('click', (e) => {
-      const s = e.target.closest('[data-pane]');
-      if (!s) return;
-      document.getElementById('show-body').dataset.pane = s.dataset.pane;
-      document.querySelectorAll('#pane-switch [data-pane]').forEach((x) => x.classList.toggle('on', x === s));
-    });
+    (function () {
+      const P = window.Prohori, L = P.L, $ = (id) => document.getElementById(id);
+      const body = $('show-body'), narrow = window.matchMedia('(max-width: 900px)');
+      const VIEWS = ['both', 'phone', 'copilot'];
+
+      // one page, three layouts: switching never reloads a screen, so the in-browser engine and the demo state stay
+      let view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : (P.store.get('prohori.view') || 'both');
+      function setView(v, remember = true) {
+        if (VIEWS.includes(v)) view = v;
+        const shown = narrow.matches && view === 'both' ? 'phone' : view;          // a phone screen shows one at a time
+        body.dataset.view = shown;
+        document.querySelectorAll('#view-switch [data-view]').forEach((x) => {
+          x.classList.toggle('on', x.dataset.view === shown);
+          x.setAttribute('aria-selected', x.dataset.view === shown);
+        });
+        if (remember) {
+          P.store.set('prohori.view', view);
+          history.replaceState(null, '', view === 'both' ? location.pathname + location.search : `#${view}`);
+        }
+      }
+      $('view-switch').addEventListener('click', (e) => { const s = e.target.closest('[data-view]'); if (s) setView(s.dataset.view); });
+      window.addEventListener('hashchange', () => setView(location.hash.slice(1) || 'both'));
+      narrow.addEventListener('change', () => setView(view, false));
+      setView(view, false);
+
+      // reset: restage the world, then restart both screens in place (no reload: nothing is downloaded or rebooted)
+      $('reset').addEventListener('click', async (e) => {
+        const b = e.currentTarget, label = b.innerHTML;
+        b.textContent = '…';
+        b.disabled = true;
+        try {
+          await P.api('/api/v1/demo/reset', { method: 'POST' });
+          const app = $('phone-frame').contentWindow.ProhoriApp, cop = $('an-frame').contentWindow.ProhoriCopilot;
+          if (app && cop) await Promise.all([app.restart(), cop.restart()]); else location.reload();
+        } catch (err) { alert(err.message); }
+        b.innerHTML = label;
+        b.disabled = false;
+      });
+
+      // test numbers
+      const EXPECT = { ALLOW: ['যাবে', 'ALLOW'], NUDGE: ['একবার জিজ্ঞেস', 'NUDGE'], STEP_UP: ['আবার পিন', 'STEP-UP'], HOLD: ['আটকে যাবে', 'HOLD'],
+        NO_ACCOUNT: ['অ্যাকাউন্ট নেই', 'no account'] };
+      let kit = null;
+      async function openKit() {
+        $('kit-modal').classList.remove('hidden');
+        if (!kit) {
+          $('kit-body').innerHTML = `<div class="empty">${L('লোড হচ্ছে…', 'Loading…')}</div>`;
+          try { kit = await P.api('/api/v1/test-kit'); } catch (err) { $('kit-body').innerHTML = `<div class="empty">${P.esc(err.message)}</div>`; return; }
+        }
+        drawKit();
+        $('kit-close').focus();
+      }
+      function drawKit() {
+        if (!kit) return;
+        $('kit-intro').innerHTML = `${L(`প্রেরক রহিম (${P.esc(kit.sender.msisdn)}), যদি না সারিতে সালমা লেখা থাকে। “চেষ্টা করুন” চাপলে নম্বর ও পরিমাণ ফোনে বসে যায়; বাকিটা (পিন, যাচাই) আপনি করবেন।`,
+          `Sender Rahim (${P.esc(kit.sender.msisdn)}) unless the row says Salma. “Try” puts the number and amount on the phone; you do the rest (PIN, the check).`)} ${P.esc(L(kit.note_bn, kit.note_en))}`;
+        $('kit-body').innerHTML = kit.groups.map((g) => `<h3>${P.esc(L(g.title_bn, g.title_en))}</h3>
+          <div class="tscroll"><table class="t"><thead><tr><th>${L('নম্বর', 'Number')}</th><th>${L('কী', 'What')}</th><th>${L('পরিমাণ', 'Amount')}</th><th>${L('প্রত্যাশিত', 'Expected')}</th><th>${L('কেন (প্রথম কারণ)', 'Why (first reason)')}</th><th></th></tr></thead>
+          <tbody>${g.items.map((it, i) => `<tr><td class="num"><b>${P.esc(it.steps ? it.steps.map(P.phone).join(' → ') : P.phone(it.number))}</b>
+              <button class="mini-btn" data-copy="${P.esc(it.steps ? it.steps.join(' ') : it.number)}" title="copy">⧉</button></td>
+            <td>${P.esc(L(it.label_bn, it.label_en))}${it.persona && it.persona !== 'rahim' ? ` <span class="chip">${L('সালমা', 'Salma')}</span>` : ''}
+              ${it.kind === 'recharge' ? ` <span class="chip">📱 ${L('রিচার্জ', 'recharge')}</span>` : ''}${it.role ? ` <span class="chip">${P.esc(it.role.replace(/_/g, ' '))}</span>` : ''}
+              ${it.note_en ? `<div class="small muted">${P.esc(L(it.note_bn, it.note_en))}</div>` : ''}</td>
+            <td class="num">${P.money(it.amount)}</td><td><span class="band band-${it.expected === 'NO_ACCOUNT' ? 'NONE' : it.expected}">${P.esc(L(...(EXPECT[it.expected] || [it.expected, it.expected])))}</span></td>
+            <td class="small">${P.esc(L(it.why_bn || it.why_en || '', it.why_en || ''))}</td>
+            <td><button class="btn btn-primary kit-try" data-try="${g.key}:${i}">${L('চেষ্টা করুন', 'Try')}</button></td></tr>`).join('')}</tbody></table></div>`).join('');
+      }
+      $('kit-open').addEventListener('click', openKit);
+      $('kit-close').addEventListener('click', () => $('kit-modal').classList.add('hidden'));
+      $('kit-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('kit-modal').classList.add('hidden'); });
+      $('kit-body').addEventListener('click', async (e) => {
+        const c = e.target.closest('[data-copy]');
+        if (c) {
+          try { await navigator.clipboard.writeText(c.dataset.copy); c.textContent = '✓'; } catch (err) { c.textContent = '✗'; }
+          setTimeout(() => { c.textContent = '⧉'; }, 1200);
+          return;
+        }
+        const t = e.target.closest('[data-try]');
+        if (!t) return;
+        const [gk, i] = t.dataset.try.split(':');
+        const it = kit.groups.find((g) => g.key === gk).items[+i];
+        const app = $('phone-frame').contentWindow.ProhoriApp;
+        if (!app) return;
+        app.tryItem(it, it.steps ? 0 : null);
+        $('kit-modal').classList.add('hidden');
+        if (view === 'copilot') setView('both');
+      });
+      P.onLang(() => { drawKit(); setView(view, false); });
+    })();
   </script>
 </body>
 </html>

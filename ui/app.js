@@ -1,5 +1,6 @@
 /* Customer app (Layer 1, Pre-Transaction Guardian): Send Money -> wrong-number check -> PIN -> Prohori check ->
-   warning in Bangla or English; plus "Report a problem" (Banglish complaints) and the scam checker. */
+   warning in Bangla or English; Mobile Recharge with the customer's own recharge habit; "Report a problem"
+   (Banglish complaints); the scam checker; and the judges' test numbers from the dataset. */
 (function () {
   const P = window.Prohori;
   const { L } = P;
@@ -7,7 +8,7 @@
   const S = {
     customers: [], limits: null, me: null, to: '', toName: '', toNameEn: '', amount: 0, device: null, pin: '', history: [],
     poll: null, view: 'home', pendingAmount: null, hint: null, problem: 'wrong_number', transfers: [], pick: null, cases: [],
-    redraw: null, casePoll: null,
+    redraw: null, casePoll: null, flow: 'send', kit: null,
   };
 
   if (P.embed) { $('proto').classList.add('hidden'); $('stage').classList.add('embed'); }
@@ -30,17 +31,19 @@
     if (view === 'history') renderHistory();
     if (view === 'account') renderPersonas();
     if (view === 'complain') openComplain();
+    if (view === 'recharge') drawRecharge();
+    if (view === 'pin') $('pin-back').dataset.go = S.flow === 'recharge' ? 'recharge' : 'amount';
     if (view !== 'case') clearInterval(S.casePoll);
   }
 
-  const SOON = { cashout: ['ক্যাশ আউট', 'Cash Out'], recharge: ['রিচার্জ', 'Recharge'], paybill: ['পে বিল', 'Pay Bill'], addmoney: ['অ্যাড মানি', 'Add Money'] };
+  const SOON = { cashout: ['ক্যাশ আউট', 'Cash Out'], paybill: ['পে বিল', 'Pay Bill'], addmoney: ['অ্যাড মানি', 'Add Money'] };
   document.addEventListener('click', (e) => {
     const go = e.target.closest('[data-go]');
     if (go) { show(go.dataset.go); return; }
     const soon = e.target.closest('[data-soon]');
     if (soon) {
       const s = SOON[soon.dataset.soon];
-      toast(L(`${s[0]}: এই ডেমোতে প্রহরী শুধু সেন্ড মানি যাচাই করে দেখায়।`, `${s[1]}: in this demo Prohori checks Send Money only.`));
+      toast(L(`${s[0]}: এই ডেমোতে প্রহরী সেন্ড মানি ও রিচার্জ যাচাই করে দেখায়।`, `${s[1]}: in this demo Prohori checks Send Money and Recharge.`));
     }
   });
 
@@ -52,6 +55,7 @@
     $('devstrip').classList.add('hidden');
     drawMe();
     renderContacts();
+    renderKit();
   }
   function drawMe() {
     const nm = L(S.me.name_bn, S.me.name_en);
@@ -156,6 +160,7 @@
   });
 
   function pickRecipient(num, name, nameEn, amount, device) {
+    S.flow = 'send';
     S.to = num; S.toName = name; S.toNameEn = nameEn || name; S.device = device;
     $('devstrip').classList.toggle('hidden', !device);
     $('amount').value = amount ? String(amount) : '';
@@ -170,11 +175,43 @@
     const cap = S.limits?.[S.me.kyc]?.send_money?.per_txn;
     $('a-cap').textContent = cap ? money(cap) : '—';
     $('quick').innerHTML = [500, 1000, 2000, 5000].map((v) => `<button class="chip" data-amt="${v}">${money(v)}</button>`).join('');
+    drawAmountHabit();
   }
   $('quick').addEventListener('click', (e) => {
     const b = e.target.closest('[data-amt]');
-    if (b) $('amount').value = b.dataset.amt;
+    if (b) { $('amount').value = b.dataset.amt; drawAmountHabit(); }
   });
+  $('amount').addEventListener('input', drawAmountHabit);
+
+  // ---------------------------------------------------------------- amount habit: how much is usual for this customer
+  const amountOf = (el) => Number(P.ascii(el.value).replace(/[^\d.]/g, '')) || 0;
+  function habitLine(kind, amount) {
+    const h = S.me && S.me.habits && S.me.habits[kind];
+    if (!h) return '';
+    if (!h.enough) {
+      return `<div class="habit small muted">📊 ${L('আপনার সাধারণ পরিমাণ বোঝার মতো যথেষ্ট লেনদেন এখনো হয়নি।', 'Not enough history yet to know your usual amount.')}</div>`;
+    }
+    const verb = kind === 'send' ? ['পাঠান', 'send'] : ['রিচার্জ করেন', 'recharge'];
+    const from = Math.max(h.usual * h.threshold, h.floor);
+    const ratio = h.usual ? amount / h.usual : 0;
+    let out = `<div class="habit">📊 ${L(`সাধারণত আপনি প্রায় <b>${money(h.usual)}</b> ${verb[0]} (${money(h.low)}–${money(h.high)}), সপ্তাহে প্রায় ${P.n(h.per_week)} বার`,
+      `You usually ${verb[1]} about <b>${money(h.usual)}</b> (${money(h.low)} to ${money(h.high)}), about ${h.per_week} a week`)}</div>`;
+    if (amount && ratio >= h.threshold && amount >= h.floor) {
+      out += `<div class="hint warn habit-warn">⚠️ ${L(`এটি আপনার সাধারণ পরিমাণের <b>${P.n(ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1))} গুণ</b>। পাঠানোর আগে প্রহরী একবার জিজ্ঞেস করবে।`,
+        `This is <b>${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)} times</b> your usual amount. Prohori will ask you once before it goes.`)}</div>`;
+    } else {
+      out += `<div class="small muted habit-note">${L(`${money(from)} বা তার বেশি হলে প্রহরী একবার জিজ্ঞেস করবে। সীমাটি ফেডারেটেড লার্নিং-এ শেখা: ফোনগুলো শুধু নয়েজ মেশানো হিস্টোগ্রাম পাঠায়, কোনো পরিমাণ নয়।`,
+        `From ${money(from)} Prohori asks once. The limit was learned with federated learning: phones send only noisy histograms, never an amount.`)}</div>`;
+    }
+    return out;
+  }
+  function drawAmountHabit() { $('a-habit').innerHTML = habitLine('send', amountOf($('amount'))); }
+  async function refreshHabits() {                    // the habit includes what the customer just did
+    try {
+      const c = await P.api('/api/v1/customers');
+      c.customers.forEach((x) => { const m = S.customers.find((y) => y.key === x.key); if (m) { m.habits = x.habits; m.balance = x.balance; } });
+    } catch (e) { /* keep the old one */ }
+  }
 
   $('amount-next').addEventListener('click', () => {
     const v = Number(P.ascii($('amount').value).replace(/[^\d.]/g, ''));
@@ -189,9 +226,10 @@
     show('pin');
   });
   function drawPinCard() {
-    $('p-to').textContent = `${nameOf()} (${P.phone(S.to)})`;
-    $('p-amt').textContent = money(S.amount);
-    $('p-fee').textContent = money(0);
+    const to = S.flow === 'recharge' ? L('রিচার্জ', 'Recharge') : L('প্রাপক', 'To');
+    $('p-card').innerHTML = `<div><span>${to}</span><b>${P.esc(nameOf())} (${P.phone(S.to)})</b></div>
+      <div><span>${L('পরিমাণ', 'Amount')}</span><b class="num">${money(S.amount)}</b></div>
+      <div><span>${L('চার্জ', 'Charge')}</span><span class="num">${money(0)}</span></div>`;
   }
 
   // ---------------------------------------------------------------- PIN pad
@@ -213,7 +251,7 @@
     $('pin-send').disabled = S.pin.length !== 4;
   }
 
-  $('pin-send').addEventListener('click', () => scoreAndShow(null));
+  $('pin-send').addEventListener('click', () => (S.flow === 'recharge' ? doRecharge() : scoreAndShow(null)));
 
   async function scoreAndShow(note) {
     $('checking').classList.remove('hidden');
@@ -234,6 +272,59 @@
   }
 
   // ---------------------------------------------------------------- the warning sheet
+  // ---------------------------------------------------------------- mobile recharge
+  function drawRecharge() {
+    if (!S.me) return;
+    if (!$('rc-to').value) $('rc-to').value = S.me.msisdn;
+    const who = [{ n: S.me.msisdn, l: L('আমার নম্বর', 'My number') }, ...S.me.contacts.map((c) => ({ n: c.msisdn, l: cname(c) }))];
+    const cur = P.ascii($('rc-to').value).replace(/\D/g, '');
+    $('rc-who').innerHTML = who.map((w) => `<button data-rcn="${w.n}" class="${w.n === cur ? 'on' : ''}">${P.esc(w.l)}</button>`).join('');
+    $('rc-quick').innerHTML = [20, 50, 100, 200, 500, 1000].map((v) => `<button class="chip" data-rca="${v}">${money(v)}</button>`).join('');
+    $('rc-bal').textContent = money(S.me.balance);
+    drawRcHabit();
+  }
+  function drawRcHabit() { $('rc-habit').innerHTML = habitLine('recharge', amountOf($('rc-amt'))); }
+  $('rc-who').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rcn]');
+    if (b) { $('rc-to').value = b.dataset.rcn; drawRecharge(); }
+  });
+  $('rc-to').addEventListener('input', drawRecharge);
+  $('rc-quick').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rca]');
+    if (b) { $('rc-amt').value = b.dataset.rca; drawRcHabit(); }
+  });
+  $('rc-amt').addEventListener('input', drawRcHabit);
+  $('rc-next').addEventListener('click', () => {
+    const n = P.ascii($('rc-to').value).replace(/\D/g, '');
+    const v = amountOf($('rc-amt'));
+    const lim = S.rechargeLimits || { min: 10, max: 1000 };
+    if (!/^01\d{9}$/.test(n)) { toast(L('০১ দিয়ে শুরু ১১ ডিজিটের নম্বর লিখুন', 'Enter an 11-digit number starting with 01')); return; }
+    if (v < lim.min || v > lim.max) { toast(L(`রিচার্জ ${money(lim.min)} থেকে ${money(lim.max)}`, `A recharge is ${money(lim.min)} to ${money(lim.max)}`)); return; }
+    if (v > S.me.balance) { toast(L('পর্যাপ্ত ব্যালেন্স নেই', 'Not enough balance')); return; }
+    const c = S.me.contacts.find((x) => x.msisdn === n);
+    S.flow = 'recharge';
+    S.to = n; S.amount = v; S.device = null;
+    [S.toName, S.toNameEn] = n === S.me.msisdn ? ['আমার নম্বর', 'My number'] : c ? [c.name, c.name_en] : ['অন্য নম্বর', 'Other number'];
+    drawPinCard();
+    S.pin = '';
+    drawPin();
+    show('pin');
+  });
+  async function doRecharge() {
+    $('checking').classList.remove('hidden');
+    const started = Date.now();
+    try {
+      const res = await P.api('/api/v1/recharge', { method: 'POST', body: { customer: S.me.key, number: S.to, amount: S.amount } });
+      await new Promise((r) => setTimeout(r, Math.max(0, 650 - (Date.now() - started))));
+      $('checking').classList.add('hidden');
+      S.last = res;
+      if (res.band === 'ALLOW') { S.me.balance = res.balance; sent(res, null); } else warn(res);
+    } catch (err) {
+      $('checking').classList.add('hidden');
+      toast(`${L('সমস্যা', 'Problem')}: ${err.message}`);
+    }
+  }
+
   const TITLES = {
     NUDGE: ['⚠️', ['একটু থামুন, দেখে নিন', 'Wait, take a look'], ['প্রহরী সতর্কতা', 'Prohori warning']],
     STEP_UP: ['🔐', ['নিশ্চিত করতে আবার পিন দিন', 'Enter your PIN again to confirm'], ['প্রহরী: অতিরিক্ত যাচাই', 'Prohori: extra check']],
@@ -243,7 +334,12 @@
   function warn(res) {
     const sug = res.suggestion;
     let [icon, title, sub] = TITLES[res.band];
+    const hab = res.habit && res.habit.unusual ? res.habit : null;
     if (sug && res.band === 'NUDGE') { icon = '🔢'; title = ['ভুল নম্বর হতে পারে', 'This may be the wrong number']; }
+    else if (hab && res.band === 'NUDGE') {
+      icon = '💰';
+      title = S.flow === 'recharge' ? ['রিচার্জের পরিমাণটা অস্বাভাবিক', 'Unusual recharge for you'] : ['পরিমাণটা আপনার জন্য অস্বাভাবিক', 'Unusual amount for you'];
+    } else if (S.flow === 'recharge' && res.band === 'NUDGE') { icon = '📱'; title = ['অল্প সময়ে অনেক রিচার্জ', 'Many recharges in a short time']; }
     const reasons = res.reasons.filter((r) => r.code !== 'agent_spike' && !(sug && r.code === 'wrong_recipient')).slice(0, sug ? 2 : 3)
       .map((r) => `<li><span>•</span><span>${P.esc(L(r.bn, r.en))}</span></li>`).join('');
     let body = `
@@ -256,6 +352,12 @@
           `আপনি কি <b>${P.esc(sugName(sug))}</b>-কে পাঠাতে চেয়েছিলেন? সেখানে আগে ${P.bn(sug.count)} বার পাঠিয়েছেন। ${P.esc(slipText(sug))}।`,
           `Did you mean <b>${P.esc(sugName(sug))}</b>? You have sent there ${sug.count} times. ${P.esc(slipText(sug))}.`)}</p>`;
     }
+    if (hab) {
+      body += `<div class="habitbox"><div class="small"><b>${L('আপনার আগের পরিমাণগুলোর তুলনায়', 'Against your earlier amounts')}</b>
+        <span class="muted">(${L(`শেষ ${P.n(hab.n)}টি`, `last ${hab.n}`)})</span></div>${P.habitStrip(hab)}
+        <div class="small muted">${L('ধূসর বিন্দু = আগের পরিমাণ, সবুজ = সাধারণ, লাল = এবার। সীমা ফেডারেটেড লার্নিং-এ শেখা; আপনার পরিমাণগুলো ফোনেই থাকে।',
+    'Grey dots = earlier amounts, green = usual, red = this one. The limit was learned with federated learning; your amounts stay on the phone.')}</div></div>`;
+    }
     if (reasons) body += `<ul class="reasons">${reasons}</ul>`;
     if (res.policy_override === 'recipient_frozen_by_analyst') {
       body += `<p class="small"><b>${L('এই নম্বরটি upay-এর পর্যালোচনায় আছে।', 'This number is under review by upay.')}</b></p>`;
@@ -266,7 +368,10 @@
     if (res.band === 'NUDGE') {
       body += `<div class="ask">${P.esc(question)}</div>${useBtn}
         <button class="btn ${sug ? 'btn-ghost' : 'btn-primary'} btn-block" data-choice="cancel">${sug ? L('বাতিল করুন', 'Cancel') : L('বাতিল করুন (প্রস্তাবিত)', 'Cancel (recommended)')}</button>
-        <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="confirm">${sug ? L('না, এই নম্বরটিই ঠিক, পাঠান', 'No, this number is right, send') : L('হ্যাঁ, চিনি, পাঠাতে চাই', 'Yes, I know them, send')}</button>`;
+        <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="confirm">${sug ? L('না, এই নম্বরটিই ঠিক, পাঠান', 'No, this number is right, send')
+          : S.flow === 'recharge' ? L('হ্যাঁ, আমি নিজেই জেনে-বুঝে রিচার্জ করছি', 'Yes, I am recharging this myself')
+            : hab && res.policy_override === 'unusual_amount' ? L('হ্যাঁ, পরিমাণ ঠিক আছে, পাঠান', 'Yes, the amount is right, send')
+              : L('হ্যাঁ, চিনি, পাঠাতে চাই', 'Yes, I know them, send')}</button>`;
     } else if (res.band === 'STEP_UP') {
       body += `<div class="ask">${P.esc(question)}</div>${useBtn}
         <input class="field num" id="pin2" inputmode="numeric" maxlength="4" placeholder="${L('পিন (ডেমো: যেকোনো ৪ ডিজিট)', 'PIN (demo: any 4 digits)')}" style="margin-bottom:8px">
@@ -318,13 +423,16 @@
 
   // ---------------------------------------------------------------- results
   function record(res, status) {
-    S.history.unshift({ name: S.toName, nameEn: S.toNameEn, to: S.to, amount: S.amount, band: res.band, score: res.risk_score, status, at: res.at });
+    S.history.unshift({ name: S.toName, nameEn: S.toNameEn, to: S.to, amount: S.amount, band: res.band, score: res.risk_score, status, at: res.at,
+      kind: S.flow });
     S.device = null;                                   // the 'new phone' takeover test is one transfer only
     $('devstrip').classList.add('hidden');
   }
 
   function sent(res, note) {
     record(res, ['পাঠানো হয়েছে', 'sent']);
+    refreshHabits();
+    if (S.flow === 'recharge') { recharged(res, note); return; }
     const draw = () => {
       $('r-title').textContent = L('টাকা পাঠানো হয়েছে', 'Money sent');
       $('r-body').innerHTML = `<div class="result ok"><div class="badge">✓</div><h2 style="margin:0">${L('টাকা পাঠানো সফল', 'Transfer successful')}</h2>
@@ -337,6 +445,22 @@
     };
     S.redraw = draw;
     S.lastSent = { to: S.to, amount: S.amount };
+    draw();
+    show('result');
+  }
+
+  function recharged(res, note) {
+    const draw = () => {
+      $('r-title').textContent = L('রিচার্জ হয়েছে', 'Recharge done');
+      const h = res.habit;
+      $('r-body').innerHTML = `<div class="result ok"><div class="badge">✓</div><h2 style="margin:0">${L('রিচার্জ সফল', 'Recharge successful')}</h2>
+        <div style="margin-top:8px"><span class="guardchip">🛡️ ${h && h.enough ? L(`প্রহরী: আপনার সাধারণ রিচার্জ প্রায় ${money(h.usual)}`, `Prohori: your usual recharge is about ${money(h.usual)}`) : L('প্রহরী যাচাই করেছে', 'Checked by Prohori')}</span></div>
+        ${note ? `<p class="small muted">${L(...note)}</p>` : ''}
+        <div class="card receipt"><div><span>${L('নম্বর', 'Number')}</span><b class="num">${P.phone(S.to)}</b></div><div><span>${L('কার', 'Whose')}</span><span>${P.esc(nameOf())}</span></div>
+        <div><span>${L('পরিমাণ', 'Amount')}</span><b class="num">${money(S.amount)}</b></div><div><span>${L('সময়', 'Time')}</span><span class="num">${P.n(P.time(res.at))}</span></div>
+        <div><span>${L('নতুন ব্যালেন্স', 'New balance')}</span><b class="num">${money(S.me.balance)}</b></div></div></div>`;
+    };
+    S.redraw = draw;
     draw();
     show('result');
   }
@@ -386,8 +510,8 @@
   function renderHistory() {
     $('history').innerHTML = S.history.length ? S.history.map((h, i) => `
       <div class="item"><div class="avatar">${P.esc(L(h.name, h.nameEn).charAt(0))}</div>
-        <div class="grow"><b>${P.esc(L(h.name, h.nameEn))}</b><div class="small muted num">${P.n(P.time(h.at))} · ${P.esc(L(...h.status))}</div>
-          ${h.status[1] === 'sent' ? `<button class="mini-btn" data-report="${i}" style="margin-top:4px">${L('সমস্যা জানান', 'Report')}</button>` : ''}</div>
+        <div class="grow"><b>${h.kind === 'recharge' ? '📱 ' : ''}${P.esc(L(h.name, h.nameEn))}</b><div class="small muted num">${P.n(P.time(h.at))} · ${h.kind === 'recharge' ? L('রিচার্জ', 'recharge') + ' · ' : ''}${P.esc(L(...h.status))}</div>
+          ${h.status[1] === 'sent' && h.kind !== 'recharge' ? `<button class="mini-btn" data-report="${i}" style="margin-top:4px">${L('সমস্যা জানান', 'Report')}</button>` : ''}</div>
         <div style="text-align:right"><b class="num">${money(h.amount)}</b><div><span class="band band-${h.band}">${h.band}</span></div></div></div>`).join('')
       : `<div class="empty">${L('এখনো কোনো লেনদেন নেই', 'No transfers yet')}</div>`;
     const mine = S.cases.filter((c) => c.persona === S.me.key);
@@ -594,6 +718,66 @@
     } catch (err) { toast(err.message); }
   });
 
+  // ---------------------------------------------------------------- test numbers from the dataset (for judges)
+  const EXPECT = { ALLOW: ['যাবে', 'ALLOW'], NUDGE: ['একবার জিজ্ঞেস', 'NUDGE'], STEP_UP: ['আবার পিন', 'STEP-UP'], HOLD: ['আটকে যাবে', 'HOLD'],
+    NO_ACCOUNT: ['অ্যাকাউন্ট নেই', 'no account'] };
+  const ROLE = { collector: ['টাকা তোলার ওয়ালেট', 'collector'], scam_recipient: ['প্রতারণার প্রাপক', 'scam recipient'], fake_seller: ['ভুয়া বিক্রেতা', 'fake seller'],
+    mule: ['মিউল', 'mule'], card_fraud: ['কার্ড প্রতারণা', 'card fraud'] };
+  const expectChip = (e) => `<span class="band band-${e === 'NO_ACCOUNT' ? 'NONE' : e}">${P.esc(L(...(EXPECT[e] || [e, e])))}</span>`;
+  function kitRows(g) {
+    return g.items.map((it, i) => {
+      const steps = it.steps ? `<div class="kit-steps">${it.steps.map((n, k) => `<button class="mini-btn" data-kit="${g.key}:${i}:${k}">${P.n(k + 1)}. ${P.phone(n)}</button>`).join('')}</div>` : '';
+      return `<div class="kit-item" ${it.steps ? '' : `data-kit="${g.key}:${i}" role="button" tabindex="0"`}>
+        <div class="row" style="justify-content:space-between;gap:6px"><b class="num">${P.phone(it.number)}</b>${expectChip(it.expected)}</div>
+        <div class="small">${P.esc(L(it.label_bn, it.label_en))} · <b class="num">${money(it.amount)}</b>${it.persona && it.persona !== 'rahim' ? ` · ${L('প্রেরক সালমা', 'from Salma')}` : ''}
+          ${it.role ? ` <span class="chip kit-role">${P.esc(L(...(ROLE[it.role] || [it.role, it.role])))}</span>` : ''}</div>
+        ${it.why_en ? `<div class="small muted kit-why">${P.esc(L(it.why_bn || it.why_en, it.why_en))}</div>` : ''}${steps}</div>`;
+    }).join('');
+  }
+  function renderKit() {
+    const k = S.kit;
+    $('kit-send').classList.toggle('hidden', !k);
+    $('kit-recharge').classList.toggle('hidden', !k);
+    if (!k) return;
+    const intro = `<p class="small muted" style="margin:6px 0">${P.esc(L(k.note_bn, k.note_en))}</p>`;
+    $('kit-send-body').innerHTML = intro + k.groups.filter((g) => g.key !== 'recharge')
+      .map((g) => `<div class="kit-g"><div class="small kit-gt">${P.esc(L(g.title_bn, g.title_en))}</div>${kitRows(g)}</div>`).join('');
+    $('kit-recharge-body').innerHTML = k.groups.filter((g) => g.key === 'recharge').map((g) => kitRows(g)).join('');
+  }
+  function tryItem(it, step) {
+    if (!S.me) return;
+    if (it.persona && it.persona !== S.me.key) {
+      setMe(it.persona);
+      toast(`${L('গ্রাহক বদলানো হয়েছে', 'Customer switched to')}: ${L(S.me.name_bn, S.me.name_en)}`);
+    }
+    if (it.kind === 'recharge') {
+      $('rc-to').value = step != null && it.steps ? it.steps[step] : it.number;
+      $('rc-amt').value = String(it.amount);
+      show('recharge');
+      if (it.steps) toast(L('তিনটি নম্বরে পরপর রিচার্জ করুন (১, ২, ৩): তৃতীয়টিতে প্রহরী জিজ্ঞেস করবে।', 'Recharge the three numbers one after another (1, 2, 3): Prohori asks on the third.'));
+      return;
+    }
+    show('send');
+    if ((it.flags || []).includes('wrong_number')) {
+      $('to').value = it.number;
+      S.pendingAmount = it.amount;
+      checkNumber(true);
+      return;
+    }
+    const c = S.me.contacts.find((x) => x.msisdn === it.number);
+    pickRecipient(it.number, c ? c.name : 'নতুন নম্বর', c ? c.name_en : 'New number', it.amount, it.device || null);
+    if (it.device) toast(L('টেস্ট: প্রতারক চক্রের ফোন থেকে এই অ্যাকাউন্টে লগইন করা হয়েছে (সিম বদল + পিন রিসেট)।', 'Test: a scam gang\'s phone has logged in to this account (SIM swap + PIN reset).'));
+  }
+  function kitClick(e) {
+    const b = e.target.closest('[data-kit]');
+    if (!b || !S.kit) return;
+    const [gk, i, step] = b.dataset.kit.split(':');
+    const it = S.kit.groups.find((g) => g.key === gk).items[+i];
+    tryItem(it, step === undefined ? null : +step);
+  }
+  $('kit-send-body').addEventListener('click', kitClick);
+  $('kit-recharge-body').addEventListener('click', kitClick);
+
   // ---------------------------------------------------------------- language switch: redraw what is on screen
   P.onLang(() => {
     if (!S.me) return;
@@ -601,8 +785,10 @@
     renderContacts();
     drawKeypad();
     drawHint();
+    renderKit();
     if (S.view === 'amount') drawAmount();
     if (S.view === 'pin') drawPinCard();
+    if (S.view === 'recharge') drawRecharge();
     if (S.view === 'complain') { drawTransfers(); preview(); }
     if (S.view === 'scam') drawScam();
     if (S.redraw && ['result', 'case', 'history', 'account'].includes(S.view)) S.redraw();
@@ -617,18 +803,36 @@
   }, 1000);
 
   drawKeypad();
-  (async function boot() {
+  async function boot() {
     try {
       const c = await P.api('/api/v1/customers');
       S.customers = c.customers;
       S.limits = c.limits;
       S.slipSource = c.slip_costs;
+      S.rechargeLimits = c.recharge_limits;
       S.clockBase = new Date(c.clock);
       S.clockAt = Date.now();
+      if (c.test_kit && !S.kit) { try { S.kit = await P.api('/api/v1/test-kit'); } catch (e) { S.kit = null; } }
       setMe(P.store.get('prohori.me') || 'rahim');
       show('home');
     } catch (err) {
       toast(`${L('প্রহরী API পাওয়া যায়নি', 'Prohori API not reachable')}: ${err.message}`);
     }
-  })();
+  }
+  boot();
+
+  // the showcase drives these: its test-number panel and its reset (no page reload, the engine stays up)
+  window.ProhoriApp = {
+    tryItem,
+    get kit() { return S.kit; },
+    async restart() {
+      clearInterval(S.poll);
+      clearInterval(S.casePoll);
+      Object.assign(S, { history: [], cases: [], device: null, last: null, pendingAmount: null, hint: null, flow: 'send', redraw: null });
+      $('sheet-wrap').classList.add('hidden');
+      ['to', 'amount', 'rc-to', 'rc-amt', 'c-text', 'scam-text'].forEach((id) => { $(id).value = ''; });
+      $('to-hint').innerHTML = '';
+      await boot();
+    },
+  };
 })();

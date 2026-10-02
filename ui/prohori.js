@@ -38,8 +38,9 @@
   // placeholders in data-en-ph / data-bn-ph. Text built in JS uses L(bangla, english). The choice is remembered
   // and shared by every page and iframe of the demo.
   const LKEY = 'prohori.lang';
-  let lang = ['bn', 'en'].includes(params.get('lang')) ? params.get('lang')
-    : (sget(LKEY) || document.documentElement.dataset.lang || 'bn');
+  const parentLang = () => { try { return window.parent !== window && window.parent.Prohori ? window.parent.Prohori.lang : null; } catch (e) { return null; } };
+  let lang = ['bn', 'en'].includes(params.get('lang')) ? params.get('lang')        // a screen inside the showcase follows it
+    : (parentLang() || sget(LKEY) || document.documentElement.dataset.lang || 'bn');
   const subs = [];
   const L = (bnText, enText) => (lang === 'en' ? enText : bnText);
   const n = (v) => (lang === 'en' ? String(v) : bn(v));
@@ -79,6 +80,15 @@
     if (e.target.closest('[data-lang-toggle]')) setLang(lang === 'en' ? 'bn' : 'en');
   });
   window.addEventListener('storage', (e) => { if (e.key === LKEY && e.newValue) setLang(e.newValue); });
+  // moving between the demo's pages keeps the language on screen
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href]');
+    if (!a || a.target || !/^[\w-]+\.html(\?[^#]*)?(#.*)?$/.test(a.getAttribute('href'))) return;
+    const u = new URL(a.href, location.href);
+    u.searchParams.set('lang', lang);
+    if (params.get('api')) u.searchParams.set('api', params.get('api'));
+    a.href = u.href;
+  });
 
   /* A phone number typed vs the one probably meant, with the digits that differ marked (1-based positions). */
   function numDiff(typed, meant, positions) {
@@ -112,22 +122,59 @@
     el.className = 'boot';
     el.innerHTML = `<div class="boot-card"><div class="spin"></div><b>${L('প্রহরী চালু হচ্ছে', 'Starting Prohori')}</b>
       <div class="small" id="boot-msg"></div><div class="boot-bar"><i id="boot-bar"></i></div>
-      <p class="small muted">${L('প্রশিক্ষিত মডেলগুলো আপনার ব্রাউজারের ভেতরেই চলে (Pyodide / WebAssembly): কোনো সার্ভার নেই, আপনি যা লেখেন তা এই ডিভাইস থেকে কোথাও যায় না। প্রথমবার প্রায় ৫০ MB নামবে; পরে ব্রাউজারের ক্যাশ থেকে চালু হবে।',
-    'The trained models run inside your browser (Pyodide / WebAssembly): no server, and nothing you type leaves this device. The first visit downloads about 50 MB; later visits load from the browser cache.')}</p></div>`;
+      <p class="small muted" id="boot-note"></p></div>`;
     document.body.appendChild(el);
     eng.onState((s) => {
       const m = el.querySelector('#boot-msg');
-      if (m) m.textContent = s.failed ? `${L('চালু করা যায়নি', 'Could not start')}: ${s.failed}` : s.msg;
+      const msg = s.msg && typeof s.msg === 'object' ? L(s.msg.bn, s.msg.en) : (s.msg || '');
+      if (m) m.textContent = s.failed ? `${L('চালু করা যায়নি', 'Could not start')}: ${s.failed}` : msg;
+      const note = el.querySelector('#boot-note');
+      if (note) {
+        note.textContent = s.cached
+          ? L('মডেলগুলো আগেই এই ডিভাইসে রাখা আছে: কিছু নামাতে হচ্ছে না, শুধু Python চালু হচ্ছে (কয়েক সেকেন্ড)।',
+            'The models are already stored on this device: nothing is downloaded, only Python starts (a few seconds).')
+          : L('প্রশিক্ষিত মডেলগুলো আপনার ব্রাউজারের ভেতরেই চলে (Pyodide / WebAssembly): কোনো সার্ভার নেই, আপনি যা লেখেন তা এই ডিভাইস থেকে কোথাও যায় না। প্রথমবার প্রায় ৩০ MB নামবে এবং এই ডিভাইসে রাখা থাকবে; পরেরবার কিছু নামাতে হবে না।',
+            'The trained models run inside your browser (Pyodide / WebAssembly): no server, and nothing you type leaves this device. The first visit downloads about 30 MB and keeps it on this device; after that nothing is downloaded again.');
+      }
+      el.classList.toggle('mini', !!s.cached && !s.failed);   // from the cache: a corner card, the page stays usable
       const b = el.querySelector('#boot-bar');
       if (b) b.style.width = `${s.pct || 0}%`;
       if (s.ready) el.remove();
     });
   }
-  function start() { applyLang(); bootScreen(); }
+  /* How much this customer usually sends / recharges, next to this amount: the last 30 amounts as dots on a log
+     scale, this one in red, the 'unusual from' line dashed. Used by the phone warning and the analyst copilot. */
+  function habitStrip(h, opts = {}) {
+    if (!h || !h.history || !h.history.length) return '';
+    const W = 300, H = opts.h || 54, pad = 10;
+    const usual = h.usual || 1, line = usual * (h.threshold || 1);
+    const vals = [...h.history, h.amount || usual, line];
+    const lo = Math.log10(Math.max(1, Math.min(...vals) * 0.8)), hi = Math.log10(Math.max(...vals) * 1.25);
+    const x = (v) => pad + ((Math.log10(Math.max(v, 1)) - lo) / Math.max(hi - lo, 1e-6)) * (W - 2 * pad);
+    const dots = h.history.map((v, i) => `<circle cx="${x(v).toFixed(1)}" cy="${(H / 2 - 6 + (i % 3) * 6).toFixed(1)}" r="3.4" fill="#7b8bb0" opacity=".75"><title>${money(v)}</title></circle>`).join('');
+    const mid = `<line x1="${x(usual)}" x2="${x(usual)}" y1="6" y2="${H - 14}" stroke="#0f8a5f" stroke-width="2"/>`;
+    const thr = `<line x1="${x(line)}" x2="${x(line)}" y1="4" y2="${H - 14}" stroke="#c2570c" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+    const cur = h.amount ? `<path d="M${x(h.amount)},4 l5,8 h-10 z" fill="#c62828"/><line x1="${x(h.amount)}" x2="${x(h.amount)}" y1="10" y2="${H - 14}" stroke="#c62828" stroke-width="2.5"/>` : '';
+    const lab = (v, t, c, anchor) => `<text x="${x(v)}" y="${H - 2}" font-size="10" fill="${c}" text-anchor="${anchor}">${esc(t)}</text>`;
+    const near = h.amount && Math.abs(x(h.amount) - x(line)) < 60;
+    return `<svg class="hstrip" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(L('আগের পরিমাণগুলোর তুলনায় এই পরিমাণ', 'This amount against the earlier ones'))}">
+      <line x1="${pad}" x2="${W - pad}" y1="${H / 2}" y2="${H / 2}" stroke="#e3e7ee"/>${dots}${mid}${thr}${cur}
+      ${lab(usual, L(`সাধারণ ${money(usual)}`, `usual ${money(usual)}`), '#0f8a5f', 'middle')}
+      ${near ? '' : lab(line, L(`অস্বাভাবিক ${money(line)}+`, `unusual ${money(line)}+`), '#c2570c', 'middle')}
+      ${h.amount ? lab(h.amount, money(h.amount), '#c62828', x(h.amount) > W - 40 ? 'end' : 'middle') : ''}</svg>`;
+  }
+
+  function start() {
+    applyLang();
+    bootScreen();
+    document.querySelectorAll('iframe').forEach((f) => {           // the showcase's screens follow its language
+      try { if (f.contentWindow.Prohori) f.contentWindow.Prohori.setLang(lang); } catch (e) { /* other origin */ }
+    });
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 
   window.Prohori = {
-    base, api, bn, ascii, esc, tk, tkbn, time, phone, speak, numDiff, L, n, money, setLang, applyLang,
+    base, api, bn, ascii, esc, tk, tkbn, time, phone, speak, numDiff, habitStrip, L, n, money, setLang, applyLang,
     onLang: (f) => subs.push(f), get lang() { return lang; }, store: { get: sget, set: sset },
     embed: params.get('embed') === '1',
   };

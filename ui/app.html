@@ -31,7 +31,7 @@
               <div class="grid4">
                 <button class="svc" data-go="send"><span class="ic">💸</span><span data-en="Send Money">সেন্ড মানি</span></button>
                 <button class="svc" data-soon="cashout"><span class="ic">🏧</span><span data-en="Cash Out">ক্যাশ আউট</span></button>
-                <button class="svc" data-soon="recharge"><span class="ic">📱</span><span data-en="Recharge">রিচার্জ</span></button>
+                <button class="svc" data-go="recharge"><span class="ic">📱</span><span data-en="Recharge">রিচার্জ</span></button>
                 <button class="svc" data-soon="paybill"><span class="ic">🧾</span><span data-en="Pay Bill">পে বিল</span></button>
                 <button class="svc" data-soon="addmoney"><span class="ic">🏦</span><span data-en="Add Money">অ্যাড মানি</span></button>
                 <button class="svc" data-go="complain"><span class="ic">🙋</span><span data-en="Report a problem">সমস্যা জানান</span></button>
@@ -64,6 +64,7 @@
               <div class="list card" id="contacts" style="padding:2px 8px"></div>
               <div class="small muted" style="margin:14px 0 6px" data-en="Demo scenarios · Prohori checks each with the real models">ডেমো পরিস্থিতি · প্রহরী আসল মডেল দিয়ে যাচাই করবে</div>
               <div class="scen" id="scenarios"></div>
+              <details class="kit hidden" id="kit-send"><summary><span data-en="🧪 Test numbers from the dataset (for judges)">🧪 ডেটাসেটের টেস্ট নম্বর (বিচারকদের জন্য)</span></summary><div id="kit-send-body"></div></details>
             </div>
           </section>
 
@@ -77,6 +78,7 @@
                 <div class="row"><span style="font-size:30px;font-weight:800">৳</span><input class="amount num" id="amount" inputmode="numeric" placeholder="0"></div>
                 <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px" id="quick"></div>
                 <div class="small muted" style="margin-top:10px"><span data-en="Balance">বর্তমান ব্যালেন্স</span>: <b class="num" id="a-bal">—</b> · <span data-en="max per transfer">প্রতি লেনদেনে সর্বোচ্চ</span> <span id="a-cap" class="num">—</span></div>
+                <div id="a-habit"></div>
               </div>
               <input class="field" style="margin-top:12px" placeholder="রেফারেন্স (ঐচ্ছিক)" data-en-ph="Reference (optional)">
               <button class="btn btn-yellow btn-block" style="margin-top:16px" id="amount-next" data-en="Next">পরবর্তী</button>
@@ -85,18 +87,33 @@
 
           <!-- SEND: PIN -->
           <section class="view hidden" id="v-pin">
-            <div class="appbar"><button class="back" data-go="amount">←</button><h1 data-en="Confirm">নিশ্চিত করুন</h1></div>
+            <div class="appbar"><button class="back" id="pin-back" data-go="amount">←</button><h1 data-en="Confirm">নিশ্চিত করুন</h1></div>
             <div class="scroll">
-              <div class="card receipt" style="margin-top:0">
-                <div><span data-en="To">প্রাপক</span><b id="p-to">—</b></div>
-                <div><span data-en="Amount">পরিমাণ</span><b class="num" id="p-amt">—</b></div>
-                <div><span data-en="Charge">চার্জ</span><span class="num" id="p-fee">৳ ০</span></div>
-              </div>
+              <div class="card receipt" style="margin-top:0" id="p-card"></div>
               <p class="small muted" style="text-align:center;margin-top:14px" data-en="Demo: any 4-digit PIN">ডেমো: যেকোনো ৪ ডিজিটের পিন</p>
               <div class="pinbox" id="pinbox"><i></i><i></i><i></i><i></i></div>
             </div>
             <div class="keypad" id="keypad"></div>
             <div style="padding:0 14px 14px"><button class="btn btn-primary btn-block" id="pin-send" disabled data-en="Send">পাঠান</button></div>
+          </section>
+
+          <!-- MOBILE RECHARGE: the customer's own recharge habit + the rapid-recharge rule -->
+          <section class="view hidden" id="v-recharge">
+            <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="Mobile Recharge">মোবাইল রিচার্জ</h1></div>
+            <div class="scroll">
+              <label class="small muted" for="rc-to" data-en="Mobile number">মোবাইল নম্বর</label>
+              <input class="field num" id="rc-to" inputmode="numeric" placeholder="01XXXXXXXXX" autocomplete="off" maxlength="14" style="margin:4px 0 6px">
+              <div class="choice-chips" id="rc-who"></div>
+              <div class="card">
+                <div class="small muted" data-en="Amount">পরিমাণ</div>
+                <div class="row"><span style="font-size:30px;font-weight:800">৳</span><input class="amount num" id="rc-amt" inputmode="numeric" placeholder="0"></div>
+                <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px" id="rc-quick"></div>
+                <div class="small muted" style="margin-top:10px"><span data-en="Balance">বর্তমান ব্যালেন্স</span>: <b class="num" id="rc-bal">—</b> · <span data-en="Tk 10 to 1,000 per recharge (demo)">প্রতি রিচার্জে ৳১০ থেকে ৳১,০০০ (ডেমো)</span></div>
+                <div id="rc-habit"></div>
+              </div>
+              <button class="btn btn-yellow btn-block" style="margin-top:14px" id="rc-next" data-en="Next">পরবর্তী</button>
+              <details class="kit hidden" id="kit-recharge" style="margin-top:14px"><summary><span data-en="🧪 Recharge tests (for judges)">🧪 রিচার্জ টেস্ট (বিচারকদের জন্য)</span></summary><div id="kit-recharge-body"></div></details>
+            </div>
           </section>
 
           <!-- RESULT -->
