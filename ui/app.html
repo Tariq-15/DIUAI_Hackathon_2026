@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="bn" data-lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>প্রহরী · upay-style wallet (prototype)</title>
+  <link rel="stylesheet" href="prohori.css">
+  <script src="config.js"></script>
+  <script src="engine.js"></script>
+</head>
+<body>
+  <div class="proto" id="proto"><span data-en="Prototype • synthetic data • not the real upay app">প্রোটোটাইপ • সিন্থেটিক ডেটা • upay-এর আসল অ্যাপ নয়</span><span class="links"> · <b>প্রহরী</b> scam shield ·
+    <a href="analyst.html" style="color:#9fd0ff">analyst copilot</a> · <a href="index.html" style="color:#9fd0ff">showcase</a></span></div>
+  <div class="stage" id="stage">
+    <div class="phone">
+      <div class="screen" id="screen">
+        <div class="statusbar"><span id="clock" class="num">09:30</span><span class="notch"></span><span>4G ▮▮▮</span></div>
+        <div id="devstrip" class="hidden" style="background:#c62828;color:#fff;font-size:12px;font-weight:700;padding:5px 12px"
+             data-en="⚠ Test: this account was logged in from a new, unknown phone">⚠ টেস্ট: এই অ্যাকাউন্টে নতুন/অপরিচিত ফোন থেকে লগইন</div>
+        <div class="views">
+
+          <!-- HOME -->
+          <section class="view" id="v-home">
+            <div class="home-head">
+              <div class="avatar" id="h-avatar">র</div>
+              <div class="who grow"><b id="h-name">রহিম</b><span class="num" id="h-phone">01051-923924</span></div>
+              <button class="langsw" data-lang-toggle></button>
+              <button class="pill num" id="h-balance">ব্যালেন্স দেখুন</button>
+            </div>
+            <div class="scroll" style="padding:0">
+              <div class="grid4">
+                <button class="svc" data-go="send"><span class="ic">💸</span><span data-en="Send Money">সেন্ড মানি</span></button>
+                <button class="svc" data-soon="cashout"><span class="ic">🏧</span><span data-en="Cash Out">ক্যাশ আউট</span></button>
+                <button class="svc" data-soon="recharge"><span class="ic">📱</span><span data-en="Recharge">রিচার্জ</span></button>
+                <button class="svc" data-soon="paybill"><span class="ic">🧾</span><span data-en="Pay Bill">পে বিল</span></button>
+                <button class="svc" data-soon="addmoney"><span class="ic">🏦</span><span data-en="Add Money">অ্যাড মানি</span></button>
+                <button class="svc" data-go="complain"><span class="ic">🙋</span><span data-en="Report a problem">সমস্যা জানান</span></button>
+                <button class="svc hot" data-go="scam"><span class="ic">🕵️</span><span data-en="Scam check">প্রতারক যাচাই</span></button>
+                <button class="svc" data-go="history"><span class="ic">📜</span><span data-en="History">লেনদেন</span></button>
+              </div>
+              <div class="shield">
+                <div class="big">🛡️</div>
+                <div><b data-en="Prohori is watching over you">প্রহরী আপনার পাহারায়</b><span data-en="Every transfer is checked before the money leaves. A mistyped number or a likely scam gets a warning with the reason; the choice is yours.">টাকা পাঠানোর আগেই প্রতিটি লেনদেন যাচাই হয়। ভুল নম্বর বা প্রতারণার সন্দেহ হলে কারণসহ সতর্ক করে, সিদ্ধান্ত আপনার।</span></div>
+              </div>
+              <div style="padding:0 12px 16px">
+                <div class="card small" data-en="<b>Remember</b><br>upay never asks for your PIN or OTP by phone or message. If in doubt, call 16268.">
+                  <b>মনে রাখবেন</b><br>upay কখনো ফোন বা মেসেজে আপনার পিন বা ওটিপি চায় না। সন্দেহ হলে ১৬২৬৮ নম্বরে কল করুন।
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- SEND: recipient -->
+          <section class="view hidden" id="v-send">
+            <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="Send Money">সেন্ড মানি</h1></div>
+            <div class="scroll">
+              <label class="small muted" for="to" data-en="Recipient's number">প্রাপকের নম্বর</label>
+              <div class="row" style="margin:4px 0 10px">
+                <input class="field num grow" id="to" inputmode="numeric" placeholder="010XXXXXXXX" autocomplete="off" maxlength="14">
+                <button class="btn btn-primary" id="to-next" aria-label="next">→</button>
+              </div>
+              <div id="to-hint"></div>
+              <div class="small muted" style="margin-bottom:4px" data-en="Saved contacts">পরিচিত নম্বর</div>
+              <div class="list card" id="contacts" style="padding:2px 8px"></div>
+              <div class="small muted" style="margin:14px 0 6px" data-en="Demo scenarios · Prohori checks each with the real models">ডেমো পরিস্থিতি · প্রহরী আসল মডেল দিয়ে যাচাই করবে</div>
+              <div class="scen" id="scenarios"></div>
+            </div>
+          </section>
+
+          <!-- SEND: amount -->
+          <section class="view hidden" id="v-amount">
+            <div class="appbar"><button class="back" data-go="send">←</button><h1 data-en="Send Money">সেন্ড মানি</h1></div>
+            <div class="scroll">
+              <div class="card row"><div class="avatar" id="a-av">?</div><div><b id="a-name">—</b><div class="num small muted" id="a-num">—</div></div></div>
+              <div class="card" style="margin-top:12px">
+                <div class="small muted" data-en="Amount">পরিমাণ</div>
+                <div class="row"><span style="font-size:30px;font-weight:800">৳</span><input class="amount num" id="amount" inputmode="numeric" placeholder="0"></div>
+                <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px" id="quick"></div>
+                <div class="small muted" style="margin-top:10px"><span data-en="Balance">বর্তমান ব্যালেন্স</span>: <b class="num" id="a-bal">—</b> · <span data-en="max per transfer">প্রতি লেনদেনে সর্বোচ্চ</span> <span id="a-cap" class="num">—</span></div>
+              </div>
+              <input class="field" style="margin-top:12px" placeholder="রেফারেন্স (ঐচ্ছিক)" data-en-ph="Reference (optional)">
+              <button class="btn btn-yellow btn-block" style="margin-top:16px" id="amount-next" data-en="Next">পরবর্তী</button>
+            </div>
+          </section>
+
+          <!-- SEND: PIN -->
+          <section class="view hidden" id="v-pin">
+            <div class="appbar"><button class="back" data-go="amount">←</button><h1 data-en="Confirm">নিশ্চিত করুন</h1></div>
+            <div class="scroll">
+              <div class="card receipt" style="margin-top:0">
+                <div><span data-en="To">প্রাপক</span><b id="p-to">—</b></div>
+                <div><span data-en="Amount">পরিমাণ</span><b class="num" id="p-amt">—</b></div>
+                <div><span data-en="Charge">চার্জ</span><span class="num" id="p-fee">৳ ০</span></div>
+              </div>
+              <p class="small muted" style="text-align:center;margin-top:14px" data-en="Demo: any 4-digit PIN">ডেমো: যেকোনো ৪ ডিজিটের পিন</p>
+              <div class="pinbox" id="pinbox"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="keypad" id="keypad"></div>
+            <div style="padding:0 14px 14px"><button class="btn btn-primary btn-block" id="pin-send" disabled data-en="Send">পাঠান</button></div>
+          </section>
+
+          <!-- RESULT -->
+          <section class="view hidden" id="v-result">
+            <div class="appbar"><h1 id="r-title">লেনদেন</h1></div>
+            <div class="scroll"><div id="r-body"></div>
+              <button class="btn btn-primary btn-block" style="margin-top:18px" data-go="home" data-en="Back to home">হোমে ফিরুন</button></div>
+          </section>
+
+          <!-- REPORT A PROBLEM (wrong send / scam), Banglish welcome -->
+          <section class="view hidden" id="v-complain">
+            <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="Report a problem">সমস্যা জানান</h1></div>
+            <div class="scroll">
+              <p class="small" style="margin-top:0" data-en="Sent money to the wrong number, or tricked into sending? Tell us in your own words: Bangla, Banglish or English.">ভুল নম্বরে টাকা গেছে, বা প্রতারণার শিকার? নিজের ভাষায় লিখুন: বাংলা, Banglish বা English।</p>
+              <div class="small muted" data-en="1. What happened?">১. কী হয়েছে?</div>
+              <div class="choice-chips" id="c-problem">
+                <button data-problem="wrong_number" class="on" data-en="Sent to a wrong number">ভুল নম্বরে পাঠিয়েছি</button>
+                <button data-problem="scam" data-en="I was scammed">প্রতারণার শিকার</button>
+                <button data-problem="other" data-en="Something else">অন্য সমস্যা</button>
+              </div>
+              <div class="small muted" data-en="2. Which transfer? (last 7 days)">২. কোন লেনদেন? (গত ৭ দিন)</div>
+              <div class="list card" id="c-transfers" style="padding:2px 8px;margin:6px 0 12px"></div>
+              <div class="small muted" data-en="3. In your own words">৩. নিজের ভাষায় লিখুন</div>
+              <textarea class="field" id="c-text" rows="4" style="margin-top:6px" placeholder="যেমন: Bhai ajke bhul kore 800 taka onno number e chole gese…" data-en-ph="e.g. I sent 800 taka to a wrong number by mistake today…"></textarea>
+              <div class="small muted" style="margin:8px 0 4px" data-en="Examples (tap to use)">উদাহরণ (ট্যাপ করুন)</div>
+              <div class="scen" id="c-samples"></div>
+              <div id="c-preview"></div>
+              <label class="consent"><input type="checkbox" id="c-consent">
+                <span data-en="I agree that upay's dispute team may read what I wrote and the matched transfer, only to resolve this complaint and prevent fraud. It is kept for the case and deleted after the legal retention period. I understand a return depends on the recipient's consent or a legal process.">আমি সম্মতি দিচ্ছি: আমার লেখা ও মিলে যাওয়া লেনদেন শুধু upay-এর অভিযোগ দল দেখবে, এই অভিযোগ নিষ্পত্তি ও প্রতারণা রোধের জন্য। কেস চলাকালীন রাখা হবে, আইনি সংরক্ষণকাল শেষে মুছে ফেলা হবে। বুঝেছি, টাকা ফেরত পাওয়া প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে।</span></label>
+              <button class="btn btn-primary btn-block" style="margin-top:12px" id="c-submit" data-en="Submit complaint">অভিযোগ জমা দিন</button>
+            </div>
+          </section>
+
+          <!-- COMPLAINT STATUS -->
+          <section class="view hidden" id="v-case">
+            <div class="appbar"><button class="back" data-go="history">←</button><h1 data-en="Complaint status">অভিযোগের অবস্থা</h1></div>
+            <div class="scroll"><div id="case-body"></div>
+              <button class="btn btn-primary btn-block" style="margin-top:18px" data-go="home" data-en="Back to home">হোমে ফিরুন</button></div>
+          </section>
+
+          <!-- SCAM CHECKER -->
+          <section class="view hidden" id="v-scam">
+            <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="Scam check">প্রতারক যাচাই</h1></div>
+            <div class="scroll">
+              <p class="small" style="margin-top:0" data-en="Type or paste what a caller or message said (Bangla, Banglish or English). Prohori looks for known scam tricks. The text is not stored or sent anywhere.">কেউ ফোন বা মেসেজে যা বলেছে, এখানে লিখুন বা পেস্ট করুন (বাংলা, Banglish বা English)। প্রহরী পরিচিত প্রতারণার কৌশল খুঁজবে। লেখাটি কোথাও সংরক্ষণ বা পাঠানো হয় না।</p>
+              <textarea class="field" id="scam-text" rows="5" placeholder="যেমন: আমি upay অফিস থেকে বলছি…" data-en-ph="e.g. I am calling from the upay office…"></textarea>
+              <div class="small muted" style="margin:8px 0 4px" data-en="Examples">উদাহরণ</div>
+              <div class="scen" id="scam-samples"></div>
+              <button class="btn btn-primary btn-block" style="margin-top:12px" id="scam-go" data-en="Check">যাচাই করুন</button>
+              <div id="scam-out"></div>
+            </div>
+          </section>
+
+          <!-- HISTORY -->
+          <section class="view hidden" id="v-history">
+            <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="History">লেনদেন</h1></div>
+            <div class="scroll">
+              <div class="small muted" style="margin-bottom:4px" data-en="This session">এই সেশনের লেনদেন</div>
+              <div class="list card" id="history" style="padding:2px 8px"></div>
+              <div class="small muted" style="margin:14px 0 4px" data-en="My complaints">আমার অভিযোগ</div>
+              <div class="list card" id="my-cases" style="padding:2px 8px"></div>
+              <button class="btn btn-ghost btn-block" style="margin-top:12px" data-go="complain" data-en="🙋 Report a problem with a transfer">🙋 কোনো লেনদেনে সমস্যা জানান</button>
+            </div>
+          </section>
+
+          <!-- ACCOUNT -->
+          <section class="view hidden" id="v-account">
+            <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="Account">অ্যাকাউন্ট</h1></div>
+            <div class="scroll">
+              <div class="row" style="justify-content:space-between;margin-bottom:12px"><b data-en="Language">ভাষা</b><button class="langsw" data-lang-toggle></button></div>
+              <div class="small muted" data-en="Choose a demo customer (all details are made up)">ডেমো গ্রাহক বেছে নিন (সব তথ্য কাল্পনিক)</div>
+              <div class="list card" id="personas" style="padding:2px 8px;margin-top:6px"></div>
+              <div class="card small" style="margin-top:12px" data-en="Need help? <b>16268</b> (upay helpline). Prohori never keeps your money on its own: it warns, and you or an upay officer decide.">সাহায্য দরকার? <b>১৬২৬৮</b> (upay হেল্পলাইন)। প্রহরী কখনো আপনার টাকা নিজে আটকায় না: সতর্ক করে, সিদ্ধান্ত নেন আপনি বা upay-এর একজন কর্মকর্তা।</div>
+              <div class="card small" style="margin-top:12px" id="privacy-card"></div>
+            </div>
+          </section>
+        </div>
+
+        <nav class="bottomnav" id="nav">
+          <button data-go="home" class="on"><span>🏠</span><em data-en="Home">হোম</em></button>
+          <button data-go="history"><span>📜</span><em data-en="History">লেনদেন</em></button>
+          <button data-go="send"><span>💸</span><em data-en="Send">সেন্ড</em></button>
+          <button data-go="scam"><span>🕵️</span><em data-en="Check">যাচাই</em></button>
+          <button data-go="account"><span>👤</span><em data-en="Account">অ্যাকাউন্ট</em></button>
+        </nav>
+
+        <div class="checking hidden" id="checking"><div><div class="spin"></div><b data-en="Prohori is checking…">প্রহরী যাচাই করছে…</b><div class="small muted" data-en="The money is still in your wallet">টাকা এখনো আপনার ওয়ালেটে</div></div></div>
+        <div class="sheet-wrap hidden" id="sheet-wrap"><div class="sheet" id="sheet"></div></div>
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+  <script src="prohori.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Exact versions the committed artifacts were trained and pickled with (Python 3.12).
+# pip install -r requirements.txt -c constraints.txt
+pandas==3.0.6
+numpy==2.5.3
+pyarrow==25.0.1
+scipy==1.18.1
+scikit-learn==1.9.1
+lightgbm==4.7.0
+xgboost==3.4.1
+shap==0.52.0
+numba==0.68.0
+optuna==5.0.0
+networkx==3.7
+PyYAML==6.0.3
+matplotlib==3.11.2
+joblib==1.6.0
+fastapi==0.142.2
+starlette==1.7.0
+pydantic==2.13.5
+anyio==4.15.1
+uvicorn==0.54.0
+httpx==0.28.1
+pytest==9.1.1

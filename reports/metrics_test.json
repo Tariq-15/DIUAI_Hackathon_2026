@@ -1,0 +1,838 @@
+{
+  "comparison": [
+    {
+      "model": "rules baseline",
+      "pr_auc": 0.188,
+      "roc_auc": 0.896,
+      "recall_at_fpr_0p1": 0.0708,
+      "recall_at_fpr_0p5": 0.2003,
+      "recall_at_fpr_2": 0.3836,
+      "precision_at_recall_50": 0.1242,
+      "n": 66234,
+      "positives": 734
+    },
+    {
+      "model": "logistic regression",
+      "pr_auc": 0.8986,
+      "roc_auc": 0.9974,
+      "recall_at_fpr_0p1": 0.7561,
+      "recall_at_fpr_0p5": 0.9237,
+      "recall_at_fpr_2": 0.97,
+      "precision_at_recall_50": 0.9545,
+      "n": 66234,
+      "positives": 734
+    },
+    {
+      "model": "XGBoost",
+      "pr_auc": 0.9614,
+      "roc_auc": 0.9978,
+      "recall_at_fpr_0p1": 0.9319,
+      "recall_at_fpr_0p5": 0.955,
+      "recall_at_fpr_2": 0.9796,
+      "precision_at_recall_50": 1.0,
+      "n": 66234,
+      "positives": 734
+    },
+    {
+      "model": "LightGBM",
+      "pr_auc": 0.9622,
+      "roc_auc": 0.9985,
+      "recall_at_fpr_0p1": 0.921,
+      "recall_at_fpr_0p5": 0.9496,
+      "recall_at_fpr_2": 0.9809,
+      "precision_at_recall_50": 1.0,
+      "n": 66234,
+      "positives": 734
+    },
+    {
+      "model": "Isolation Forest",
+      "pr_auc": 0.4052,
+      "roc_auc": 0.8863,
+      "recall_at_fpr_0p1": 0.2738,
+      "recall_at_fpr_0p5": 0.391,
+      "recall_at_fpr_2": 0.5204,
+      "precision_at_recall_50": 0.2593,
+      "n": 66234,
+      "positives": 734
+    },
+    {
+      "model": "graph rules",
+      "pr_auc": 0.1419,
+      "roc_auc": 0.7877,
+      "recall_at_fpr_0p1": 0.0835,
+      "recall_at_fpr_0p5": 0.2006,
+      "recall_at_fpr_2": 0.3383,
+      "precision_at_recall_50": 0.0362,
+      "n": 66234,
+      "positives": 734
+    },
+    {
+      "model": "Prohori fused score",
+      "pr_auc": 0.9622,
+      "roc_auc": 0.9985,
+      "recall_at_fpr_0p1": 0.921,
+      "recall_at_fpr_0p5": 0.9496,
+      "recall_at_fpr_2": 0.9809,
+      "precision_at_recall_50": 1.0,
+      "n": 66234,
+      "positives": 734
+    }
+  ],
+  "bands": {
+    "NUDGE+": {
+      "alerts": 1551,
+      "tp": 715,
+      "fp": 836,
+      "precision": 0.461,
+      "recall": 0.9741,
+      "fpr": 0.01276
+    },
+    "STEP_UP+": {
+      "alerts": 975,
+      "tp": 697,
+      "fp": 278,
+      "precision": 0.7149,
+      "recall": 0.9496,
+      "fpr": 0.00424
+    },
+    "HOLD+": {
+      "alerts": 775,
+      "tp": 673,
+      "fp": 102,
+      "precision": 0.8684,
+      "recall": 0.9169,
+      "fpr": 0.00156
+    },
+    "band_counts": {
+      "ALLOW": 64683,
+      "NUDGE": 576,
+      "STEP_UP": 200,
+      "HOLD": 775
+    }
+  },
+  "impact": {
+    "victim_side_txns": 370,
+    "victim_side_recall_nudge": 0.954,
+    "victim_side_recall_stepup": 0.908,
+    "victim_side_recall_hold": 0.868,
+    "victim_loss_tk": 2526620,
+    "expected_prevented_tk": 2401775,
+    "expected_prevented_share": 0.951,
+    "stop_rate_assumption": {
+      "ALLOW": 0.0,
+      "NUDGE": 0.3,
+      "STEP_UP": 0.7,
+      "HOLD": 1.0
+    },
+    "cases_in_test": 121,
+    "cases_caught_stepup": 0.992,
+    "cases_caught_nudge": 1.0
+  },
+  "friction": {
+    "legit_customers": 10292,
+    "customers_nudged_share": 0.0734,
+    "customers_stepup_share": 0.0259,
+    "customers_held_share": 0.0095,
+    "legit_txn_share_by_band": {
+      "ALLOW": 0.98724,
+      "NUDGE": 0.00852,
+      "STEP_UP": 0.00269,
+      "HOLD": 0.00156
+    },
+    "alerts_per_day": {
+      "HOLD": 77.5,
+      "STEP_UP": 20.0,
+      "NUDGE": 57.6
+    },
+    "analyst_hours_manual": 258.3,
+    "analyst_hours_with_copilot": 38.8
+  },
+  "per_scenario": [
+    {
+      "scenario": "S1",
+      "fraud_txns": 174,
+      "cases": 36,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 0.989,
+      "case_caught_stepup": 1.0
+    },
+    {
+      "scenario": "S2",
+      "fraud_txns": 151,
+      "cases": 9,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 0.98,
+      "case_caught_stepup": 1.0
+    },
+    {
+      "scenario": "S3",
+      "fraud_txns": 66,
+      "cases": 11,
+      "recall_nudge": 0.985,
+      "recall_stepup": 0.985,
+      "recall_hold": 0.924,
+      "case_caught_stepup": 1.0
+    },
+    {
+      "scenario": "S5",
+      "fraud_txns": 136,
+      "cases": 13,
+      "recall_nudge": 0.882,
+      "recall_stepup": 0.779,
+      "recall_hold": 0.743,
+      "case_caught_stepup": 1.0
+    },
+    {
+      "scenario": "S6",
+      "fraud_txns": 70,
+      "cases": 12,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 1.0,
+      "case_caught_stepup": 1.0
+    },
+    {
+      "scenario": "S7",
+      "fraud_txns": 93,
+      "cases": 34,
+      "recall_nudge": 0.978,
+      "recall_stepup": 0.935,
+      "recall_hold": 0.849,
+      "case_caught_stepup": 0.971
+    },
+    {
+      "scenario": "S8",
+      "fraud_txns": 44,
+      "cases": 7,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 0.955,
+      "case_caught_stepup": 1.0
+    }
+  ],
+  "per_role": [
+    {
+      "fraud_role": "buyer_payment",
+      "n": 93,
+      "recall_nudge": 0.828,
+      "recall_stepup": 0.688,
+      "recall_hold": 0.634
+    },
+    {
+      "fraud_role": "card_add_money",
+      "n": 20,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 1.0
+    },
+    {
+      "fraud_role": "cashout",
+      "n": 8,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 1.0
+    },
+    {
+      "fraud_role": "coerced_send",
+      "n": 37,
+      "recall_nudge": 0.973,
+      "recall_stepup": 0.865,
+      "recall_hold": 0.676
+    },
+    {
+      "fraud_role": "collector_cashout",
+      "n": 19,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 1.0
+    },
+    {
+      "fraud_role": "mule_cashout",
+      "n": 180,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 1.0
+    },
+    {
+      "fraud_role": "mule_hop",
+      "n": 76,
+      "recall_nudge": 0.987,
+      "recall_stepup": 0.987,
+      "recall_hold": 0.868
+    },
+    {
+      "fraud_role": "recipient_cashout",
+      "n": 38,
+      "recall_nudge": 0.974,
+      "recall_stepup": 0.974,
+      "recall_hold": 0.974
+    },
+    {
+      "fraud_role": "seller_cashout",
+      "n": 43,
+      "recall_nudge": 1.0,
+      "recall_stepup": 0.977,
+      "recall_hold": 0.977
+    },
+    {
+      "fraud_role": "takeover_drain",
+      "n": 102,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 1.0
+    },
+    {
+      "fraud_role": "victim_payment",
+      "n": 118,
+      "recall_nudge": 1.0,
+      "recall_stepup": 1.0,
+      "recall_hold": 0.975
+    }
+  ],
+  "fairness_flags": [
+    {
+      "attribute": "age_band",
+      "group": "45-59",
+      "legit_txns": 10669,
+      "fraud_txns": 88,
+      "fpr_nudge": 0.01697,
+      "fpr_stepup": 0.00544,
+      "fpr_nudge_ratio": 1.33,
+      "fpr_stepup_ratio": 1.28,
+      "tpr_stepup": 0.92,
+      "flag": true
+    },
+    {
+      "attribute": "age_band",
+      "group": "60+",
+      "legit_txns": 3134,
+      "fraud_txns": 25,
+      "fpr_nudge": 0.01436,
+      "fpr_stepup": 0.00702,
+      "fpr_nudge_ratio": 1.12,
+      "fpr_stepup_ratio": 1.65,
+      "tpr_stepup": 0.96,
+      "flag": true
+    },
+    {
+      "attribute": "segment",
+      "group": "farmer_rural",
+      "legit_txns": 3183,
+      "fraud_txns": 41,
+      "fpr_nudge": 0.02545,
+      "fpr_stepup": 0.00943,
+      "fpr_nudge_ratio": 1.99,
+      "fpr_stepup_ratio": 2.22,
+      "tpr_stepup": 0.902,
+      "flag": true
+    },
+    {
+      "attribute": "segment",
+      "group": "small_business",
+      "legit_txns": 13022,
+      "fraud_txns": 137,
+      "fpr_nudge": 0.01636,
+      "fpr_stepup": 0.00668,
+      "fpr_nudge_ratio": 1.28,
+      "fpr_stepup_ratio": 1.57,
+      "tpr_stepup": 0.978,
+      "flag": true
+    },
+    {
+      "attribute": "kyc_level",
+      "group": "KYC1",
+      "legit_txns": 13489,
+      "fraud_txns": 183,
+      "fpr_nudge": 0.01564,
+      "fpr_stepup": 0.00571,
+      "fpr_nudge_ratio": 1.23,
+      "fpr_stepup_ratio": 1.34,
+      "tpr_stepup": 0.956,
+      "flag": true
+    }
+  ],
+  "shap_top20": {
+    "cp_n_prior": 1.5775,
+    "drain_ratio": 0.5288,
+    "hrs_since_dev_change": 0.4742,
+    "amount": 0.4662,
+    "cust_n_prior_out": 0.4631,
+    "cp_age_days": 0.4399,
+    "device_age_hours": 0.411,
+    "pair_first": 0.3565,
+    "cp_in_cnt_1h": 0.2947,
+    "pair_n_prior": 0.2886,
+    "device_n_wallets": 0.2466,
+    "cust_age_days": 0.2399,
+    "cp_in_amt_24h": 0.2277,
+    "hour": 0.2274,
+    "cp_cashout_24h": 0.2219,
+    "cp_out_cnt_24h": 0.2208,
+    "hour_surprise": 0.2059,
+    "f_type": 0.1982,
+    "log_amount": 0.1935,
+    "cp_woke_gap_days": 0.1854
+  },
+  "ablation": [
+    {
+      "variant": "full model",
+      "pr_auc": 0.9622,
+      "recall_at_fpr_0p5": 0.9496
+    },
+    {
+      "variant": "without transaction",
+      "pr_auc": 0.9553,
+      "recall_at_fpr_0p5": 0.9441
+    },
+    {
+      "variant": "without behaviour",
+      "pr_auc": 0.9361,
+      "recall_at_fpr_0p5": 0.9305
+    },
+    {
+      "variant": "without device_session",
+      "pr_auc": 0.9596,
+      "recall_at_fpr_0p5": 0.9619
+    },
+    {
+      "variant": "without flow",
+      "pr_auc": 0.9597,
+      "recall_at_fpr_0p5": 0.9496
+    },
+    {
+      "variant": "without counterparty",
+      "pr_auc": 0.8248,
+      "recall_at_fpr_0p5": 0.7916
+    },
+    {
+      "variant": "without agent",
+      "pr_auc": 0.959,
+      "recall_at_fpr_0p5": 0.951
+    },
+    {
+      "variant": "without complaints",
+      "pr_auc": 0.9458,
+      "recall_at_fpr_0p5": 0.9319
+    },
+    {
+      "variant": "without graph",
+      "pr_auc": 0.9641,
+      "recall_at_fpr_0p5": 0.9564
+    }
+  ],
+  "component_ablation": [
+    {
+      "variant": "LightGBM only",
+      "pr_auc": 0.9622,
+      "recall_at_fpr_0p5": 0.9496
+    },
+    {
+      "variant": "LightGBM + IsolationForest",
+      "pr_auc": 0.9622,
+      "recall_at_fpr_0p5": 0.9496
+    },
+    {
+      "variant": "LightGBM + graph rules",
+      "pr_auc": 0.9622,
+      "recall_at_fpr_0p5": 0.9496
+    },
+    {
+      "variant": "fused (all three)",
+      "pr_auc": 0.9622,
+      "recall_at_fpr_0p5": 0.9496
+    }
+  ],
+  "demo_scenarios": [
+    {
+      "id": "SC-01",
+      "title": "SIM-swap takeover of a business owner at 01:40",
+      "expected": "HOLD",
+      "acceptable": [
+        "STEP_UP",
+        "HOLD"
+      ],
+      "txn_id": "T00608619",
+      "txn_type": "SEND_MONEY",
+      "actual": "HOLD",
+      "risk_score": 100.0,
+      "policy_override": "",
+      "p_fraud": 0.9999,
+      "anomaly": 1.0,
+      "graph": 0.0,
+      "reasons_en": [
+        "A phone first seen on this account 0.1 hour(s) ago is being used",
+        "The phone involved is used by 7 different wallets",
+        "A wallet silent for 44 days suddenly became active",
+        "Very unusual for this customer's own past behaviour (top 2% anomaly)"
+      ],
+      "reasons_bn": [
+        "এই অ্যাকাউন্টে মাত্র ০.১ ঘণ্টা আগে নতুন ফোন থেকে লগইন হয়েছে",
+        "সংশ্লিষ্ট ফোনটি ৭টি ভিন্ন ওয়ালেটে ব্যবহার হচ্ছে",
+        "৪৪ দিন নিষ্ক্রিয় থাকা ওয়ালেট হঠাৎ সক্রিয়",
+        "এই গ্রাহকের নিজের আগের আচরণের তুলনায় অত্যন্ত অস্বাভাবিক"
+      ],
+      "customer_message_bn": "আপনার নিরাপত্তার জন্য লেনদেনটি সাময়িকভাবে স্থগিত রাখা হয়েছে। এই অ্যাকাউন্টে মাত্র ০.১ ঘণ্টা আগে নতুন ফোন থেকে লগইন হয়েছে। সংশ্লিষ্ট ফোনটি ৭টি ভিন্ন ওয়ালেটে ব্যবহার হচ্ছে। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।",
+      "customer_message_en": "We have paused this transaction for your safety. A phone first seen on this account 0.1 hour(s) ago is being used. The phone involved is used by 7 different wallets. Call 16268 if you need help.",
+      "pass": true
+    },
+    {
+      "id": "SC-02",
+      "title": "Agent-register harvest: OTP takeover drains 12,500 to 4 mules in 30 s",
+      "expected": "STEP_UP",
+      "acceptable": [
+        "STEP_UP",
+        "HOLD"
+      ],
+      "txn_id": "T00605671",
+      "txn_type": "SEND_MONEY",
+      "actual": "HOLD",
+      "risk_score": 100.0,
+      "policy_override": "",
+      "p_fraud": 0.9995,
+      "anomaly": 0.953,
+      "graph": 0.018,
+      "reasons_en": [
+        "A phone first seen on this account 0.0 hour(s) ago is being used",
+        "Recipient wallet was opened only 3 day(s) ago",
+        "You have never sent money to this number before"
+      ],
+      "reasons_bn": [
+        "এই অ্যাকাউন্টে মাত্র ০.০ ঘণ্টা আগে নতুন ফোন থেকে লগইন হয়েছে",
+        "এই নম্বরটি মাত্র ৩ দিন আগে খোলা হয়েছে",
+        "এই নম্বরে আপনি আগে কখনো টাকা পাঠাননি"
+      ],
+      "customer_message_bn": "আপনার নিরাপত্তার জন্য লেনদেনটি সাময়িকভাবে স্থগিত রাখা হয়েছে। এই অ্যাকাউন্টে মাত্র ০.০ ঘণ্টা আগে নতুন ফোন থেকে লগইন হয়েছে। এই নম্বরটি মাত্র ৩ দিন আগে খোলা হয়েছে। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।",
+      "customer_message_en": "We have paused this transaction for your safety. A phone first seen on this account 0.0 hour(s) ago is being used. Recipient wallet was opened only 3 day(s) ago. Call 16268 if you need help.",
+      "pass": true
+    },
+    {
+      "id": "SC-03",
+      "title": "Collector wallet: 2 days old, 14 strangers paid it in 3 h; victim #15 about to send",
+      "expected": "STEP_UP",
+      "acceptable": [
+        "STEP_UP",
+        "HOLD"
+      ],
+      "txn_id": "T00641926",
+      "txn_type": "SEND_MONEY",
+      "actual": "HOLD",
+      "risk_score": 100.0,
+      "policy_override": "",
+      "p_fraud": 0.9995,
+      "anomaly": 0.85,
+      "graph": 0.995,
+      "reasons_en": [
+        "14 different people sent money to this number in the last 24 hours",
+        "Recipient wallet was opened only 2 day(s) ago",
+        "Unusual time for this customer (12:00)",
+        "Part of a suspicious money-movement network (graph rules)"
+      ],
+      "reasons_bn": [
+        "গত ২৪ ঘণ্টায় ১৪ জন ভিন্ন মানুষ এই নম্বরে টাকা পাঠিয়েছেন",
+        "এই নম্বরটি মাত্র ২ দিন আগে খোলা হয়েছে",
+        "আপনার জন্য অস্বাভাবিক সময় (১২:০০)",
+        "সন্দেহজনক টাকা লেনদেন নেটওয়ার্কের অংশ"
+      ],
+      "customer_message_bn": "আপনার নিরাপত্তার জন্য লেনদেনটি সাময়িকভাবে স্থগিত রাখা হয়েছে। গত ২৪ ঘণ্টায় ১৪ জন ভিন্ন মানুষ এই নম্বরে টাকা পাঠিয়েছেন। এই নম্বরটি মাত্র ২ দিন আগে খোলা হয়েছে। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।",
+      "customer_message_en": "We have paused this transaction for your safety. 14 different people sent money to this number in the last 24 hours. Recipient wallet was opened only 2 day(s) ago. Call 16268 if you need help.",
+      "pass": true
+    },
+    {
+      "id": "SC-04",
+      "title": "Mule chain through a 400-day-old dormant account (hops of 4, 6, 9 min)",
+      "expected": "STEP_UP",
+      "acceptable": [
+        "STEP_UP",
+        "HOLD"
+      ],
+      "txn_id": "T00633394",
+      "txn_type": "SEND_MONEY",
+      "actual": "HOLD",
+      "risk_score": 98.0,
+      "policy_override": "",
+      "p_fraud": 0.9049,
+      "anomaly": 0.998,
+      "graph": 0.3,
+      "reasons_en": [
+        "Recipient wallet was opened only 6 day(s) ago",
+        "Tk 19,500 is 1.0x the largest amount this customer has sent",
+        "You have never sent money to this number before",
+        "Very unusual for this customer's own past behaviour (top 2% anomaly)"
+      ],
+      "reasons_bn": [
+        "এই নম্বরটি মাত্র ৬ দিন আগে খোলা হয়েছে",
+        "৳১৯,৫০০ আপনার আগের সর্বোচ্চ লেনদেনের ১.০ গুণ",
+        "এই নম্বরে আপনি আগে কখনো টাকা পাঠাননি",
+        "এই গ্রাহকের নিজের আগের আচরণের তুলনায় অত্যন্ত অস্বাভাবিক"
+      ],
+      "customer_message_bn": "আপনার নিরাপত্তার জন্য লেনদেনটি সাময়িকভাবে স্থগিত রাখা হয়েছে। এই নম্বরটি মাত্র ৬ দিন আগে খোলা হয়েছে। ৳১৯,৫০০ আপনার আগের সর্বোচ্চ লেনদেনের ১.০ গুণ। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।",
+      "customer_message_en": "We have paused this transaction for your safety. Recipient wallet was opened only 6 day(s) ago. Tk 19,500 is 1.0x the largest amount this customer has sent. Call 16268 if you need help.",
+      "pass": true
+    },
+    {
+      "id": "SC-05",
+      "title": "'Jail guard' pressure scam: 60+ USSD farmer cashes in 20,000 and sends it",
+      "expected": "NUDGE",
+      "acceptable": [
+        "NUDGE",
+        "STEP_UP",
+        "HOLD"
+      ],
+      "txn_id": "T00590040",
+      "txn_type": "SEND_MONEY",
+      "actual": "NUDGE",
+      "risk_score": 30.5,
+      "policy_override": "",
+      "p_fraud": 0.0007,
+      "anomaly": 0.871,
+      "graph": 0.3,
+      "reasons_en": [
+        "This moves 94% of the balance",
+        "Tk 20,000 is 7.4x the largest amount this customer has sent",
+        "You have never sent money to this number before"
+      ],
+      "reasons_bn": [
+        "আপনার ব্যালেন্সের ৯৪% পাঠানো হচ্ছে",
+        "৳২০,০০০ আপনার আগের সর্বোচ্চ লেনদেনের ৭.৪ গুণ",
+        "এই নম্বরে আপনি আগে কখনো টাকা পাঠাননি"
+      ],
+      "customer_message_bn": "সতর্কতা: আপনার ব্যালেন্সের ৯৪% পাঠানো হচ্ছে। ৳২০,০০০ আপনার আগের সর্বোচ্চ লেনদেনের ৭.৪ গুণ। আপনি কি এই ব্যক্তিকে ব্যক্তিগতভাবে চেনেন?",
+      "customer_message_en": "Caution: This moves 94% of the balance. Tk 20,000 is 7.4x the largest amount this customer has sent. Do you personally know this person?",
+      "pass": true
+    },
+    {
+      "id": "SC-06",
+      "title": "Rogue agent: night cash-outs for the ring, ~8-10x peer volume",
+      "expected": "FLAGGED",
+      "acceptable": [
+        "FLAGGED"
+      ],
+      "actual": "FLAGGED",
+      "risk_score": 85.8,
+      "agent": "A00044",
+      "pass": true
+    },
+    {
+      "id": "SC-07",
+      "title": "Stolen card: 2 x 25,000 Add Money at 03:10, cash-out 29,500 at 03:40",
+      "expected": "HOLD",
+      "acceptable": [
+        "STEP_UP",
+        "HOLD"
+      ],
+      "txn_id": "T00629693",
+      "txn_type": "CASH_OUT",
+      "actual": "HOLD",
+      "risk_score": 100.0,
+      "policy_override": "",
+      "p_fraud": 0.9998,
+      "anomaly": 0.998,
+      "graph": 0.3,
+      "reasons_en": [
+        "The phone involved is used by 11 different wallets",
+        "The sending wallet itself is only 4 day(s) old",
+        "Money that arrived 26 minute(s) ago is being moved straight on",
+        "Very unusual for this customer's own past behaviour (top 2% anomaly)"
+      ],
+      "reasons_bn": [
+        "সংশ্লিষ্ট ফোনটি ১১টি ভিন্ন ওয়ালেটে ব্যবহার হচ্ছে",
+        "প্রেরক ওয়ালেটটি মাত্র ৪ দিন পুরনো",
+        "২৬ মিনিট আগে আসা টাকা সাথে সাথে অন্যত্র সরানো হচ্ছে",
+        "এই গ্রাহকের নিজের আগের আচরণের তুলনায় অত্যন্ত অস্বাভাবিক"
+      ],
+      "customer_message_bn": "আপনার নিরাপত্তার জন্য লেনদেনটি সাময়িকভাবে স্থগিত রাখা হয়েছে। সংশ্লিষ্ট ফোনটি ১১টি ভিন্ন ওয়ালেটে ব্যবহার হচ্ছে। প্রেরক ওয়ালেটটি মাত্র ৪ দিন পুরনো। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।",
+      "customer_message_en": "We have paused this transaction for your safety. The phone involved is used by 11 different wallets. The sending wallet itself is only 4 day(s) old. Call 16268 if you need help.",
+      "pass": true
+    },
+    {
+      "id": "SC-08",
+      "title": "Fake phone seller: 9 advance payments in 3 days; buyer #1 already reported it to 16268",
+      "expected": "NUDGE",
+      "acceptable": [
+        "NUDGE",
+        "STEP_UP",
+        "HOLD"
+      ],
+      "txn_id": "T00616551",
+      "txn_type": "SEND_MONEY",
+      "actual": "HOLD",
+      "risk_score": 88.6,
+      "policy_override": "",
+      "p_fraud": 0.4655,
+      "anomaly": 0.326,
+      "graph": 0.6,
+      "reasons_en": [
+        "Other customers have reported this number (or wallets it trades with) to 16268",
+        "Tk 6,000 is 1.0x the largest amount this customer has sent",
+        "You have never sent money to this number before",
+        "Part of a suspicious money-movement network (graph rules)"
+      ],
+      "reasons_bn": [
+        "অন্য গ্রাহকরা এই নম্বর বা এর সাথে লেনদেনকারী ওয়ালেটের বিরুদ্ধে ১৬২৬৮-এ অভিযোগ করেছেন",
+        "৳৬,০০০ আপনার আগের সর্বোচ্চ লেনদেনের ১.০ গুণ",
+        "এই নম্বরে আপনি আগে কখনো টাকা পাঠাননি",
+        "সন্দেহজনক টাকা লেনদেন নেটওয়ার্কের অংশ"
+      ],
+      "customer_message_bn": "আপনার নিরাপত্তার জন্য লেনদেনটি সাময়িকভাবে স্থগিত রাখা হয়েছে। অন্য গ্রাহকরা এই নম্বর বা এর সাথে লেনদেনকারী ওয়ালেটের বিরুদ্ধে ১৬২৬৮-এ অভিযোগ করেছেন। ৳৬,০০০ আপনার আগের সর্বোচ্চ লেনদেনের ১.০ গুণ। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।",
+      "customer_message_en": "We have paused this transaction for your safety. Other customers have reported this number (or wallets it trades with) to 16268. Tk 6,000 is 1.0x the largest amount this customer has sent. Call 16268 if you need help.",
+      "pass": true
+    },
+    {
+      "id": "SB-01",
+      "title": "Busy shop owner's personal wallet: 12 payers in a day",
+      "expected": "ALLOW",
+      "acceptable": [
+        "ALLOW",
+        "NUDGE"
+      ],
+      "txn_id": "T00625205",
+      "txn_type": "SEND_MONEY",
+      "actual": "ALLOW",
+      "risk_score": 10.6,
+      "policy_override": "",
+      "p_fraud": 0.0002,
+      "anomaly": 0.874,
+      "graph": 0.0,
+      "reasons_en": [
+        "13 different people sent money to this number in the last 24 hours"
+      ],
+      "reasons_bn": [
+        "গত ২৪ ঘণ্টায় ১৩ জন ভিন্ন মানুষ এই নম্বরে টাকা পাঠিয়েছেন"
+      ],
+      "customer_message_bn": "",
+      "customer_message_en": "",
+      "pass": true
+    },
+    {
+      "id": "SB-02",
+      "title": "Legit new phone, then usual bill + 2,000 to mother",
+      "expected": "ALLOW",
+      "acceptable": [
+        "ALLOW",
+        "NUDGE"
+      ],
+      "txn_id": "T00605254",
+      "txn_type": "SEND_MONEY",
+      "actual": "ALLOW",
+      "risk_score": 15.3,
+      "policy_override": "",
+      "p_fraud": 0.0003,
+      "anomaly": 0.663,
+      "graph": 0.5,
+      "reasons_en": [
+        "A phone first seen on this account 0.3 hour(s) ago is being used",
+        "The phone involved is used by 4 different wallets",
+        "Part of a suspicious money-movement network (graph rules)"
+      ],
+      "reasons_bn": [
+        "এই অ্যাকাউন্টে মাত্র ০.৩ ঘণ্টা আগে নতুন ফোন থেকে লগইন হয়েছে",
+        "সংশ্লিষ্ট ফোনটি ৪টি ভিন্ন ওয়ালেটে ব্যবহার হচ্ছে",
+        "সন্দেহজনক টাকা লেনদেন নেটওয়ার্কের অংশ"
+      ],
+      "customer_message_bn": "",
+      "customer_message_en": "",
+      "pass": true
+    },
+    {
+      "id": "SB-03",
+      "title": "Rent advance: 35,000 to a new landlord, Friday 11:00, own phone",
+      "expected": "NUDGE",
+      "acceptable": [
+        "ALLOW",
+        "NUDGE",
+        "STEP_UP"
+      ],
+      "txn_id": "T00588181",
+      "txn_type": "SEND_MONEY",
+      "actual": "STEP_UP",
+      "risk_score": 98.6,
+      "policy_override": "established_parties_cap",
+      "p_fraud": 0.9323,
+      "anomaly": 0.997,
+      "graph": 0.0,
+      "reasons_en": [
+        "Tk 35,000 is 3.7x the largest amount this customer has sent",
+        "You have never sent money to this number before",
+        "This moves 74% of the balance",
+        "Very unusual for this customer's own past behaviour (top 2% anomaly)"
+      ],
+      "reasons_bn": [
+        "৳৩৫,০০০ আপনার আগের সর্বোচ্চ লেনদেনের ৩.৭ গুণ",
+        "এই নম্বরে আপনি আগে কখনো টাকা পাঠাননি",
+        "আপনার ব্যালেন্সের ৭৪% পাঠানো হচ্ছে",
+        "এই গ্রাহকের নিজের আগের আচরণের তুলনায় অত্যন্ত অস্বাভাবিক"
+      ],
+      "customer_message_bn": "নিশ্চিত করতে আবার পিন দিন। ৳৩৫,০০০ আপনার আগের সর্বোচ্চ লেনদেনের ৩.৭ গুণ। এই নম্বরে আপনি আগে কখনো টাকা পাঠাননি। upay কখনো ফোনে পিন বা ওটিপি চায় না।",
+      "customer_message_en": "Please confirm with your PIN. Tk 35,000 is 3.7x the largest amount this customer has sent. You have never sent money to this number before. upay never asks for your PIN or OTP on a call.",
+      "pass": true
+    },
+    {
+      "id": "SB-04",
+      "title": "Student cashes out 4,900 twelve minutes after parent sends 5,000",
+      "expected": "ALLOW",
+      "acceptable": [
+        "ALLOW",
+        "NUDGE"
+      ],
+      "txn_id": "T00609423",
+      "txn_type": "CASH_OUT",
+      "actual": "ALLOW",
+      "risk_score": 0.2,
+      "policy_override": "",
+      "p_fraud": 0.0,
+      "anomaly": 0.825,
+      "graph": 0.3,
+      "reasons_en": [
+        "Tk 4,900 is 3.2x the largest amount this customer has sent",
+        "Unusual time for this customer (10:00)",
+        "Money that arrived 12 minute(s) ago is being moved straight on"
+      ],
+      "reasons_bn": [
+        "৳৪,৯০০ আপনার আগের সর্বোচ্চ লেনদেনের ৩.২ গুণ",
+        "আপনার জন্য অস্বাভাবিক সময় (১০:০০)",
+        "১২ মিনিট আগে আসা টাকা সাথে সাথে অন্যত্র সরানো হচ্ছে"
+      ],
+      "customer_message_bn": "",
+      "customer_message_en": "",
+      "pass": true
+    },
+    {
+      "id": "SB-05",
+      "title": "Remittance family cashes out 29,500 twenty minutes after 48,250 lands",
+      "expected": "ALLOW",
+      "acceptable": [
+        "ALLOW",
+        "NUDGE"
+      ],
+      "txn_id": "T00633934",
+      "txn_type": "CASH_OUT",
+      "actual": "ALLOW",
+      "risk_score": 2.4,
+      "policy_override": "",
+      "p_fraud": 0.0,
+      "anomaly": 0.928,
+      "graph": 0.3,
+      "reasons_en": [
+        "Money that arrived 20 minute(s) ago is being moved straight on",
+        "Tk 29,500 is 1.7x the largest amount this customer has sent",
+        "Unusual time for this customer (16:00)"
+      ],
+      "reasons_bn": [
+        "২০ মিনিট আগে আসা টাকা সাথে সাথে অন্যত্র সরানো হচ্ছে",
+        "৳২৯,৫০০ আপনার আগের সর্বোচ্চ লেনদেনের ১.৭ গুণ",
+        "আপনার জন্য অস্বাভাবিক সময় (১৬:০০)"
+      ],
+      "customer_message_bn": "",
+      "customer_message_en": "",
+      "pass": true
+    }
+  ],
+  "fusion_weights": {
+    "clf": 1.0,
+    "anom": 0.0,
+    "graph": 0.0
+  },
+  "seconds": 111.3
+}

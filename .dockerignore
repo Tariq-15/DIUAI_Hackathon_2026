@@ -1,0 +1,17 @@
+# Keep the build context small: the image needs config.yaml, src/, ui/ and three artifacts only.
+.venv
+.git
+data
+notebooks
+runs
+docs
+reports
+tests
+tools
+**/__pycache__
+**/*.pyc
+.pytest_cache
+artifacts/model_bundle.joblib
+artifacts/lgbm_model.txt
+*.pdf
+*.log

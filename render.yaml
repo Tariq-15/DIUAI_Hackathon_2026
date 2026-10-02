@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: prohori
+    runtime: docker
+    plan: standard        # 2 GB. Free and Starter have 512 MB; the app uses about 545 MiB after a demo (measured in
+                          # Docker), so they would restart it. Free alternative: tools/deploy_space.py (Hugging Face).
+    healthCheckPath: /health
+    envVars:
+      - key: PROHORI_LLM
+        value: offline        # set to anthropic + add ANTHROPIC_API_KEY to let Claude reword case reports
+      - key: ANTHROPIC_API_KEY
+        sync: false           # entered in the Render dashboard, never committed

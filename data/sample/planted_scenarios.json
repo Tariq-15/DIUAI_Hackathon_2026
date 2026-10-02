@@ -1,0 +1,241 @@
+[
+  {
+    "id": "SC-01",
+    "kind": "SC",
+    "scenario": "S6",
+    "title": "SIM-swap takeover of a business owner at 01:40",
+    "expected": "HOLD",
+    "acceptable": [
+      "STEP_UP",
+      "HOLD"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "victim": "W0004539",
+      "aged_mule": "W0001994",
+      "mule2": "W0011288",
+      "mule3": "W0011289"
+    },
+    "agent": "A00044",
+    "key_txn_id": "T00608619"
+  },
+  {
+    "id": "SC-02",
+    "kind": "SC",
+    "scenario": "S1",
+    "title": "Agent-register harvest: OTP takeover drains 12,500 to 4 mules in 30 s",
+    "expected": "STEP_UP",
+    "acceptable": [
+      "STEP_UP",
+      "HOLD"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "victim": "W0001986",
+      "mule1": "W0011290",
+      "mule2": "W0011291",
+      "mule3": "W0011292",
+      "mule4": "W0011293"
+    },
+    "agent": "A00066",
+    "key_txn_id": "T00605671"
+  },
+  {
+    "id": "SC-03",
+    "kind": "SC",
+    "scenario": "S2",
+    "title": "Collector wallet: 2 days old, 14 strangers paid it in 3 h; victim #15 about to send",
+    "expected": "STEP_UP",
+    "acceptable": [
+      "STEP_UP",
+      "HOLD"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "collector": "W0011294",
+      "victim15": "W0002948"
+    },
+    "agent": null,
+    "key_txn_id": "T00641926"
+  },
+  {
+    "id": "SC-04",
+    "kind": "SC",
+    "scenario": "S3",
+    "title": "Mule chain through a 400-day-old dormant account (hops of 4, 6, 9 min)",
+    "expected": "STEP_UP",
+    "acceptable": [
+      "STEP_UP",
+      "HOLD"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "victim": "W0000335",
+      "aged_mule": "W0000605",
+      "mule2": "W0011295",
+      "mule3": "W0011296"
+    },
+    "agent": null,
+    "key_txn_id": "T00633394"
+  },
+  {
+    "id": "SC-05",
+    "kind": "SC",
+    "scenario": "S7",
+    "title": "'Jail guard' pressure scam: 60+ USSD farmer cashes in 20,000 and sends it",
+    "expected": "NUDGE",
+    "acceptable": [
+      "NUDGE",
+      "STEP_UP",
+      "HOLD"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "victim": "W0009428",
+      "recipient": "W0002404"
+    },
+    "agent": null,
+    "key_txn_id": "T00590040"
+  },
+  {
+    "id": "SC-06",
+    "kind": "SC",
+    "scenario": "S4",
+    "title": "Rogue agent: night cash-outs for the ring, ~8-10x peer volume",
+    "expected": "FLAGGED",
+    "acceptable": [
+      "FLAGGED"
+    ],
+    "key_ok": null,
+    "wallets": {},
+    "agent": "A00044",
+    "key_txn_id": null
+  },
+  {
+    "id": "SC-07",
+    "kind": "SC",
+    "scenario": "S8",
+    "title": "Stolen card: 2 x 25,000 Add Money at 03:10, cash-out 29,500 at 03:40",
+    "expected": "HOLD",
+    "acceptable": [
+      "STEP_UP",
+      "HOLD"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "wallet": "W0011297",
+      "mule": "W0011298"
+    },
+    "agent": "A00044",
+    "key_txn_id": "T00629693"
+  },
+  {
+    "id": "SC-08",
+    "kind": "SC",
+    "scenario": "S5",
+    "title": "Fake phone seller: 9 advance payments in 3 days; buyer #1 already reported it to 16268",
+    "expected": "NUDGE",
+    "acceptable": [
+      "NUDGE",
+      "STEP_UP",
+      "HOLD"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "seller": "W0003038",
+      "buyer7": "W0003139"
+    },
+    "agent": null,
+    "key_txn_id": "T00616551"
+  },
+  {
+    "id": "SB-01",
+    "kind": "SB",
+    "scenario": "NONE",
+    "title": "Busy shop owner's personal wallet: 12 payers in a day",
+    "expected": "ALLOW",
+    "acceptable": [
+      "ALLOW",
+      "NUDGE"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "shop": "W0003852",
+      "payer10": "W0009940"
+    },
+    "agent": null,
+    "key_txn_id": "T00625205"
+  },
+  {
+    "id": "SB-02",
+    "kind": "SB",
+    "scenario": "NONE",
+    "title": "Legit new phone, then usual bill + 2,000 to mother",
+    "expected": "ALLOW",
+    "acceptable": [
+      "ALLOW",
+      "NUDGE"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "customer": "W0001671",
+      "mother": "W0004903"
+    },
+    "agent": null,
+    "key_txn_id": "T00605254"
+  },
+  {
+    "id": "SB-03",
+    "kind": "SB",
+    "scenario": "NONE",
+    "title": "Rent advance: 35,000 to a new landlord, Friday 11:00, own phone",
+    "expected": "NUDGE",
+    "acceptable": [
+      "ALLOW",
+      "NUDGE",
+      "STEP_UP"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "tenant": "W0001016",
+      "landlord": "W0002714"
+    },
+    "agent": null,
+    "key_txn_id": "T00588181"
+  },
+  {
+    "id": "SB-04",
+    "kind": "SB",
+    "scenario": "NONE",
+    "title": "Student cashes out 4,900 twelve minutes after parent sends 5,000",
+    "expected": "ALLOW",
+    "acceptable": [
+      "ALLOW",
+      "NUDGE"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "student": "W0005122",
+      "parent": "W0001597"
+    },
+    "agent": null,
+    "key_txn_id": "T00609423"
+  },
+  {
+    "id": "SB-05",
+    "kind": "SB",
+    "scenario": "NONE",
+    "title": "Remittance family cashes out 29,500 twenty minutes after 48,250 lands",
+    "expected": "ALLOW",
+    "acceptable": [
+      "ALLOW",
+      "NUDGE"
+    ],
+    "key_ok": true,
+    "wallets": {
+      "customer": "W0007535"
+    },
+    "agent": null,
+    "key_txn_id": "T00633934"
+  }
+]

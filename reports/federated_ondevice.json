@@ -1,0 +1,71 @@
+{
+ "method": "federated aggregation of noisy slip counts; secure aggregation (ring masks, mod 2^64); distributed Gaussian noise: each group sum the server sees is differentially private",
+ "noise": "distributed",
+ "simulated": true,
+ "phones": 100000,
+ "online_per_round": 0.5,
+ "rounds": 6,
+ "cap_events_per_round": 2,
+ "group_size": 1000,
+ "noise_sigma": 6.0,
+ "epsilon_total": 4.25,
+ "delta": 1e-05,
+ "history": [
+  {
+   "round": 1,
+   "phones": 50000,
+   "slips_reported": 51833,
+   "l1_error": 0.0772,
+   "top_slip_is_neighbour": 1.0
+  },
+  {
+   "round": 2,
+   "phones": 50000,
+   "slips_reported": 51508,
+   "l1_error": 0.0551,
+   "top_slip_is_neighbour": 1.0
+  },
+  {
+   "round": 3,
+   "phones": 50000,
+   "slips_reported": 51845,
+   "l1_error": 0.047,
+   "top_slip_is_neighbour": 1.0
+  },
+  {
+   "round": 4,
+   "phones": 50000,
+   "slips_reported": 52108,
+   "l1_error": 0.04,
+   "top_slip_is_neighbour": 1.0
+  },
+  {
+   "round": 5,
+   "phones": 50000,
+   "slips_reported": 52016,
+   "l1_error": 0.0357,
+   "top_slip_is_neighbour": 1.0
+  },
+  {
+   "round": 6,
+   "phones": 50000,
+   "slips_reported": 51885,
+   "l1_error": 0.0355,
+   "top_slip_is_neighbour": 1.0
+  }
+ ],
+ "final_l1_error": 0.0355,
+ "top_slip_is_neighbour": 1.0,
+ "learned_swap_share": 0.351,
+ "true_swap_share": 0.35,
+ "neighbour_cost_mean": 0.613,
+ "other_cost_mean": 0.933,
+ "local_noise_comparison": {
+  "final_l1_error": 0.6256,
+  "top_slip_is_neighbour": 0.6,
+  "neighbour_cost_mean": 0.804,
+  "other_cost_mean": 0.918,
+  "learned_swap_share": 0.324,
+  "epsilon_total": 4.25
+ }
+}

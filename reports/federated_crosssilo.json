@@ -1,0 +1,258 @@
+{
+ "method": "horizontal federated histogram GBDT; quantile-sketch bins; secure aggregation of gradient/hessian/count histograms (ring masks, integers mod 2^64); early stopping on summed validation log-loss",
+ "silos": [
+  {
+   "name": "Barishal",
+   "train_rows": 14760,
+   "train_fraud": 143
+  },
+  {
+   "name": "Chattogram",
+   "train_rows": 53643,
+   "train_fraud": 445
+  },
+  {
+   "name": "Dhaka",
+   "train_rows": 113402,
+   "train_fraud": 638
+  },
+  {
+   "name": "Khulna",
+   "train_rows": 25737,
+   "train_fraud": 173
+  },
+  {
+   "name": "Mymensingh",
+   "train_rows": 14404,
+   "train_fraud": 112
+  },
+  {
+   "name": "Rajshahi",
+   "train_rows": 28174,
+   "train_fraud": 239
+  },
+  {
+   "name": "Rangpur",
+   "train_rows": 23358,
+   "train_fraud": 166
+  },
+  {
+   "name": "Sylhet",
+   "train_rows": 20015,
+   "train_fraud": 237
+  }
+ ],
+ "trees": 376,
+ "depth": 6,
+ "learning_rate": 0.05,
+ "bins": 63,
+ "export_gap": 2.842170943040401e-14,
+ "comparison": [
+  {
+   "model": "central LightGBM (pooled data)",
+   "pr_auc": 0.9622,
+   "roc_auc": 0.9985,
+   "recall_at_fpr_0p1": 0.921,
+   "recall_at_fpr_0p5": 0.9496,
+   "recall_at_fpr_2": 0.9809,
+   "precision_at_recall_50": 1.0,
+   "n": 66234,
+   "positives": 734
+  },
+  {
+   "model": "federated GBDT (8 silos, secure aggregation)",
+   "pr_auc": 0.9493,
+   "roc_auc": 0.9979,
+   "recall_at_fpr_0p1": 0.8665,
+   "recall_at_fpr_0p5": 0.9455,
+   "recall_at_fpr_2": 0.9809,
+   "precision_at_recall_50": 0.9979,
+   "n": 66234,
+   "positives": 734
+  }
+ ],
+ "bands": {
+  "central": {
+   "NUDGE+": {
+    "alerts": 1551,
+    "precision": 0.461,
+    "recall": 0.9741,
+    "fpr": 0.01276
+   },
+   "STEP_UP+": {
+    "alerts": 975,
+    "precision": 0.7149,
+    "recall": 0.9496,
+    "fpr": 0.00424
+   },
+   "HOLD+": {
+    "alerts": 775,
+    "precision": 0.8684,
+    "recall": 0.9169,
+    "fpr": 0.00156
+   }
+  },
+  "federated": {
+   "NUDGE+": {
+    "alerts": 1498,
+    "precision": 0.4766,
+    "recall": 0.9728,
+    "fpr": 0.01197
+   },
+   "STEP_UP+": {
+    "alerts": 990,
+    "precision": 0.701,
+    "recall": 0.9455,
+    "fpr": 0.00452
+   },
+   "HOLD+": {
+    "alerts": 760,
+    "precision": 0.85,
+    "recall": 0.8801,
+    "fpr": 0.00174
+   }
+  }
+ },
+ "planted": [
+  {
+   "id": "SC-01",
+   "expected": "HOLD",
+   "acceptable": [
+    "STEP_UP",
+    "HOLD"
+   ],
+   "federated": "HOLD",
+   "ok": true
+  },
+  {
+   "id": "SC-02",
+   "expected": "STEP_UP",
+   "acceptable": [
+    "STEP_UP",
+    "HOLD"
+   ],
+   "federated": "HOLD",
+   "ok": true
+  },
+  {
+   "id": "SC-03",
+   "expected": "STEP_UP",
+   "acceptable": [
+    "STEP_UP",
+    "HOLD"
+   ],
+   "federated": "HOLD",
+   "ok": true
+  },
+  {
+   "id": "SC-04",
+   "expected": "STEP_UP",
+   "acceptable": [
+    "STEP_UP",
+    "HOLD"
+   ],
+   "federated": "HOLD",
+   "ok": true
+  },
+  {
+   "id": "SC-05",
+   "expected": "NUDGE",
+   "acceptable": [
+    "NUDGE",
+    "STEP_UP",
+    "HOLD"
+   ],
+   "federated": "NUDGE",
+   "ok": true
+  },
+  {
+   "id": "SC-07",
+   "expected": "HOLD",
+   "acceptable": [
+    "STEP_UP",
+    "HOLD"
+   ],
+   "federated": "HOLD",
+   "ok": true
+  },
+  {
+   "id": "SC-08",
+   "expected": "NUDGE",
+   "acceptable": [
+    "NUDGE",
+    "STEP_UP",
+    "HOLD"
+   ],
+   "federated": "STEP_UP",
+   "ok": true
+  },
+  {
+   "id": "SB-01",
+   "expected": "ALLOW",
+   "acceptable": [
+    "ALLOW",
+    "NUDGE"
+   ],
+   "federated": "ALLOW",
+   "ok": true
+  },
+  {
+   "id": "SB-02",
+   "expected": "ALLOW",
+   "acceptable": [
+    "ALLOW",
+    "NUDGE"
+   ],
+   "federated": "ALLOW",
+   "ok": true
+  },
+  {
+   "id": "SB-03",
+   "expected": "NUDGE",
+   "acceptable": [
+    "ALLOW",
+    "NUDGE",
+    "STEP_UP"
+   ],
+   "federated": "STEP_UP",
+   "ok": true
+  },
+  {
+   "id": "SB-04",
+   "expected": "ALLOW",
+   "acceptable": [
+    "ALLOW",
+    "NUDGE"
+   ],
+   "federated": "ALLOW",
+   "ok": true
+  },
+  {
+   "id": "SB-05",
+   "expected": "ALLOW",
+   "acceptable": [
+    "ALLOW",
+    "NUDGE"
+   ],
+   "federated": "ALLOW",
+   "ok": true
+  }
+ ],
+ "shared_with_server": [
+  "per-feature quantile sketches (once)",
+  "summed gradient/hessian/count histograms per tree level",
+  "summed validation loss",
+  "split decisions and leaf values (the model)"
+ ],
+ "never_shared": [
+  "transactions",
+  "customer or wallet identifiers",
+  "any single silo's histograms"
+ ],
+ "limits": [
+  "features are computed by one feature store that sees all wallets; a real deployment needs privacy-preserving cross-silo joins for counterparty and graph features",
+  "summed histograms are not differentially private; secure aggregation only hides each silo's own",
+  "policy thresholds were fitted on the pooled validation window; in deployment they come from summed score histograms"
+ ],
+ "seconds": 474
+}

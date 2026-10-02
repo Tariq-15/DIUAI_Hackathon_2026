@@ -1,28 +1,36 @@
-# Python
+# ---------------- Prohori (repo root)
+.venv/
+venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.venv/
-venv/
-*.egg-info/
+.ipynb_checkpoints/
 .mypy_cache/
 .ruff_cache/
+*.egg-info/
+# full generated data is rebuilt with one command (python -m src.pipeline); GitHub rejects files > 100 MB
+data/generated/
+data/features/
+data/small*/
+runs/
+# the static build (python tools/build_static.py) is generated
+site/
+*.log
+# keep: data/sample/ (~20k rows), artifacts/ (trained models + demo state + portable models), reports/
 
-# Generated data and model artifacts (rebuilt by `python -m ferot.cli build`)
-backend/data/
-backend/artifacts/
-backend/*.db
+# ---------------- archive/ferot (Track 06 prototype, rebuilt by `python -m ferot.cli build`)
+archive/ferot/backend/data/
+archive/ferot/backend/artifacts/
+archive/ferot/backend/*.db
 *.sqlite3
+archive/ferot/web/node_modules/
+archive/ferot/web/dist/
 
-# Node
-web/node_modules/
-web/dist/
-
-# Secrets
+# ---------------- secrets
 .env
 *.pem
 
-# OS / editor
+# ---------------- OS / editor
 .DS_Store
 Thumbs.db
 .vscode/

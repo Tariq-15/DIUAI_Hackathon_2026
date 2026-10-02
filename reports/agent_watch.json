@@ -1,0 +1,141 @@
+{
+  "by_split": {
+    "test": {
+      "agent_day_precision": 0.542,
+      "agent_day_recall": 0.565,
+      "episodes": 9,
+      "episodes_flagged": 6,
+      "false_alarm_agent_days_per_day": 1.1
+    },
+    "train": {
+      "agent_day_precision": 0.5,
+      "agent_day_recall": 0.6,
+      "episodes": 18,
+      "episodes_flagged": 15,
+      "false_alarm_agent_days_per_day": 0.68
+    },
+    "val": {
+      "agent_day_precision": 0.625,
+      "agent_day_recall": 0.625,
+      "episodes": 9,
+      "episodes_flagged": 8,
+      "false_alarm_agent_days_per_day": 0.9
+    }
+  },
+  "register_compromise": {
+    "harvested_agents": 4,
+    "harvested_flagged": 3,
+    "other_agents_flagged": 1
+  },
+  "sc06": {
+    "agent": "A00044",
+    "max_score": 85.8,
+    "flagged": true,
+    "flagged_days": [
+      54,
+      55,
+      56
+    ],
+    "max_volume_vs_peer_median": 10.4
+  },
+  "weights": {
+    "z_volume": 0.5,
+    "z_night": 0.15,
+    "z_young": 0.1,
+    "z_pass": 0.1,
+    "z_reported": 0.15
+  },
+  "threshold": 80,
+  "top_agents_last_day": [
+    {
+      "agent_id": "A00190",
+      "area_id": "SYL-06",
+      "score": 87.9,
+      "cashouts": 7.0,
+      "volume": 19500.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00293",
+      "area_id": "MYM-05",
+      "score": 82.7,
+      "cashouts": 3.0,
+      "volume": 17700.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00248",
+      "area_id": "RNG-04",
+      "score": 76.8,
+      "cashouts": 5.0,
+      "volume": 22400.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00253",
+      "area_id": "RNG-05",
+      "score": 73.2,
+      "cashouts": 5.0,
+      "volume": 26900.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00152",
+      "area_id": "KHU-06",
+      "score": 72.2,
+      "cashouts": 3.0,
+      "volume": 19000.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00247",
+      "area_id": "RNG-04",
+      "score": 69.5,
+      "cashouts": 5.0,
+      "volume": 30900.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00297",
+      "area_id": "MYM-06",
+      "score": 69.4,
+      "cashouts": 3.0,
+      "volume": 21400.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00149",
+      "area_id": "KHU-05",
+      "score": 68.4,
+      "cashouts": 2.0,
+      "volume": 8400.0,
+      "night_share": 0.0,
+      "young_share": 0.5
+    },
+    {
+      "agent_id": "A00246",
+      "area_id": "RNG-03",
+      "score": 67.7,
+      "cashouts": 4.0,
+      "volume": 3000.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    },
+    {
+      "agent_id": "A00282",
+      "area_id": "MYM-03",
+      "score": 65.9,
+      "cashouts": 4.0,
+      "volume": 25000.0,
+      "night_share": 0.0,
+      "young_share": 0.0
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+biller_id,name,kind
+B001,ELEC_URBAN,bill
+B002,ELEC_RURAL,bill
+B003,GAS,bill
+B004,WATER,bill
+B005,INTERNET,bill
+B006,EDU_FEE,bill
+B007,INSURANCE,bill
+B008,TV,bill
+B009,RECH_GP,recharge
+B010,RECH_ROBI,recharge
+B011,RECH_BL,recharge
+B012,RECH_TT,recharge

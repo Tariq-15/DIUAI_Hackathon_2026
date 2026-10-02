@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="bn" data-lang="bn">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>প্রহরী · upay Scam Shield (prototype)</title>
+  <link rel="stylesheet" href="prohori.css">
+  <script src="config.js"></script>
+  <script src="engine.js"></script>
+</head>
+<body style="background:#10172a">
+  <div class="proto"><span data-en="Prototype • synthetic data • not the real upay app">প্রোটোটাইপ • সিন্থেটিক ডেটা • upay-এর আসল অ্যাপ নয়</span> · Track 01 Trust &amp; Risk · <b data-en="models score, rules decide, people approve">মডেল স্কোর দেয়, নিয়ম সিদ্ধান্ত নেয়, মানুষ অনুমোদন করে</b></div>
+  <header class="show-head">
+    <div class="brand">প্রহরী <span>Prohori</span> · <span style="color:#fff;font-weight:600;font-size:14px" data-en="stops the wrong number and the scam before the money leaves">ভুল নম্বর আর প্রতারণা, টাকা যাওয়ার আগেই থামায়</span></div>
+    <div class="steps">
+      <span data-en="① Rahim → Mother Tk 800: ALLOW">① রহিম → মা ৳৮০০: ALLOW</span>
+      <span data-en="② Two digits swapped: “Did you mean Mother?” shows which digits">② দুই ডিজিট উল্টে গেলে: “মা-কে পাঠাতে চেয়েছিলেন?” কোন ডিজিট ভুল দেখায়</span>
+      <span data-en="③ New number Tk 15,000: HOLD + warning">③ নতুন নম্বরে ৳১৫,০০০: HOLD + সতর্কতা</span>
+      <span data-en="④ Right: SHAP, money network, case report, analyst freeze">④ ডানে: SHAP, নেটওয়ার্ক, কেস রিপোর্ট, বিশ্লেষক Freeze</span>
+      <span data-en="⑤ Complaint in Banglish → matched transfer → hold">⑤ Banglish-এ অভিযোগ → লেনদেন মেলানো → টাকা আটকানো</span>
+      <span data-en="⑥ Federated tab: the data stays where it is">⑥ ফেডারেটেড ট্যাব: ডেটা যেখানে, সেখানেই</span>
+      <span data-en="⑦ Salma: SIM swap + new phone → HOLD">⑦ সালমা: সিম বদল + নতুন ফোন → HOLD</span>
+    </div>
+    <span class="grow"></span>
+    <span class="langsw mob-switch" id="pane-switch" role="tablist" aria-label="screen">
+      <span data-pane="phone" class="on" data-en="Phone">ফোন</span><span data-pane="copilot" data-en="Copilot">কোপাইলট</span></span>
+    <button class="langsw" data-lang-toggle></button>
+    <a class="chip" href="app.html" style="color:#1d2433" data-en="phone only">শুধু ফোন</a>
+    <a class="chip" href="analyst.html" style="color:#1d2433" data-en="copilot only">শুধু কোপাইলট</a>
+    <button class="chip" id="reset" title="Restage the demo world and clear alerts" data-en="↺ reset demo">↺ ডেমো রিসেট</button>
+  </header>
+  <div class="show-body" id="show-body" data-pane="phone">
+    <iframe class="phone-frame" src="app.html?embed=1" title="Customer app (upay-style wallet)"></iframe>
+    <iframe class="an-frame" src="analyst.html?embed=1" title="Analyst investigation copilot"></iframe>
+  </div>
+  <script src="prohori.js"></script>
+  <script>
+    document.getElementById('reset').addEventListener('click', async (e) => {
+      e.target.textContent = '…';
+      try { await Prohori.api('/api/v1/demo/reset', { method: 'POST' }); } catch (err) { alert(err.message); }
+      location.reload();
+    });
+    // narrow screens show one screen at a time
+    document.getElementById('pane-switch').addEventListener('click', (e) => {
+      const s = e.target.closest('[data-pane]');
+      if (!s) return;
+      document.getElementById('show-body').dataset.pane = s.dataset.pane;
+      document.querySelectorAll('#pane-switch [data-pane]').forEach((x) => x.classList.toggle('on', x === s));
+    });
+  </script>
+</body>
+</html>

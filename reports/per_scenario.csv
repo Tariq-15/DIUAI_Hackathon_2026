@@ -1,0 +1,8 @@
+scenario,fraud_txns,cases,recall_nudge,recall_stepup,recall_hold,case_caught_stepup,label
+S1,174,36,1.0,1.0,0.989,1.0,S1 OTP/PIN takeover
+S2,151,9,1.0,1.0,0.98,1.0,S2 collector wallet
+S3,66,11,0.985,0.985,0.924,1.0,S3 mule chain
+S5,136,13,0.882,0.779,0.743,1.0,S5 fake online seller
+S6,70,12,1.0,1.0,1.0,1.0,S6 SIM-swap takeover
+S7,93,34,0.978,0.935,0.849,0.971,S7 guided victim (pressure)
+S8,44,7,1.0,1.0,0.955,1.0,S8 card Add-Money

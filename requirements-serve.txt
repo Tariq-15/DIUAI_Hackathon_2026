@@ -1,0 +1,16 @@
+# Inference image only (no training extras). Pinned to the versions the models were trained and pickled with:
+# the artifacts are joblib pickles, so a different pandas / scikit-learn / LightGBM can fail to load them.
+pandas==3.0.6
+numpy==2.5.3
+scipy==1.18.1
+scikit-learn==1.9.1
+lightgbm==4.7.0
+networkx==3.7
+PyYAML==6.0.3
+joblib==1.6.0
+pyarrow==25.0.1                      # pandas 3 stores the pickled text columns as Arrow strings
+fastapi==0.142.2
+pydantic==2.13.5
+uvicorn[standard]==0.54.0
+# optional: lets Claude reword case reports when PROHORI_LLM=anthropic (falls back to the template without it)
+anthropic==1.11.0

@@ -1,0 +1,147 @@
+# =============================================================================
+# Prohori synthetic MFS world + ML pipeline configuration
+# Every number here is a SYNTHETIC ASSUMPTION unless a `source:` note says
+# otherwise. Judges may ask about any of them, so README §Assumptions mirrors this.
+# =============================================================================
+seed: 42
+
+paths:
+  data_dir: data/generated          # full dataset (git-ignored)
+  sample_dir: data/sample           # ~20k-row sample that IS committed
+  features_dir: data/features
+  artifacts_dir: artifacts
+  reports_dir: reports
+
+world:
+  start_date: "2026-04-01"          # day 1 of the simulation (00:00 Asia/Dhaka, naive timestamps)
+  n_days: 60
+  n_customers: 10000
+  n_agents: 300
+  n_merchants: 600
+  n_billers: 12                     # DESCO, DPDC, Titas, WASA ... (synthetic IDs only)
+  target_txn_per_customer_day: 1.0  # gives ~600k transactions
+  msisdn_prefix: "010"              # 010 is NOT an allocated BD operator prefix -> obviously synthetic
+  eid_days: [9, 10, 11]             # festival window inside the 60 days (salami + shopping spike)
+
+splits:                             # TIME-based. Never random.
+  train_days: [1, 40]
+  val_days: [41, 50]
+  test_days: [51, 60]               # planted demo scenarios live here -> demo shows unseen data
+
+# -----------------------------------------------------------------------------
+# Transaction limits per KYC tier. VERIFY against upay's live numbers before a
+# slide uses them; limits change around Eid.
+# source (full KYC P2P 50k/day, cash-out 30k/day): Daily Star / Payment Brief, 2025 BB circular coverage.
+# KYC1 tier values are a synthetic "basic/limited KYC" assumption.
+# -----------------------------------------------------------------------------
+limits:
+  KYC1:
+    send_money:   {per_txn: 10000, daily_amount: 10000, daily_count: 20, monthly_amount: 100000}
+    cash_out:     {per_txn: 10000, daily_amount: 10000, daily_count: 5,  monthly_amount: 60000}
+    cash_in:      {per_txn: 20000, daily_amount: 20000, daily_count: 5,  monthly_amount: 150000}
+    payment:      {per_txn: 20000, daily_amount: 30000, daily_count: 50, monthly_amount: 200000}
+    add_money:    {per_txn: 10000, daily_amount: 10000, daily_count: 5,  monthly_amount: 50000}
+  KYC2:
+    send_money:   {per_txn: 50000, daily_amount: 50000, daily_count: 50, monthly_amount: 300000}
+    cash_out:     {per_txn: 30000, daily_amount: 30000, daily_count: 10, monthly_amount: 200000}
+    cash_in:      {per_txn: 30000, daily_amount: 30000, daily_count: 5,  monthly_amount: 200000}
+    payment:      {per_txn: 50000, daily_amount: 100000, daily_count: 100, monthly_amount: 500000}
+    add_money:    {per_txn: 25000, daily_amount: 50000, daily_count: 10, monthly_amount: 300000}
+
+fees:
+  cash_out_rate: 0.0185             # Tk 18.5 per 1000 (synthetic, typical BD MFS)
+  send_money_flat_above: 25000      # free below, Tk 5 above (synthetic)
+  send_money_fee: 5
+
+# -----------------------------------------------------------------------------
+# Population
+# -----------------------------------------------------------------------------
+population:
+  kyc2_share: 0.72
+  ussd_share: 0.22                # feature-phone USSD users (key fairness slice)
+  segments:                          # share, monthly income band (Tk), salary day or null
+    salaried:           {share: 0.24, income: [18000, 70000], salary_days: [1, 5]}
+    garment_worker:     {share: 0.14, income: [9000, 16000],  salary_days: [5, 10]}
+    small_business:     {share: 0.13, income: [25000, 150000], salary_days: null}
+    student:            {share: 0.14, income: [2000, 8000],   salary_days: null}
+    remittance_family:  {share: 0.10, income: [10000, 40000], salary_days: null}
+    homemaker:          {share: 0.10, income: [3000, 12000],  salary_days: null}
+    farmer_rural:       {share: 0.10, income: [6000, 20000],  salary_days: null}
+    gig_rider:          {share: 0.05, income: [12000, 30000], salary_days: null}
+  divisions: {Dhaka: 0.36, Chattogram: 0.20, Rajshahi: 0.10, Khulna: 0.09, Sylhet: 0.07, Barishal: 0.05, Rangpur: 0.08, Mymensingh: 0.05}
+  areas_per_division: 6
+  urban_share: 0.55
+  new_wallets_per_day: 14           # legit signups during the window (prevents "new = fraud")
+  device_change_daily_prob: 0.003   # legit phone changes (hard negatives for takeover)
+  sim_swap_daily_prob: 0.00015      # legit SIM replacements (lost phone etc.)
+  shared_device_family_share: 0.10  # households / shops sharing one phone
+  hub_share: 0.08                   # family 'hub' wallets that forward money on within minutes (legit pass-through)
+  fcommerce_seller_share: 0.02      # legit Facebook/online sellers: many first-time payers, cash-out every evening
+  bank_topup_share: 0.2             # salaried customers who move 10-25k from bank to wallet each month
+
+# -----------------------------------------------------------------------------
+# Fraud injection. counts = number of CASES over the whole window, spread across
+# train/val/test. Target fraud txn share ~0.5%.
+# -----------------------------------------------------------------------------
+fraud:
+  aged_mule_share: 0.25             # 20-30% of mules are old/dormant bought accounts
+  ring_device_share: 0.30           # share of new gang wallets operated from a shared ring phone
+  warmup_rate_per_day: 0.3          # gangs 'age' new wallets with small normal-looking activity before use
+  complaint_prob: 0.55              # share of victims who call 16268
+  complaint_delay_hours: [2, 96]
+  S1_otp_takeover:      {cases: 190, register_harvest_share: 0.40, remote_access_share: 0.25, harvest_agents: 4}
+  S2_collector_wallet:  {cases: 40, victims: [8, 25], window_hours: [2, 10]}
+  S3_mule_chain:        {cases: 60, hops: [2, 4], hop_delay_min: [1, 25]}
+  S4_rogue_agent:       {agents: 9, volume_multiplier: [8, 10]}
+  S5_fake_seller:       {cases: 40, buyers: [4, 12], duration_days: [2, 6]}
+  S6_sim_swap:          {cases: 55}
+  S7_guided_victim:     {cases: 165}
+  S8_card_add_money:    {cases: 36, chunks: [2, 5]}
+
+# -----------------------------------------------------------------------------
+# Features / models / policy
+# -----------------------------------------------------------------------------
+features:
+  passthrough_window_min: 120
+  graph_window_hours: 24
+
+model:
+  lgbm:
+    n_estimators: 1200
+    learning_rate: 0.03
+    num_leaves: 48
+    min_child_samples: 40
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.8
+    reg_lambda: 1.0
+    early_stopping_rounds: 100
+  optuna_trials: 30                 # set 0 to skip tuning
+  isolation_forest: {n_estimators: 300, max_samples: 2048}
+
+policy:
+  # fused = w_clf*p_fraud + w_anom*anomaly_norm + w_graph*graph_score  (weights re-fit on validation)
+  fusion_weights: {clf: 0.5, anom: 0.3, graph: 0.2}
+  # Bands on the 0-100 risk score. Score is a monotone remap of the fused value so that
+  # each cut equals an operating point chosen on VALIDATION (target false-positive rates).
+  bands:
+    ALLOW:   [0, 30]
+    NUDGE:   [30, 60]               # soft Bangla warning, one-tap continue
+    STEP_UP: [60, 80]               # re-enter PIN / callback / 'do you know this person?'
+    HOLD:    [80, 101]              # hold + analyst review; customer can still talk to 16268
+  target_fpr: {NUDGE: 0.01, STEP_UP: 0.003, HOLD: 0.001}
+  # ...and each cut must also reach this precision on validation (cut = the stricter of the two)
+  target_precision: {NUDGE: 0.25, STEP_UP: 0.60, HOLD: 0.90}
+  # HOLD -> STEP_UP when only the customer's own behaviour is unusual: own long-used phone, no SIM swap,
+  # recipient an established (>180 d), unreported wallet. The customer confirms; nothing is frozen.
+  established_parties_cap: true
+  # at least NUDGE when the recipient was already reported to 16268 (first payment to them), or when a
+  # first-time transfer drains >= 70% of the balance at >= 3x the customer's largest amount ever
+  evidence_floors: true
+  # ASSUMPTIONS for the impact estimate (not measured): share of scams stopped at each band
+  stop_rate: {ALLOW: 0.0, NUDGE: 0.3, STEP_UP: 0.7, HOLD: 1.0}
+  analyst_minutes: {manual: 20, with_copilot: 3}
+
+agent_watch:
+  zscore_flag: 3.0
+  min_peer_agents: 5

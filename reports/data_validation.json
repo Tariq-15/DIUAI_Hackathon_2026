@@ -1,0 +1,286 @@
+[
+  {
+    "id": "T1",
+    "name": "schema & keys",
+    "passed": true,
+    "details": {
+      "problems": [],
+      "rows": {
+        "transactions": 683148,
+        "labels": 683148,
+        "customers": 11573,
+        "agents": 300,
+        "account_events": 3229,
+        "complaints": 824
+      }
+    }
+  },
+  {
+    "id": "T2",
+    "name": "referential integrity",
+    "passed": true,
+    "details": {
+      "bad_sender": 0,
+      "bad_receiver": 0,
+      "labels_match": true,
+      "bad_event_wallet": 0,
+      "bad_complaint_wallet": 0,
+      "bad_home_agent": 0
+    }
+  },
+  {
+    "id": "T3",
+    "name": "balance conservation",
+    "passed": true,
+    "details": {
+      "row_errors": 0,
+      "chain_breaks": 0,
+      "negative_balances": 0,
+      "wallets": 12438
+    }
+  },
+  {
+    "id": "T4",
+    "name": "KYC limits",
+    "passed": true,
+    "details": {
+      "violations": {
+        "per_txn": 0,
+        "daily_amount": 0,
+        "daily_count": 0,
+        "monthly_amount": 0
+      },
+      "rejected_attempts": 2205
+    }
+  },
+  {
+    "id": "T5",
+    "name": "temporal realism",
+    "passed": true,
+    "details": {
+      "night_share_00_06": 0.053,
+      "peak_hour": 20,
+      "eid_p2p_vs_median_day": 1.96,
+      "salary_on_days_1_10": true,
+      "friday_p2p_vs_weekday": 1.148,
+      "normal_cash_night_share": 0.0005
+    }
+  },
+  {
+    "id": "T6",
+    "name": "volume & mix",
+    "passed": true,
+    "details": {
+      "rows": 683148,
+      "target": 600000,
+      "ratio": 1.139,
+      "out_of_band": {},
+      "failure_rate": 0.0426,
+      "mix": {
+        "SEND_MONEY": 0.347,
+        "MOBILE_RECHARGE": 0.21,
+        "CASH_IN": 0.132,
+        "PAYMENT": 0.126,
+        "CASH_OUT": 0.124,
+        "BILL_PAY": 0.027,
+        "ADD_MONEY": 0.022,
+        "SALARY": 0.008,
+        "REMITTANCE_IN": 0.003,
+        "FLOAT_TOPUP": 0.0
+      }
+    }
+  },
+  {
+    "id": "T7",
+    "name": "amount realism",
+    "passed": true,
+    "details": {
+      "p2p_round100_share": 0.535,
+      "p2p_median": 894.0,
+      "p2p_p99_over_median": 14.1,
+      "recharge_amounts_valid": true,
+      "payment_round100_share": 0.01
+    }
+  },
+  {
+    "id": "T8",
+    "name": "fraud prevalence & spread",
+    "passed": true,
+    "details": {
+      "fraud_share": 0.00536,
+      "fraud_rows": 3664,
+      "missing_scenario_split": [],
+      "rogue_agents": 9,
+      "rogue_episode_splits": [
+        "test",
+        "train",
+        "val"
+      ],
+      "rows_by_scenario_split": {
+        "test": {
+          "S1": 174,
+          "S2": 151,
+          "S3": 66,
+          "S5": 136,
+          "S6": 70,
+          "S7": 93,
+          "S8": 44
+        },
+        "train": {
+          "S1": 577,
+          "S2": 495,
+          "S3": 211,
+          "S5": 272,
+          "S6": 187,
+          "S7": 290,
+          "S8": 121
+        },
+        "val": {
+          "S1": 193,
+          "S2": 247,
+          "S3": 105,
+          "S5": 79,
+          "S6": 51,
+          "S7": 56,
+          "S8": 46
+        }
+      }
+    }
+  },
+  {
+    "id": "T9",
+    "name": "label consistency",
+    "passed": true,
+    "details": {
+      "fraud_rows_missing_meta": 0,
+      "nonfraud_with_scenario": 0,
+      "cases": 593,
+      "empty_cases": 7,
+      "nonempty_share": 0.988,
+      "orphan_case_ids": 0,
+      "roles": {
+        "mule_cashout": 865,
+        "victim_payment": 750,
+        "takeover_drain": 563,
+        "mule_hop": 367,
+        "buyer_payment": 324,
+        "coerced_send": 189,
+        "recipient_cashout": 187,
+        "seller_cashout": 163,
+        "card_add_money": 116,
+        "collector_cashout": 90,
+        "cashout": 50
+      }
+    }
+  },
+  {
+    "id": "T10",
+    "name": "scenario signatures",
+    "passed": true,
+    "details": {
+      "S2_new_collector_age_days_max": 2.91,
+      "S2_min_unique_victims": 8,
+      "S3_median_hop_delay_min": 13.3,
+      "S6_swap_before_drain_share": 1.0,
+      "S1_remote_access_share": 0.102,
+      "S1_drain_on_new_device_share": 1.0,
+      "S7_send_on_own_device_share": 0.963,
+      "S8_starts_with_add_money_share": 1.0,
+      "S4_episode_volume_multiplier_median": 10.32,
+      "S4_required_multiplier": 4.0
+    }
+  },
+  {
+    "id": "T11",
+    "name": "anti-shortcut",
+    "passed": true,
+    "details": {
+      "aged_mule_share": 0.25,
+      "fraud_night_share": 0.116,
+      "normal_night_share": 0.047,
+      "legit_new_wallets": 765,
+      "legit_device_changes": 2042,
+      "legit_sim_swaps": 91,
+      "benign_fanin_wallet_days_ge8": 1485,
+      "single_feature_auc": {
+        "amount": 0.833,
+        "hour_night": 0.534,
+        "receiver_age_days": 0.628,
+        "sender_age_days": 0.609
+      }
+    }
+  },
+  {
+    "id": "T12",
+    "name": "split integrity",
+    "passed": true,
+    "details": {
+      "split_mismatch": 0,
+      "contiguous": true,
+      "planted_keys_in_test": true,
+      "cases_spanning_3_splits": 0,
+      "fraud_rows_per_split": {
+        "train": 2153,
+        "val": 777,
+        "test": 734
+      },
+      "rows_per_split": {
+        "train": 466451,
+        "val": 109634,
+        "test": 107063
+      }
+    }
+  },
+  {
+    "id": "T13",
+    "name": "planted scenarios",
+    "passed": true,
+    "details": {
+      "SC-01_key_success": true,
+      "SC-02_key_success": true,
+      "SC-03_key_success": true,
+      "SC-04_key_success": true,
+      "SC-05_key_success": true,
+      "SC-07_key_success": true,
+      "SC-08_key_success": true,
+      "SB-01_key_success": true,
+      "SB-02_key_success": true,
+      "SB-03_key_success": true,
+      "SB-04_key_success": true,
+      "SB-05_key_success": true,
+      "SC-03_collector_age_days": 2.09,
+      "SC-03_senders_last_3h": 14,
+      "SC-01_amount": 48000.0,
+      "SC-01_minutes_after_sim_swap": 15.0,
+      "SC-01_cashouts": [
+        29000.0,
+        16500.0
+      ],
+      "SC-02_victim_kyc": "KYC2",
+      "SC-02_total": 12500.0,
+      "SC-02_window_s": 23.0,
+      "SC-04_aged_mule_age_days": 554,
+      "SC-04_aged_mule_prior_rows": 0,
+      "SC-05_victim": "60+/USSD",
+      "SC-05_cashin_minutes_before": 18.0,
+      "SC-07_add_money_status": [
+        "SUCCESS",
+        "SUCCESS",
+        "FAILED"
+      ],
+      "SC-06_agent_episodes": "4-5;32-34;43-44;54-57",
+      "SC-08_complaints_before_key": 1,
+      "SB-05_minutes_after_remittance": 20.0
+    }
+  },
+  {
+    "id": "T14",
+    "name": "reproducibility",
+    "passed": true,
+    "details": {
+      "seed42_run1": "b8f42d16a7ea436f",
+      "seed42_run2": "b8f42d16a7ea436f",
+      "seed43": "e1aa63fdd17f6162"
+    }
+  }
+]
