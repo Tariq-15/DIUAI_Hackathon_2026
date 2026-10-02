@@ -1,6 +1,9 @@
 """Package the two federated-learning results next to the models, for the analyst Model tab (/api/v1/model).
 
     python -m src.fl.summary        # reports/federated_*.json -> artifacts/portable/federated.json
+
+Three results: on-device slip costs (src/fl/ondevice.py), the cross-silo fraud model (src/fl/fedgbdt.py) and the
+amount habits (src/fl/amounts.py).
 """
 from __future__ import annotations
 
@@ -22,6 +25,9 @@ def write() -> dict:
     if f.exists():
         c = json.loads(f.read_text(encoding="utf-8"))
         out["crosssilo"] = {k: c[k] for k in KEEP_CROSSSILO if k in c}
+    f = rep / "federated_amounts.json"
+    if f.exists():
+        out["amounts"] = json.loads(f.read_text(encoding="utf-8"))
     f = ROOT / "artifacts" / "portable" / "slip_costs.json"
     if f.exists():
         out["slip_costs"] = json.loads(f.read_text(encoding="utf-8"))
