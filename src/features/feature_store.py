@@ -1,7 +1,7 @@
 """
 src/features/feature_store.py
 ==============================
-Stateful feature store – computes derived features described in spec 3.5.
+Stateful feature store   computes derived features described in spec 3.5.
 All features use ONLY information available at transaction time (no future leakage).
 
 Usage:
@@ -66,15 +66,15 @@ class FeatureStore:
         cut3h    = ts - pd.Timedelta(hours=3)
         cut48h   = ts - pd.Timedelta(hours=48)
 
-        # ── amount_to_median_ratio ────────────────────────────────────────────
+        #    amount_to_median_ratio                                             
         past_amounts = [a for (t2, a) in self.sender_amounts[sender] if t2 >= cut30d]
         median_send  = float(np.median(past_amounts)) if past_amounts else amount
         amt_to_median = amount / max(median_send, 1.0)
 
-        # ── balance_drain_ratio ───────────────────────────────────────────────
+        #    balance_drain_ratio                                                
         bal_drain = amount / max(bal_b, 1.0)
 
-        # ── hour_deviation (distance from sender's modal hour) ────────────────
+        #    hour_deviation (distance from sender's modal hour)                 
         past_hours = [h for (t2, h) in self.sender_hours[sender] if t2 >= cut30d]
         if past_hours:
             modal_h = float(np.median(past_hours))
@@ -84,30 +84,30 @@ class FeatureStore:
         else:
             hr_dev = 0.0
 
-        # ── counterparty_first_time (from raw column; fall back to computed) ──
+        #    counterparty_first_time (from raw column; fall back to computed)   
         cp_ft = int(txn.get("counterparty_first_time", 0) or 0)
 
-        # ── recipient_age_hours ───────────────────────────────────────────────
+        #    recipient_age_hours                                                
         if recip and recip in self.recipient_first_seen:
             recip_age_h = (ts - pd.Timestamp(self.recipient_first_seen[recip])).total_seconds() / 3600
         else:
-            recip_age_h = 0.0   # first time we see them → freshly minted
+            recip_age_h = 0.0   # first time we see them   freshly minted
 
-        # ── recipient_unique_senders_3h / 24h / 48h ──────────────────────────
+        #    recipient_unique_senders_3h / 24h / 48h                           
         self._prune(self.recipient_senders[recip], ts - pd.Timedelta(hours=48), 0)
         recent_senders = self.recipient_senders[recip]
         uniq_3h  = len({s for (t2, s) in recent_senders if t2 >= cut3h})
         uniq_24h = len({s for (t2, s) in recent_senders if t2 >= cut24h})
         uniq_48h = len({s for (t2, s) in recent_senders})
 
-        # ── recipient_first_time_sender_ratio (24h) ───────────────────────────
+        #    recipient_first_time_sender_ratio (24h)                            
         senders_24h = [(t2, s) for (t2, s) in recent_senders if t2 >= cut24h]
         total_24h   = len(senders_24h)
         # first-time = pairs (recip, sender) not in seen_pairs at time of send
         # approximate: unknown; use counterparty_first_time field from raw
         ft_ratio_24h = cp_ft   # for current txn; for historical approx use 0.8
 
-        # ── recipient_inflow_outflow_lag_min ──────────────────────────────────
+        #    recipient_inflow_outflow_lag_min                                   
         self._prune(self.recipient_inflows[recip],  ts - pd.Timedelta(hours=4), 0)
         self._prune(self.recipient_outflows[recip], ts - pd.Timedelta(hours=4), 0)
         if self.recipient_inflows[recip] and self.recipient_outflows[recip]:
@@ -117,12 +117,12 @@ class FeatureStore:
         else:
             lag_min = -1.0
 
-        # ── recipient_cashout_ratio ───────────────────────────────────────────
+        #    recipient_cashout_ratio                                            
         inflow_24h  = sum(a for (t2, a) in self.recipient_inflows[recip]  if t2 >= cut24h)
         outflow_24h = sum(a for (t2, a) in self.recipient_outflows[recip] if t2 >= cut24h)
         cashout_ratio = outflow_24h / max(inflow_24h, 1.0)
 
-        # ── agent_peer_zscore (placeholder: store in caller) ─────────────────
+        #    agent_peer_zscore (placeholder: store in caller)                  
         # Computed at agent level outside this per-txn store.
 
         feat = dict(
@@ -207,7 +207,7 @@ def replay_features(
     derived features aligned to transactions_df by txn_id.
     """
     df = transactions_df.copy()
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"], format="mixed")
     df = df.sort_values("timestamp").reset_index(drop=True)
 
     store  = FeatureStore()
@@ -215,7 +215,7 @@ def replay_features(
     n      = len(rows)
     feats  = []
 
-    print(f"⚙️  Replaying features for {n:,} rows…")
+    print(f"[FEAT] Replaying features for {n:,} rows...")
     t0 = __import__("time").time()
 
     for i, txn in enumerate(rows):
@@ -234,7 +234,7 @@ def replay_features(
 
     feat_df = pd.DataFrame(feats)
 
-    # ── Agent peer z-score (computed post-hoc from full replay) ──────────────
+    #    Agent peer z-score (computed post-hoc from full replay)               
     # We do this after replay because we need the full per-agent count
     cashout_by_agent = (
         transactions_df[transactions_df["txn_type"] == "CASH_OUT_AGENT"]
@@ -257,15 +257,15 @@ def replay_features(
     return feat_df
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+#    CLI                                                                        
 if __name__ == "__main__":
     import sys, os
     data_dir = sys.argv[1] if len(sys.argv) > 1 else "data"
     txn_path = os.path.join(data_dir, "transactions.csv")
-    print(f"Loading {txn_path}…")
+    print(f"Loading {txn_path}...")
     txn_df = pd.read_csv(txn_path)
     feat_df = replay_features(txn_df)
     out_path = os.path.join(data_dir, "features.parquet")
     feat_df.to_parquet(out_path, index=False)
-    print(f"Features saved → {out_path}")
+    print(f"Features saved   {out_path}")
     print(feat_df.head())

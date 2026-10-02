@@ -43,7 +43,7 @@ if PROJECT_ROOT not in sys.path:
 from src.features.feature_store import replay_features
 
 
-# ── Feature engineering pipeline ─────────────────────────────────────────────
+#    Feature engineering pipeline                                              
 
 CATEGORICAL_COLS = ["txn_type", "channel"]
 FEATURE_COLS_BASIC = [
@@ -82,7 +82,7 @@ def prepare_features(feat_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# ── Time-based split ──────────────────────────────────────────────────────────
+#    Time-based split                                                           
 
 def time_split(txn_df: pd.DataFrame, lbl_df: pd.DataFrame):
     """
@@ -90,7 +90,7 @@ def time_split(txn_df: pd.DataFrame, lbl_df: pd.DataFrame):
     Days 1-40 / 41-50 / 51-60.
     """
     txn = txn_df.copy()
-    txn["timestamp"] = pd.to_datetime(txn["timestamp"])
+    txn["timestamp"] = pd.to_datetime(txn["timestamp"], format="mixed")
     t_min = txn["timestamp"].min()
 
     txn["day_offset"] = (txn["timestamp"] - t_min).dt.days
@@ -108,7 +108,7 @@ def time_split(txn_df: pd.DataFrame, lbl_df: pd.DataFrame):
     return train, valid, test
 
 
-# ── LightGBM ──────────────────────────────────────────────────────────────────
+#    LightGBM                                                                   
 
 def train_lgbm(X_train, y_train, X_val, y_val, tune: bool = False):
     try:
@@ -171,7 +171,7 @@ def train_lgbm(X_train, y_train, X_val, y_val, tune: bool = False):
     return model
 
 
-# ── XGBoost ───────────────────────────────────────────────────────────────────
+#    XGBoost                                                                    
 
 def train_xgb(X_train, y_train, X_val, y_val):
     try:
@@ -194,7 +194,7 @@ def train_xgb(X_train, y_train, X_val, y_val):
     return model
 
 
-# ── Isolation Forest ──────────────────────────────────────────────────────────
+#    Isolation Forest                                                           
 
 def train_iso_forest(X_train):
     from sklearn.ensemble import IsolationForest
@@ -206,7 +206,7 @@ def train_iso_forest(X_train):
     return iso
 
 
-# ── Evaluation ────────────────────────────────────────────────────────────────
+#    Evaluation                                                                 
 
 def evaluate(model, X, y, name: str, iso=None) -> dict:
     if model is None:
@@ -247,7 +247,7 @@ def evaluate(model, X, y, name: str, iso=None) -> dict:
     return dict(pr_auc=pr_auc, roc_auc=roc, p_at_r80=p_at_r80)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+#    Main                                                                       
 
 def main():
     ap = argparse.ArgumentParser()
@@ -260,27 +260,27 @@ def main():
 
     os.makedirs(args.models, exist_ok=True)
     t0 = time.time()
-    print("🔬 Prohori Training Pipeline")
+    print("[TRAIN] Prohori Training Pipeline")
 
-    # ── Load data ─────────────────────────────────────────────────────────────
+    #    Load data                                                              
     txn_path = os.path.join(args.data, "transactions.csv")
     lbl_path = os.path.join(args.data, "labels.csv")
-    print(f"   Loading {txn_path}…")
+    print(f"   Loading {txn_path} ")
     txn_df = pd.read_csv(txn_path)
     lbl_df = pd.read_csv(lbl_path)
 
-    # ── Feature replay ────────────────────────────────────────────────────────
+    #    Feature replay                                                         
     if args.features and os.path.exists(args.features):
-        print(f"   Loading pre-computed features from {args.features}…")
+        print(f"   Loading pre-computed features from {args.features} ")
         feat_df = pd.read_parquet(args.features)
     else:
         feat_df = replay_features(txn_df)
         feat_out = os.path.join(args.data, "features.parquet")
         feat_df.to_parquet(feat_out, index=False)
-        print(f"   Features saved → {feat_out}")
+        print(f"   Features saved -> {feat_out}")
 
-    # ── Time split ────────────────────────────────────────────────────────────
-    print("\n📅 Splitting by time…")
+    #    Time split                                                             
+    print("\n[TIME] Splitting by time ")
     train_raw, valid_raw, test_raw = time_split(txn_df, lbl_df)
 
     def _get_X_y(split_df, feat_df):
@@ -301,26 +301,26 @@ def main():
     print(f"\n   Feature matrix: {X_train.shape[1]} features")
     print(f"   Class balance train: {y_train.sum()} fraud / {(y_train==0).sum()} normal")
 
-    # ── Train models ──────────────────────────────────────────────────────────
-    print("\n🌲 Training LightGBM…")
+    #    Train models                                                           
+    print("\n[LGBM] Training LightGBM ")
     lgbm = train_lgbm(X_train, y_train, X_val, y_val, tune=args.tune)
 
-    print("\n⚡ Training XGBoost…")
+    print("\n[XGB] Training XGBoost ")
     xgb  = train_xgb(X_train, y_train, X_val, y_val)
 
-    print("\n🌀 Training Isolation Forest…")
+    print("\n[ISO] Training Isolation Forest ")
     iso  = train_iso_forest(X_train)
 
-    # ── Evaluate ──────────────────────────────────────────────────────────────
-    print("\n📊 Evaluation on Validation Set:")
+    #    Evaluate                                                               
+    print("\n[EVAL] Evaluation on Validation Set:")
     eval_lgbm = evaluate(lgbm, X_val, y_val, "LightGBM-val", iso)
     eval_xgb  = evaluate(xgb,  X_val, y_val, "XGBoost-val",  iso)
 
-    print("\n📊 Evaluation on Test Set (locked):")
+    print("\n[EVAL] Evaluation on Test Set (locked):")
     eval_lgbm_test = evaluate(lgbm, X_test, y_test, "LightGBM-test", iso)
     eval_xgb_test  = evaluate(xgb,  X_test, y_test, "XGBoost-test",  iso)
 
-    # ── Save artifacts ────────────────────────────────────────────────────────
+    #    Save artifacts                                                         
     if lgbm:
         dump(lgbm, os.path.join(args.models, "lgbm_model.joblib"))
     if xgb:
@@ -341,8 +341,8 @@ def main():
     with open(os.path.join(args.models, "training_report.json"), "w") as f:
         json.dump(report, f, indent=2)
 
-    print(f"\n✅ Training complete in {time.time()-t0:.1f}s")
-    print(f"   Models → {args.models}/")
+    print(f"\n[OK] Training complete in {time.time()-t0:.1f}s")
+    print(f"   Models -> {args.models}/")
 
 
 if __name__ == "__main__":
