@@ -1,5 +1,11 @@
 # Ferot — AI wrong-send & dispute copilot (built for upay)
 
+> **Archived: merged into Prohori.** The project at the [repository root](../../README.md) is the single
+> submission. Ferot's keypad-slip check ("Did you mean…?") and Banglish complaint reader were ported into Prohori
+> (`src/serve/recipient.py`, `src/serve/complaints.py`), where the slip costs are now learned with federated
+> learning. This folder is kept so the original still runs: every command below works from `archive/ferot/`
+> (for example `cd archive/ferot/backend`).
+
 > AI Hackathon 2026 (AI DEV FEST, DIU CPC × upay) · Track 06: Operations & Service Intelligence
 > **Prototype. Synthetic data only. Not an official upay product, message or endorsement.**
 >
