@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="ui/img/prohori-logo.png" alt="Prohori logo: a yellow and blue shield around a phone with a tick, the word PROHORI, and the line 'stops the wrong number and the scam before the money leaves'" width="220">
+
 # প্রহরী Prohori
 
 ### Stops the wrong number and the scam before the money leaves an upay wallet
