@@ -15,9 +15,10 @@ someone the customer pays often (src/serve/recipient.py), and an amount far abov
 (src/serve/habits.py, thresholds learned with federated analytics in src/fl/amounts.py). Mobile recharges are not
 scored by the model (it was not trained on them); they get the amount-habit check and a rapid-recharge rule.
 
-Policy, in plain code: bands come from the bundle's policy; on top of it an analyst's freeze puts any
-later transfer to that wallet on HOLD. People decide: the customer cancels or confirms a warning,
-an analyst approves every freeze or release. Every decision lands in a hash-chained audit log.
+Policy, in plain code: bands come from the bundle's policy; on top of it an analyst's flag gives any
+later transfer to that wallet the strongest warning. Prohori only warns: no transfer is held and nothing waits
+for a person at upay. The customer cancels or sends after every warning (one tap for a NUDGE, the PIN again for
+STEP_UP and HOLD); analysts see the same alerts afterwards. Every decision lands in a hash-chained audit log.
 """
 from __future__ import annotations
 
@@ -57,7 +58,8 @@ PERSONA_NAMES = {"rahim": ("রহিম", "Rahim", "গার্মেন্ট
 STAGED = {"collector": "W9000001", "mule1": "W9000011", "mule2": "W9000012", "mule3": "W9000013", "seller": "W9000020"}
 GANG_PHONE, COLLECTOR_PHONE = "DV9000099", "DV9000001"
 SELLER = dict(buyers=6, gap_min=75, reported=True, cashout=False, age_days=20)
-CHOICES = {"NUDGE": ("cancel", "confirm"), "STEP_UP": ("cancel", "confirm_pin"), "HOLD": ("cancel",)}
+# HOLD is the name of the top score band (>= 80). It no longer holds the transfer: it is the strongest warning.
+CHOICES = {"NUDGE": ("cancel", "confirm"), "STEP_UP": ("cancel", "confirm_pin"), "HOLD": ("cancel", "confirm_pin")}
 CASE_LABELS = {"genuine_wrong_send": "Genuine wrong send (keypad slip)", "likely_scam_victim": "Likely scam victim",
                "needs_review": "Wrong send: needs review", "needs_details": "No matching transfer: ask for details"}
 SCAM_EVIDENCE = {"reported", "many_senders", "new_recipient", "chain", "collector_cashout", "network_pattern", "shared_device"}
@@ -147,7 +149,7 @@ class LiveWorld:
         self.alerts, self.order, self.personas = snap["alerts"], snap["order"], snap["personas"]
         self.staged_agent = snap["staged_agent"]
         self.habits.reset(snap.get("habit_extra"))
-        self.frozen, self.audit, self.n_live = {}, [], 0
+        self.flagged, self.audit, self.n_live = {}, [], 0
         self._lookups()
         self.t0, self.wall0 = LIVE_START, time.time()
         self._audit("system", "system", "demo.reset", detail={"clock": self.iso(LIVE_START), "from": "staged snapshot"})
@@ -185,7 +187,7 @@ class LiveWorld:
             for a in self.world["alerts"]:
                 self.alerts[a["id"]] = dict(a, status="historical", customer_choice=None)
                 self.order.append(a["id"])
-            self.frozen: dict[str, str] = {}
+            self.flagged: dict[str, str] = {}
             self.audit: list[dict] = []
             self.n_live = 0
             self.personas = self._personas()
@@ -417,7 +419,7 @@ class LiveWorld:
             return self._answer(res, slip, hb, src, dst, t, None, None)
 
     def _assess(self, sender, to, amount, device, persona, channel):
-        """Model score, then the plain rules: keypad slip, amount habit, an analyst's freeze. Changes nothing."""
+        """Model score, then the plain rules: keypad slip, amount habit, an analyst's flag. Changes nothing."""
         src = self.resolve(sender)
         if src is None:
             raise LookupError("unknown sender wallet")
@@ -461,16 +463,18 @@ class LiveWorld:
                 res["band"], res["policy_override"] = "NUDGE", "unusual_amount"
                 res["customer_message"] = dict(en=f"Check the amount: {why['en']}.", bn=f"পরিমাণটি দেখে নিন: {why['bn']}।")
         txn["typed"] = typed
-        if dst in self.frozen:                            # an analyst's freeze outranks the model
-            res["band"], res["policy_override"] = "HOLD", "recipient_frozen_by_analyst"
+        if dst in self.flagged:                           # an analyst's flag outranks the model: the strongest warning
+            res["band"], res["policy_override"] = "HOLD", "recipient_flagged_by_analyst"
             res["customer_message"] = dict(
-                en="This number is under review by upay. We have paused the transfer for your safety. Call 16268 if you need help.",
-                bn="এই নম্বরটি upay-এর পর্যালোচনায় আছে। আপনার নিরাপত্তার জন্য লেনদেনটি স্থগিত রাখা হয়েছে। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।")
+                en="upay has flagged this number as suspicious. Sending is your decision; if someone is rushing you, "
+                   "cancel and call 16268.",
+                bn="upay এই নম্বরটিকে সন্দেহজনক হিসেবে চিহ্নিত করেছে। পাঠাবেন কি না, সিদ্ধান্ত আপনার; কেউ তাড়া দিলে বাতিল করুন "
+                   "এবং ১৬২৬৮ নম্বরে কল করুন।")
         return res, slip, hb, txn, src, dst, t
 
     def _answer(self, res, slip, hb, src, dst, t, alert_id, txn_id) -> dict:
-        choices = list(CHOICES.get(res["band"], ())) + (["use_suggested"] if slip and dst not in self.frozen else [])
-        ask = res["band"] in ("NUDGE", "STEP_UP")
+        choices = list(CHOICES.get(res["band"], ())) + (["use_suggested"] if slip else [])
+        ask = res["band"] != "ALLOW"
         amount_q = bool(hb and hb["unusual"]) and not slip and res.get("policy_override") == "unusual_amount"
         question = (("আপনি কি ঠিক নম্বরে পাঠাচ্ছেন?" if slip else "পরিমাণটি কি ঠিক আছে?" if amount_q
                      else "আপনি কি এই ব্যক্তিকে ব্যক্তিগতভাবে চেনেন?") if ask else None)
@@ -550,7 +554,7 @@ class LiveWorld:
             anomaly=res["anomaly"], graph=res["graph"], reasons=res["reasons"], customer_message=res["customer_message"],
             shap=[dict(feature=f, value=ev.get(f), shap=round(float(v), 4))
                   for f, v in sorted(zip(feats, shap), key=lambda kv: -abs(kv[1]))[:10]] if shap is not None else [],
-            evidence=ev, status="held_for_review" if res["band"] == "HOLD" else "awaiting_customer",
+            evidence=ev, status="awaiting_customer",      # every warning is the customer's to answer, HOLD included
             customer_choice=None, title=None, planted_id=None, truth=None, suggestion=slip, typed=txn.get("typed"),
             kind="presend", habit=hb,
         )
@@ -598,14 +602,10 @@ class LiveWorld:
         if a is None or a["source"] != "live":
             raise KeyError(alert_id)
         msg = {
-            "held_for_review": ("পর্যালোচনায় আছে। আপনার টাকা আপনার ওয়ালেটেই আছে।", "Under review. Your money is still in your wallet."),
-            "awaiting_customer": ("আপনার সিদ্ধান্তের অপেক্ষায়।", "Waiting for your choice."),
+            "awaiting_customer": ("আপনার সিদ্ধান্তের অপেক্ষায়। টাকা আপনার ওয়ালেটেই আছে।", "Waiting for your choice. The money is still in your wallet."),
             "cancelled_by_customer": ("আপনি লেনদেনটি বাতিল করেছেন। টাকা আপনার ওয়ালেটে আছে।", "You cancelled. The money is in your wallet."),
             "sent_after_warning": ("সতর্কবার্তা দেখার পর আপনি টাকা পাঠিয়েছেন।", "You sent the money after the warning."),
-            "released_by_analyst": ("upay কর্মকর্তা যাচাই করে লেনদেনটি ছেড়ে দিয়েছেন। টাকা পাঠানো হয়েছে।", "An upay officer checked and released the transfer."),
-            "recipient_frozen": ("প্রাপকের নম্বরটি upay পর্যালোচনার জন্য স্থগিত করেছে। আপনার টাকা নিরাপদ, পাঠানো হয়নি।",
-                                 "upay has put the recipient's number under review. Your money is safe and was not sent."),
-            "dismissed": ("পর্যালোচনা শেষ। প্রয়োজনে আবার চেষ্টা করুন।", "Review finished. You can try again."),
+            "dismissed": ("upay এই সতর্কবার্তাটিকে ভুল সতর্কতা হিসেবে চিহ্নিত করেছে।", "upay marked this warning as a false alarm."),
         }.get(a["status"], ("", ""))
         return dict(alert_id=alert_id, status=a["status"], band=a["band"], message_bn=msg[0], message_en=msg[1],
                     balance=round(float(self.engine.state["balances"].get(a["sender_id"], 0.0)), 2))
@@ -791,7 +791,7 @@ class LiveWorld:
             raise KeyError(cid)
         c = a["complaint"]
         step = {"complaint_received": 1, "details_requested": 1, "hold_requested": 2, "recipient_contacted": 2,
-                "recipient_frozen": 2, "dismissed": 3, "resolved": 3}.get(a["status"], 1)
+                "recipient_flagged": 2, "dismissed": 3, "resolved": 3}.get(a["status"], 1)
         e, t = c["extraction"], c["match"]["transfer"]
         deadline_bn = bn_num(pd.Timestamp(c["deadline"]).strftime("%d/%m/%Y"))
         return dict(
@@ -807,13 +807,15 @@ class LiveWorld:
             next_en={"details_requested": "We need more details: which transfer, how much, when.",
                      "hold_requested": "A temporary hold of the disputed amount has been requested.",
                      "recipient_contacted": "The recipient has been asked for consent to return the money.",
-                     "recipient_frozen": "The recipient's wallet is under review."}.get(a["status"], "An officer is reviewing it."),
+                     "recipient_flagged": "The recipient's wallet has been flagged: anyone who sends to it is warned first."
+                     }.get(a["status"], "An officer is reviewing it."),
             escalation_en="If you are not satisfied, you can complain to Bangladesh Bank's Customers Interest Protection Centre "
                           "(hotline 16236). upay helpline 16268.",
             next_bn={"details_requested": "আরও তথ্য দরকার: কোন লেনদেন, কত টাকা, কখন।",
                      "hold_requested": "বিরোধকৃত পরিমাণ সাময়িকভাবে আটকানোর অনুরোধ করা হয়েছে।",
                      "recipient_contacted": "প্রাপকের সম্মতি চাওয়া হয়েছে।",
-                     "recipient_frozen": "প্রাপকের ওয়ালেট পর্যালোচনার জন্য স্থগিত।"}.get(a["status"], "একজন কর্মকর্তা দেখছেন।"),
+                     "recipient_flagged": "প্রাপকের ওয়ালেট চিহ্নিত করা হয়েছে: সেখানে টাকা পাঠাতে গেলে সবাই আগে সতর্কবার্তা পাবেন।"
+                     }.get(a["status"], "একজন কর্মকর্তা দেখছেন।"),
             escalation_bn="সন্তুষ্ট না হলে বাংলাদেশ ব্যাংকের কাস্টমার্স ইন্টারেস্ট প্রটেকশন সেন্টারে (হটলাইন ১৬২৩৬) অভিযোগ করতে পারবেন। উপায় হেল্পলাইন ১৬২৬৮।",
         )
 
@@ -866,7 +868,7 @@ class LiveWorld:
                                       key=True, attempt=True, status="complained"))
             else:
                 status = {"cancelled": "cancelled", "confirmed": "sent", "confirmed_pin": "sent",
-                          "used_suggested": "cancelled"}.get(a["customer_choice"], "held" if a["band"] == "HOLD" else "pending")
+                          "used_suggested": "cancelled"}.get(a["customer_choice"], "pending")
                 edges.append(dict(id=a["id"], source=s, target=r, amount=a["amount"], type=a["txn_type"], ts=int(t), key=True,
                                   attempt=True, status=status))
             net = dict(roles={})
@@ -899,7 +901,7 @@ class LiveWorld:
                     else:
                         role = "other"
                 ws = store.w.get(n)
-                nodes[n] = dict(id=n, kind=kind, role=role, frozen=n in self.frozen,
+                nodes[n] = dict(id=n, kind=kind, role=role, flagged=n in self.flagged,
                                 age_days=None if opened is None else round((ref - opened) / DAY, 1),
                                 reported=n in self.complained or bool(ws and ws.complaints))
         return dict(nodes=list(nodes.values()), edges=edges)
@@ -915,7 +917,7 @@ class LiveWorld:
             if a is None:
                 raise KeyError(alert_id)
             if a.get("kind") == "complaint" and not a["receiver_id"]:
-                net = dict(nodes=[dict(id=a["sender_id"], kind="customer", role="claimant", frozen=False, age_days=None,
+                net = dict(nodes=[dict(id=a["sender_id"], kind="customer", role="claimant", flagged=False, age_days=None,
                                        reported=False)], edges=[])
             elif a.get("kind") == "recharge":
                 net = dict(nodes=[], edges=[])
@@ -932,7 +934,7 @@ class LiveWorld:
             out["network"] = net
             out["report"] = rep
             out["audit"] = [e for e in self.audit if e.get("alert_id") == alert_id]
-            out["frozen_recipient"] = a["receiver_id"] in self.frozen
+            out["flagged_recipient"] = a["receiver_id"] in self.flagged
             return out
 
     def act(self, alert_id: str, action: str, analyst: str, note: str = "") -> dict:
@@ -944,21 +946,15 @@ class LiveWorld:
                 raise ValueError(f"unknown action {action}")
             analyst = (analyst or "").strip()
             if not analyst:
-                raise PermissionError("an analyst name is required: a person approves every action")
+                raise PermissionError("an analyst name is required: every action is logged with a name")
             if action == "DISMISS" and len(note.strip()) < 3:
                 raise ValueError("say why the alert is a false alarm")
-            if action == "RELEASE_TRANSACTION":
-                if a["source"] != "live" or a["status"] != "held_for_review":
-                    raise ValueError("only a transfer that is still held can be released")
-                self._commit_live(dict(sender_id=a["sender_id"], receiver_id=a["receiver_id"], amount=a["amount"],
-                                       txn_type=a["txn_type"], device_id=a.get("device_id")))
-                a["status"] = "released_by_analyst"
-            elif action == "FREEZE_RECIPIENT":
-                self.frozen[a["receiver_id"]] = alert_id
-                if a["status"] in ("held_for_review", "awaiting_customer"):
-                    a["status"] = "recipient_frozen"
-                else:
-                    a["status"] = "recipient_frozen" if a["source"] == "live" else a["status"]
+            if action == "FLAG_RECIPIENT":                # later senders get the strongest warning; nothing is blocked
+                if not a["receiver_id"]:
+                    raise ValueError("no matched transfer: there is no receiving wallet to flag")
+                self.flagged[a["receiver_id"]] = alert_id
+                if a.get("kind") == "complaint":          # a warned transfer keeps the customer's own choice as its status
+                    a["status"] = "recipient_flagged"
             elif action == "DISMISS":
                 a["status"] = "dismissed"
             elif action in ("HOLD_DISPUTED_AMOUNT", "ASK_RECIPIENT_CONSENT", "ASK_CUSTOMER_DETAILS"):
@@ -974,7 +970,7 @@ class LiveWorld:
                                "ASK_CUSTOMER_DETAILS": "details_requested"}[action]
             a.setdefault("actions", []).append(dict(action=action, analyst=analyst, note=note, at=self.iso(self.clock())))
             self._audit(analyst, "analyst", f"analyst.{action.lower()}", alert_id, {"note": note})
-            return dict(alert_id=alert_id, status=a["status"], frozen=sorted(self.frozen))
+            return dict(alert_id=alert_id, status=a["status"], flagged=sorted(self.flagged))
 
     # ------------------------------------------------------------------ panels
     def agent_watch(self) -> dict:

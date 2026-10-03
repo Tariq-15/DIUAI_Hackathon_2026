@@ -19,7 +19,7 @@ from . import scamcheck
 from .live import LiveWorld
 from .portable import load_bundle
 
-ACTIONS = ("FREEZE_RECIPIENT", "VERIFY_OWNER", "CONTACT_SENDERS", "REVIEW_AGENT", "RELEASE_TRANSACTION", "WATCHLIST", "DISMISS")
+ACTIONS = ("FLAG_RECIPIENT", "VERIFY_OWNER", "CONTACT_SENDERS", "REVIEW_AGENT", "WATCHLIST", "DISMISS")
 
 
 class HTTPError(Exception):

@@ -22,14 +22,14 @@
         <ol class="guide-steps">
           <li data-en="Rahim → Mother Tk 800: ALLOW">রহিম → মা ৳৮০০: ALLOW</li>
           <li data-en="Two digits swapped: “Did you mean Mother?” shows which digits">দুই ডিজিট উল্টে গেলে: “মা-কে পাঠাতে চেয়েছিলেন?” কোন ডিজিট ভুল দেখায়</li>
-          <li data-en="New number Tk 15,000: HOLD + warning">নতুন নম্বরে ৳১৫,০০০: HOLD + সতর্কতা</li>
+          <li data-en="New number Tk 15,000: HOLD, the strongest warning; you cancel or send with the PIN">নতুন নম্বরে ৳১৫,০০০: HOLD, সবচেয়ে জোরালো সতর্কতা; বাতিল করুন বা পিন দিয়ে পাঠান</li>
           <li data-en="Mother Tk 15,000: “25 times your usual”: amount habit">মা-কে ৳১৫,০০০: “সাধারণের ২৫ গুণ”: পরিমাণের অভ্যাস</li>
-          <li data-en="Copilot: SHAP, money network, case report, analyst freeze">কোপাইলট: SHAP, নেটওয়ার্ক, কেস রিপোর্ট, বিশ্লেষক Freeze</li>
+          <li data-en="Copilot: SHAP, money network, case report, flag a wallet">কোপাইলট: SHAP, নেটওয়ার্ক, কেস রিপোর্ট, ওয়ালেট চিহ্নিত করা</li>
           <li data-en="Complaint in Banglish → matched transfer → hold">Banglish-এ অভিযোগ → লেনদেন মেলানো → টাকা আটকানো</li>
           <li data-en="Federated tab: the data stays where it is">ফেডারেটেড ট্যাব: ডেটা যেখানে, সেখানেই</li>
           <li data-en="Salma: SIM swap + new phone → HOLD">সালমা: সিম বদল + নতুন ফোন → HOLD</li>
         </ol>
-        <p class="small" data-en="<b>Models score, rules decide, people approve.</b>"><b>মডেল স্কোর দেয়, নিয়ম সিদ্ধান্ত নেয়, মানুষ অনুমোদন করে।</b></p>
+        <p class="small" data-en="<b>Models score, rules warn, the customer decides.</b>"><b>মডেল স্কোর দেয়, নিয়ম সতর্ক করে, সিদ্ধান্ত নেন গ্রাহক।</b></p>
         <p class="small muted" data-en="Prototype on synthetic data, not the real upay app · Track 01 Trust &amp; Risk · AI Hackathon 2026">প্রোটোটাইপ, সিন্থেটিক ডেটায়; upay-এর আসল অ্যাপ নয় · Track 01 Trust &amp; Risk · AI Hackathon 2026</p>
         <p class="small"><a href="app.html" data-en="Phone on its own page">ফোন আলাদা পাতায়</a> · <a href="analyst.html" data-en="Copilot on its own page">কোপাইলট আলাদা পাতায়</a></p>
       </div></details>
@@ -95,7 +95,7 @@
       });
 
       // test numbers
-      const EXPECT = { ALLOW: ['যাবে', 'ALLOW'], NUDGE: ['একবার জিজ্ঞেস', 'NUDGE'], STEP_UP: ['আবার পিন', 'STEP-UP'], HOLD: ['আটকে যাবে', 'HOLD'],
+      const EXPECT = { ALLOW: ['যাবে', 'ALLOW'], NUDGE: ['একবার জিজ্ঞেস', 'NUDGE'], STEP_UP: ['আবার পিন', 'STEP-UP'], HOLD: ['জোরালো সতর্কতা', 'HOLD'],
         NO_ACCOUNT: ['অ্যাকাউন্ট নেই', 'no account'] };
       let kit = null;
       async function openKit() {

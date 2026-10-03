@@ -173,9 +173,11 @@ def customer_message(band: str, reasons: list[dict]) -> dict:
     if band == "STEP_UP":
         return dict(en=f"Please confirm with your PIN. {en_r}. upay never asks for your PIN or OTP on a call.",
                     bn=f"নিশ্চিত করতে আবার পিন দিন। {bn_r}। upay কখনো ফোনে পিন বা ওটিপি চায় না।")
-    if band == "HOLD":
-        return dict(en=f"We have paused this transaction for your safety. {en_r}. Call 16268 if you need help.",
-                    bn=f"আপনার নিরাপত্তার জন্য লেনদেনটি সাময়িকভাবে স্থগিত রাখা হয়েছে। {bn_r}। প্রয়োজনে ১৬২৬৮ নম্বরে কল করুন।")
+    if band == "HOLD":                                   # the strongest warning; the customer still decides
+        return dict(en=f"Strong warning: this transfer shows signs of a scam. {en_r}. Sending is your decision; if "
+                       "someone is rushing you, cancel and call 16268.",
+                    bn=f"জোরালো সতর্কতা: এই লেনদেনে প্রতারণার লক্ষণ আছে। {bn_r}। পাঠাবেন কি না, সিদ্ধান্ত আপনার; কেউ তাড়া "
+                       "দিলে বাতিল করুন এবং ১৬২৬৮ নম্বরে কল করুন।")
     return dict(en="", bn="")
 
 

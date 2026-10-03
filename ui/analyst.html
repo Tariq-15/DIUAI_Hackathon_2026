@@ -11,28 +11,35 @@
 <body>
   <div class="an">
     <header class="an-head">
-      <div class="brand">প্রহরী <span>Copilot</span></div>
-      <nav class="an-tabs" id="tabs">
-        <button data-tab="alerts" class="on" data-bn="অ্যালার্ট">Alerts</button>
-        <button data-tab="agents" data-bn="এজেন্ট ওয়াচ">Agent Watch</button>
-        <button data-tab="model" data-bn="মডেল ও ন্যায্যতা">Model &amp; fairness</button>
-        <button data-tab="fl" data-bn="ফেডারেটেড ও গোপনীয়তা">Federated &amp; privacy</button>
-        <button data-tab="audit" data-bn="অডিট লগ">Audit log</button>
+      <div class="brand"><i class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.6-2.9 8.3-7 10-4.1-1.700-7-5.400-7-10V6l7-3z"/><path d="M9 12l2.200 2.200L15.200 10"/></svg></i>প্রহরী <span>Copilot</span></div>
+      <nav class="an-tabs" id="tabs" aria-label="Sections">
+        <button data-tab="overview" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.500" y="3.500" width="7" height="8" rx="1.500"/><rect x="13.500" y="3.500" width="7" height="5" rx="1.500"/><rect x="13.500" y="11.500" width="7" height="9" rx="1.500"/><rect x="3.500" y="14.500" width="7" height="6" rx="1.500"/></svg><span data-bn="সারসংক্ষেপ">Overview</span></button>
+        <button data-tab="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.500 2h-15L6 16z"/><path d="M10 20.500a2.200 2.200 0 0 0 4 0"/></svg><span data-bn="অ্যালার্ট">Alerts</span><i class="nav-count hidden" id="nav-live"></i></button>
+        <button data-tab="agents"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10l1.500-5h13L20 10"/><path d="M4 10v9.500h16V10"/><path d="M4 10c0 1.500 1.200 2.500 2.700 2.500S9.300 11.500 9.300 10c0 1.500 1.200 2.500 2.700 2.500s2.700-1 2.700-2.500c0 1.500 1.200 2.500 2.700 2.500S20 11.500 20 10"/><path d="M10 19.500v-4h4v4"/></svg><span data-bn="এজেন্ট ওয়াচ">Agent Watch</span></button>
+        <button data-tab="model"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-6"/><path d="M12 20V6"/><path d="M17 20v-9"/></svg><span data-bn="মডেল ও ন্যায্যতা">Model &amp; fairness</span></button>
+        <button data-tab="fl"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9.500" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><path d="M12 15v2"/></svg><span data-bn="ফেডারেটেড ও গোপনীয়তা">Federated &amp; privacy</span></button>
+        <button data-tab="audit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg><span data-bn="অডিট লগ">Audit log</span></button>
       </nav>
       <span class="grow"></span>
-      <span class="small num" id="clock" style="color:#b9c3dc"></span>
-      <button class="langsw" data-lang-toggle></button>
-      <details class="guide" id="proto"><summary class="i-btn" aria-label="About this demo" title="About this demo">i</summary>
-        <div class="info-panel">
-          <p class="small" data-bn="প্রোটোটাইপ, সিন্থেটিক ডেটায় · upay-এর আসল সিস্টেম নয়">Prototype on synthetic data · not an upay system</p>
-          <p class="small" data-bn="<b>মডেল স্কোর দেয়, নিয়ম সিদ্ধান্ত নেয়, মানুষ অনুমোদন করে।</b>"><b>Models score, rules decide, people approve.</b></p>
-          <p class="small"><a href="app.html" data-bn="গ্রাহক অ্যাপ">Customer app</a> · <a href="index.html" data-bn="শোকেস">Showcase</a></p>
-        </div></details>
-      <label class="small" style="color:#b9c3dc"><span data-bn="বিশ্লেষক">Analyst</span> <input id="analyst" placeholder="your name" data-bn-ph="আপনার নাম"></label>
+      <div class="an-meta">
+        <span class="small num" id="clock"></span>
+        <div class="row an-switches">
+          <button class="langsw" data-lang-toggle></button>
+          <details class="guide" id="proto"><summary class="i-btn" aria-label="About this demo" title="About this demo">i</summary>
+            <div class="info-panel">
+              <p class="small" data-bn="প্রোটোটাইপ, সিন্থেটিক ডেটায় · upay-এর আসল সিস্টেম নয়">Prototype on synthetic data · not an upay system</p>
+              <p class="small" data-bn="<b>মডেল স্কোর দেয়, নিয়ম সতর্ক করে, সিদ্ধান্ত নেন গ্রাহক।</b>"><b>Models score, rules warn, the customer decides.</b></p>
+              <p class="small"><a href="app.html" data-bn="গ্রাহক অ্যাপ">Customer app</a> · <a href="index.html" data-bn="শোকেস">Showcase</a></p>
+            </div></details>
+        </div>
+        <label class="an-analyst"><span data-bn="বিশ্লেষক">Analyst</span> <input id="analyst" placeholder="your name" data-bn-ph="আপনার নাম"></label>
+      </div>
     </header>
 
-    <main class="an-body" id="tab-alerts">
-      <aside class="panel">
+    <main class="an-page" id="tab-overview"><div class="ov" id="overview"><div class="panel empty" data-bn="সারসংক্ষেপ তৈরি হচ্ছে…">Building the overview…</div></div></main>
+
+    <main class="an-body hidden" id="tab-alerts">
+      <aside class="panel queue">
         <h3><span data-bn="অ্যালার্ট তালিকা">Alert queue</span> <span class="small muted" id="count"></span></h3>
         <div class="filters" id="filters">
           <button data-f="all" class="on" data-bn="সব">All</button><button data-f="live" data-bn="লাইভ">Live</button>

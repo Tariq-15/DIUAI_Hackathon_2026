@@ -7,7 +7,7 @@
   const $ = (id) => document.getElementById(id);
   const S = {
     customers: [], limits: null, me: null, to: '', toName: '', toNameEn: '', amount: 0, device: null, pin: '', history: [],
-    poll: null, view: 'home', pendingAmount: null, hint: null, problem: 'wrong_number', transfers: [], pick: null, cases: [],
+    view: 'home', pendingAmount: null, hint: null, problem: 'wrong_number', transfers: [], pick: null, cases: [],
     redraw: null, casePoll: null, flow: 'send', kit: null,
   };
 
@@ -330,7 +330,7 @@
   const TITLES = {
     NUDGE: ['⚠️', ['একটু থামুন, দেখে নিন', 'Wait, take a look'], ['প্রহরী সতর্কতা', 'Prohori warning']],
     STEP_UP: ['🔐', ['নিশ্চিত করতে আবার পিন দিন', 'Enter your PIN again to confirm'], ['প্রহরী: অতিরিক্ত যাচাই', 'Prohori: extra check']],
-    HOLD: ['🛑', ['লেনদেনটি সাময়িকভাবে স্থগিত', 'This transfer is paused'], ['প্রহরী: আপনার নিরাপত্তার জন্য', 'Prohori: for your safety']],
+    HOLD: ['🛑', ['থামুন: এটি প্রতারণা হতে পারে', 'Stop: this may be a scam'], ['প্রহরী: জোরালো সতর্কতা', 'Prohori: strong warning']],
   };
 
   function warn(res) {
@@ -362,8 +362,8 @@
     if (sug) body += P.numDiff(sug.typed || S.to, sug.msisdn, sug.slip && sug.slip.positions);
     if (habFirst) body += `<div class="habit-mini">${P.habitStrip(hab)}</div>`;
     if (lead) body += `<p class="lead">${lead}</p>`;
-    if (res.policy_override === 'recipient_frozen_by_analyst') {
-      body += `<p class="lead"><b>${L('এই নম্বরটি upay-এর পর্যালোচনায় আছে।', 'This number is under review by upay.')}</b></p>`;
+    if (res.policy_override === 'recipient_flagged_by_analyst') {
+      body += `<p class="lead"><b>${L('upay এই নম্বরটিকে সন্দেহজনক হিসেবে চিহ্নিত করেছে।', 'upay has flagged this number as suspicious.')}</b></p>`;
     }
     const useBtn = sug && res.choices.includes('use_suggested')
       ? `<button class="btn btn-primary btn-block" data-choice="use_suggested" style="margin-bottom:8px">✓ ${P.esc(L(`${sugName(sug)}-কে পাঠান (${P.phone(sug.msisdn)})`, `Send to ${sugName(sug)} (${P.phone(sug.msisdn)})`))}</button>` : '';
@@ -380,10 +380,12 @@
         <input class="field num" id="pin2" inputmode="numeric" maxlength="4" placeholder="${L('পিন (ডেমো: যেকোনো ৪ ডিজিট)', 'PIN (demo: any 4 digits)')}" style="margin-bottom:8px">
         <button class="btn ${sug ? 'btn-ghost' : 'btn-primary'} btn-block" data-choice="cancel">${L('বাতিল করুন (প্রস্তাবিত)', 'Cancel (recommended)')}</button>
         <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="confirm_pin" id="pin2-go" disabled>${L('পিন দিয়ে পাঠান', 'Send with PIN')}</button>`;
-    } else {
-      body += `<p class="lead"><b>${L('আপনার টাকা এখনো আপনার ওয়ালেটেই আছে।', 'Your money is still in your wallet.')}</b> ${L('একজন upay কর্মকর্তা দেখবেন।', 'An upay officer will check it.')}</p>${useBtn}
-        <button class="btn btn-primary btn-block" data-choice="wait">${L('ঠিক আছে, অপেক্ষা করব', 'OK, I will wait')}</button>
-        <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="cancel">${L('লেনদেন বাতিল করুন', 'Cancel the transfer')}</button>
+    } else {                                            // HOLD: the strongest warning. Nothing is held; the customer decides
+      body += `<p class="lead"><b>${L('আপনার টাকা এখনো আপনার ওয়ালেটেই আছে।', 'Your money is still in your wallet.')}</b> ${L('পাঠাবেন কি না, সিদ্ধান্ত আপনার।', 'Whether to send it is your decision.')}</p>
+        <div class="ask">${P.esc(question)}</div>${useBtn}
+        <button class="btn ${sug ? 'btn-ghost' : 'btn-primary'} btn-block" data-choice="cancel">${L('বাতিল করুন (প্রস্তাবিত)', 'Cancel (recommended)')}</button>
+        <input class="field num" id="pin2" inputmode="numeric" maxlength="4" placeholder="${L('পিন (ডেমো: যেকোনো ৪ ডিজিট)', 'PIN (demo: any 4 digits)')}" style="margin:8px 0">
+        <button class="btn btn-ghost btn-block" data-choice="confirm_pin" id="pin2-go" disabled>${L('ঝুঁকি বুঝেছি, পিন দিয়ে পাঠান', 'I understand the risk, send with PIN')}</button>
         <a class="btn btn-link btn-block" style="display:block;text-align:center" href="tel:16268">📞 ${L('১৬২৬৮-এ কল করুন', 'Call 16268')}</a>`;
     }
     const why = [];
@@ -414,7 +416,6 @@
     const res = S.last;
     const choice = b.dataset.choice;
     if ('speechSynthesis' in window) speechSynthesis.cancel();
-    if (choice === 'wait') { $('sheet-wrap').classList.add('hidden'); held(res); return; }
     try {
       const out = await P.api(`/api/v1/alerts/${res.alert_id}/decision`, {
         method: 'POST', body: { choice, pin: choice === 'confirm_pin' ? P.ascii($('pin2').value) : null },
@@ -481,40 +482,11 @@
       $('r-title').textContent = L('পাঠানো হয়নি', 'Not sent');
       $('r-body').innerHTML = `<div class="result stop"><div class="badge">🛡️</div><h2 style="margin:0">${L('ভালো সিদ্ধান্ত', 'Good call')}</h2>
         <p>${L(`${money(S.amount)} আপনার ওয়ালেটেই আছে। কেউ আবার চাপ দিলে ১৬২৬৮ নম্বরে কল করুন।`, `${money(S.amount)} is still in your wallet. If someone pushes you again, call 16268.`)}</p>
-        <p class="small muted">${L(`প্রহরী বিষয়টি upay-এর ঝুঁকি বিশ্লেষকদের কাছে পাঠিয়েছে (রেফারেন্স ${P.esc(res.alert_id)})।`, `Prohori has passed this to upay's risk analysts (reference ${P.esc(res.alert_id)}).`)}</p></div>`;
+        <p class="small muted">${L(`প্রহরী সতর্কবার্তাটি নথিভুক্ত করেছে (রেফারেন্স ${P.esc(res.alert_id)})।`, `Prohori has recorded this warning (reference ${P.esc(res.alert_id)}).`)}</p></div>`;
     };
     S.redraw = draw;
     draw();
     show('result');
-  }
-
-  function held(res) {
-    record(res, ['পর্যালোচনায়', 'under review']);
-    let msg = null;
-    const draw = () => {
-      $('r-title').textContent = L('পর্যালোচনায় আছে', 'Under review');
-      $('r-body').innerHTML = `<div class="result held"><div class="badge">⏳</div><h2 style="margin:0">${L('লেনদেনটি পর্যালোচনায়', 'The transfer is under review')}</h2>
-        <p id="held-msg">${msg ? `<b>${P.esc(L(msg[0], msg[1]))}</b>` : L('আপনার টাকা আপনার ওয়ালেটেই আছে। একজন upay কর্মকর্তা দেখছেন।', 'Your money is still in your wallet. An upay officer is looking at it.')}</p>
-        <p class="small muted">${L(`রেফারেন্স ${P.esc(res.alert_id)} · এই পাতা নিজে থেকেই হালনাগাদ হবে`, `Reference ${P.esc(res.alert_id)} · this page updates by itself`)}</p></div>`;
-    };
-    S.redraw = draw;
-    draw();
-    show('result');
-    clearInterval(S.poll);
-    S.poll = setInterval(async () => {
-      try {
-        const st = await P.api(`/api/v1/transfers/${res.alert_id}`);
-        if (st.status !== 'held_for_review') {
-          clearInterval(S.poll);
-          S.me.balance = st.balance;
-          const h = S.history.find((x) => x.status[1] === 'under review');
-          if (h) h.status = st.status === 'released_by_analyst' ? ['পাঠানো হয়েছে', 'sent'] : ['পাঠানো হয়নি', 'not sent'];
-          msg = [st.message_bn, st.message_en];
-          if (S.view === 'result') draw();
-          toast(L(st.message_bn, st.message_en));
-        }
-      } catch (e) { /* keep polling */ }
-    }, 2500);
   }
 
   function renderHistory() {
@@ -729,7 +701,7 @@
   });
 
   // ---------------------------------------------------------------- test numbers from the dataset (for judges)
-  const EXPECT = { ALLOW: ['যাবে', 'ALLOW'], NUDGE: ['একবার জিজ্ঞেস', 'NUDGE'], STEP_UP: ['আবার পিন', 'STEP-UP'], HOLD: ['আটকে যাবে', 'HOLD'],
+  const EXPECT = { ALLOW: ['যাবে', 'ALLOW'], NUDGE: ['একবার জিজ্ঞেস', 'NUDGE'], STEP_UP: ['আবার পিন', 'STEP-UP'], HOLD: ['জোরালো সতর্কতা', 'HOLD'],
     NO_ACCOUNT: ['অ্যাকাউন্ট নেই', 'no account'] };
   const ROLE = { collector: ['টাকা তোলার ওয়ালেট', 'collector'], scam_recipient: ['প্রতারণার প্রাপক', 'scam recipient'], fake_seller: ['ভুয়া বিক্রেতা', 'fake seller'],
     mule: ['মিউল', 'mule'], card_fraud: ['কার্ড প্রতারণা', 'card fraud'] };
@@ -836,7 +808,6 @@
     tryItem,
     get kit() { return S.kit; },
     async restart() {
-      clearInterval(S.poll);
       clearInterval(S.casePoll);
       Object.assign(S, { history: [], cases: [], device: null, last: null, pendingAmount: null, hint: null, flow: 'send', redraw: null });
       $('sheet-wrap').classList.add('hidden');

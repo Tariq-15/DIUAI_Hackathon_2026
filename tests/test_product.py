@@ -1,4 +1,4 @@
-"""Product layer: customer warning flow, analyst copilot, policy overrides, audit, scam checker.
+"""Product layer: customer warning flow (warn only, the customer decides), analyst copilot, audit, scam checker.
 
 Runs on the trained artifacts (artifacts/model_bundle.joblib, demo_state.joblib, demo_world.joblib);
 skipped when they have not been built (python -m src.pipeline).
@@ -45,17 +45,21 @@ def test_usual_transfer_goes_straight_through(client, scen):
     assert r["band"] == "ALLOW" and r["alert_id"] is None and r["choices"] == []
 
 
-def test_collector_is_held_with_grounded_bangla_evidence(client, scen):
+def test_collector_gets_the_strongest_warning_with_grounded_bangla_evidence(client, scen):
     r = send(client, "rahim", scen[("rahim", "collector")])
-    assert r["band"] == "HOLD" and r["choices"] == ["cancel"]
+    assert r["band"] == "HOLD" and r["choices"] == ["cancel", "confirm_pin"] and r["question_bn"]
     codes = {x["code"] for x in r["reasons"]}
     assert "many_senders" in codes
     assert any("১৪" in x["bn"] for x in r["reasons"])          # the 14 strangers, quoted from the feature value
     assert "১৬২৬৮" in r["message"]["bn"]
-    # a HOLD cannot be pushed through by the customer: only an analyst can release it
-    assert client.post(f"/api/v1/alerts/{r['alert_id']}/decision", json={"choice": "confirm"}).status_code == 422
-    st = client.get(f"/api/v1/transfers/{r['alert_id']}").json()
-    assert st["status"] == "held_for_review" and "report" not in st
+    # nothing is held for an analyst: the transfer waits only for the customer's own answer
+    aid = r["alert_id"]
+    st = client.get(f"/api/v1/transfers/{aid}").json()
+    assert st["status"] == "awaiting_customer" and "report" not in st
+    assert client.post(f"/api/v1/alerts/{aid}/decision", json={"choice": "confirm"}).status_code == 422      # needs the PIN
+    assert client.post(f"/api/v1/alerts/{aid}/action", json={"action": "RELEASE_TRANSACTION", "analyst": "Nadia"}).status_code == 422
+    d = client.post(f"/api/v1/alerts/{aid}/decision", json={"choice": "cancel"})
+    assert d.status_code == 200 and d.json()["status"] == "cancelled_by_customer" and d.json()["balance"] == st["balance"]
 
 
 def test_soft_warning_leaves_the_choice_to_the_customer(client, scen):
@@ -71,9 +75,9 @@ def test_soft_warning_leaves_the_choice_to_the_customer(client, scen):
     assert d.status_code == 200 and d.json()["status"] == "sent_after_warning"
 
 
-def test_sim_swap_takeover_is_held(client, scen):
+def test_sim_swap_takeover_gets_the_strongest_warning(client, scen):
     r = send(client, "salma", scen[("salma", "takeover")])
-    assert r["band"] == "HOLD"
+    assert r["band"] == "HOLD" and "confirm_pin" in r["choices"]
     assert {"new_device", "sim_swap", "pin_reset", "shared_device"} & {x["code"] for x in r["reasons"]}
 
 
@@ -85,7 +89,7 @@ def test_case_report_is_four_parts_and_grounded(client, scen):
     for k in ("what_happened", "why_risky", "recommended_action", "confidence_limits"):
         assert rep[k], k
     assert rep["generated_by"] == "template"
-    assert "FREEZE_RECIPIENT" in rep["actions"] and "CONTACT_SENDERS" in rep["actions"]
+    assert "FLAG_RECIPIENT" in rep["actions"] and "CONTACT_SENDERS" in rep["actions"]
     text = " ".join(x for k in ("what_happened", "why_risky", "recommended_action", "confidence_limits") for x in rep[k])
     assert unsupported_numbers(text, [json.dumps(rep["facts"], default=str)]) == []
     payers = [n for n in d["network"]["nodes"] if n["role"] == "payer"]
@@ -100,18 +104,25 @@ def test_llm_is_off_by_default_and_ungrounded_text_is_rejected(monkeypatch):
     assert unsupported_numbers("about Tk 99,999 was lost at 03:10", ['{"amount": 15000, "when": "03:10"}']) == ["99999"]
 
 
-def test_freeze_needs_a_person_holds_later_transfers_and_is_audited(client, scen):
+def test_flag_needs_a_name_warns_later_senders_without_blocking_and_is_audited(client, scen):
     r = send(client, "rahim", scen[("rahim", "collector")])
     aid = r["alert_id"]
-    assert client.post(f"/api/v1/alerts/{aid}/action", json={"action": "FREEZE_RECIPIENT", "analyst": "  "}).status_code == 403
+    assert client.post(f"/api/v1/alerts/{aid}/action", json={"action": "FLAG_RECIPIENT", "analyst": "  "}).status_code == 403
     assert client.post(f"/api/v1/alerts/{aid}/action", json={"action": "DISMISS", "analyst": "Nadia"}).status_code == 422
-    ok = client.post(f"/api/v1/alerts/{aid}/action", json={"action": "FREEZE_RECIPIENT", "analyst": "Nadia", "note": "collector"})
-    assert ok.status_code == 200 and "W9000001" in ok.json()["frozen"]
+    ok = client.post(f"/api/v1/alerts/{aid}/action", json={"action": "FLAG_RECIPIENT", "analyst": "Nadia", "note": "collector"})
+    assert ok.status_code == 200 and "W9000001" in ok.json()["flagged"]
+    assert ok.json()["status"] == "awaiting_customer"          # the flag does not answer Rahim's warning for him
     later = send(client, "salma", {"to": "01090000001", "amount": 500})
-    assert later["band"] == "HOLD" and later["policy_override"] == "recipient_frozen_by_analyst"
+    assert later["band"] == "HOLD" and later["policy_override"] == "recipient_flagged_by_analyst"
+    # even a flagged wallet is only a warning: the customer can still send with the PIN
+    assert later["choices"] == ["cancel", "confirm_pin"]
+    assert client.post(f"/api/v1/alerts/{later['alert_id']}/decision", json={"choice": "confirm_pin"}).status_code == 422
+    d = client.post(f"/api/v1/alerts/{later['alert_id']}/decision", json={"choice": "confirm_pin", "pin": "1234"})
+    assert d.status_code == 200 and d.json()["status"] == "sent_after_warning" and d.json()["balance"] == later["balance"] - 500
     audit = client.get("/api/v1/audit").json()
     assert audit["verify"]["ok"]
-    assert any(e["action"] == "analyst.freeze_recipient" and e["actor"] == "Nadia" for e in audit["entries"])
+    assert any(e["action"] == "analyst.flag_recipient" and e["actor"] == "Nadia" for e in audit["entries"])
+    assert any(e["action"] == "customer.confirmed_pin" and e["alert_id"] == later["alert_id"] for e in audit["entries"])
 
 
 def test_audit_chain_detects_tampering(client):
@@ -197,6 +208,8 @@ def test_browser_dispatcher_answers_like_the_api():
     assert send("salma", sc[("salma", "takeover")])["data"]["band"] == "HOLD"
     assert call("POST", f"/api/v1/alerts/{held['alert_id']}/decision", {"choice": "confirm"})["status"] == 422
     assert call("POST", "/api/v1/risk-score", {"customer": "rahim", "to": "01000000000", "amount": 10})["status"] == 404
-    assert call("POST", f"/api/v1/alerts/{held['alert_id']}/action", {"action": "FREEZE_RECIPIENT", "analyst": " "})["status"] == 403
+    assert call("POST", f"/api/v1/alerts/{held['alert_id']}/action", {"action": "FLAG_RECIPIENT", "analyst": " "})["status"] == 403
+    sent = call("POST", f"/api/v1/alerts/{held['alert_id']}/decision", {"choice": "confirm_pin", "pin": "1234"})
+    assert sent["data"]["status"] == "sent_after_warning"       # HOLD is a warning: the customer decides, in the browser too
     assert call("GET", "/api/v1/audit")["data"]["verify"]["ok"]
     assert call("GET", "/api/v1/nope")["status"] == 404

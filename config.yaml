@@ -128,7 +128,7 @@ policy:
     ALLOW:   [0, 30]
     NUDGE:   [30, 60]               # soft Bangla warning, one-tap continue
     STEP_UP: [60, 80]               # re-enter PIN / callback / 'do you know this person?'
-    HOLD:    [80, 101]              # hold + analyst review; customer can still talk to 16268
+    HOLD:    [80, 101]              # strongest warning (band name kept): cancel recommended, PIN again to send; never held
   target_fpr: {NUDGE: 0.01, STEP_UP: 0.003, HOLD: 0.001}
   # ...and each cut must also reach this precision on validation (cut = the stricter of the two)
   target_precision: {NUDGE: 0.25, STEP_UP: 0.60, HOLD: 0.90}

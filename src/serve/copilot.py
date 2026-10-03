@@ -5,7 +5,8 @@
 The template writer is the default and works offline. An LLM may optionally rewrite the wording
 (PROHORI_LLM=anthropic + ANTHROPIC_API_KEY): it receives structured facts only (never a customer's
 own words), its output is display-only, and it is rejected if it contains any number that is not in
-the evidence. Models score, plain rules decide the recommended actions, the analyst approves.
+the evidence. Models score, plain rules pick the recommended follow-up, the analyst chooses it. No transfer
+waits for that: the customer has already been warned and decides whether to send.
 """
 from __future__ import annotations
 
@@ -17,16 +18,14 @@ SECTIONS = ("what_happened", "why_risky", "recommended_action", "confidence_limi
 LLM_MODEL = "claude-opus-5-5"
 
 ACTIONS = {
-    "FREEZE_RECIPIENT": ("Temporarily freeze the receiving wallet until the review is finished",
-                         "তদন্ত শেষ না হওয়া পর্যন্ত প্রাপকের ওয়ালেট সাময়িকভাবে স্থগিত"),
-    "VERIFY_OWNER": ("Call the account owner on the registered number from a known upay line before anything is released",
-                     "কিছু ছাড়ার আগে নিবন্ধিত নম্বরে মালিককে upay-এর পরিচিত লাইন থেকে কল করে যাচাই"),
+    "FLAG_RECIPIENT": ("Flag the receiving wallet: anyone who sends to it gets the strongest warning and still decides",
+                       "প্রাপকের ওয়ালেট চিহ্নিত করুন: সেখানে টাকা পাঠাতে গেলে সবাই সবচেয়ে জোরালো সতর্কবার্তা পাবেন, সিদ্ধান্ত তাঁদেরই"),
+    "VERIFY_OWNER": ("Call the account owner on the registered number from a known upay line: the account may have been taken over",
+                     "নিবন্ধিত নম্বরে মালিককে upay-এর পরিচিত লাইন থেকে কল করে যাচাই: অ্যাকাউন্টটি অন্যের দখলে থাকতে পারে"),
     "CONTACT_SENDERS": ("Contact the people who recently paid this wallet: they may be victims",
                         "সম্প্রতি এই ওয়ালেটে যাঁরা টাকা পাঠিয়েছেন তাঁদের সাথে যোগাযোগ (তাঁরা ভুক্তভোগী হতে পারেন)"),
     "REVIEW_AGENT": ("Open an Agent Watch review of the agent that paid out the cash",
                      "যে এজেন্ট ক্যাশ-আউট দিয়েছেন তাঁর Agent Watch পর্যালোচনা"),
-    "RELEASE_TRANSACTION": ("Release the held transfer to the recipient",
-                            "আটকে রাখা লেনদেনটি প্রাপকের কাছে ছেড়ে দিন"),
     "WATCHLIST": ("Add the receiving wallet to the watchlist", "প্রাপকের ওয়ালেট নজরদারি তালিকায়"),
     "DISMISS": ("Dismiss as a false alarm and record why", "ভুল সতর্কতা হিসেবে বাতিল (কারণসহ)"),
     "HOLD_DISPUTED_AMOUNT": ("Request a temporary hold of the disputed amount (capped at what the wallet holds)",
@@ -95,7 +94,7 @@ def recommend(f: dict) -> list[str]:
     if takeover:
         rec.append("VERIFY_OWNER")
     if collector or (takeover and (f["receiver_age_days"] or 9999) < 30) or (f["wallets_on_phone"] or 0) >= 3:
-        rec.append("FREEZE_RECIPIENT")
+        rec.append("FLAG_RECIPIENT")
     if collector or (f["receiver_complaints"] or 0) >= 1:
         rec.append("CONTACT_SENDERS")
     if f["cash_out_agents"] and (collector or f["receiver_cash_out"] > 0.5 * max(f["receiver_inflow_24h"], 1)):
@@ -164,7 +163,8 @@ def template_report(f: dict) -> dict:
         limits.append(f"The amount habit compares this transfer with the customer's own last {f['habit_n']} transfers only "
                       f"(usual {_tk(f['habit_usual'])}); the threshold ({_num(f['habit_threshold'])} times the usual amount) was "
                       "learned across phones with federated analytics. A large one-off (rent, hospital, Eid) also crosses it.")
-    limits.append(f"Trained and tested on synthetic data. A person approves every freeze; the customer can call {f['helpline']}.")
+    limits.append("Trained and tested on synthetic data. Prohori only warns: the customer decides whether to send, and "
+                  f"can call {f['helpline']}.")
     return dict(what_happened=what, why_risky=why, recommended_action=act, confidence_limits=limits,
                 actions=codes, generated_by="template")
 
@@ -287,7 +287,7 @@ def complaint_report(a: dict, network: dict, context: dict) -> dict:
     else:
         why = ["The words do not identify a transfer in the last 7 days."]
     codes = {"genuine_wrong_send": ["HOLD_DISPUTED_AMOUNT", "ASK_RECIPIENT_CONSENT"],
-             "likely_scam_victim": ["HOLD_DISPUTED_AMOUNT", "FREEZE_RECIPIENT", "CONTACT_SENDERS"],
+             "likely_scam_victim": ["HOLD_DISPUTED_AMOUNT", "FLAG_RECIPIENT", "CONTACT_SENDERS"],
              "needs_review": ["ASK_RECIPIENT_CONSENT"], "needs_details": ["ASK_CUSTOMER_DETAILS"]}[case]
     if t and f["holdable"] <= 0:
         codes = [x for x in codes if x != "HOLD_DISPUTED_AMOUNT"]

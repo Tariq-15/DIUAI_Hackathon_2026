@@ -2,8 +2,8 @@
 
     uvicorn src.serve.api:app --port 8000          # open http://localhost:8000
 
-Stable contract for an MFS pipeline: POST /api/v1/risk-score. Models score, plain rules decide,
-people confirm (the customer cancels or confirms a warning; an analyst approves every freeze).
+Stable contract for an MFS pipeline: POST /api/v1/risk-score. Models score, plain rules pick how strongly
+to warn, the customer decides (cancel or send after every warning; no transfer is held for an analyst).
 The original inference-only routes (/v1/score, /v1/demo, /v1/agents/top, /v1/metrics) are kept.
 """
 from __future__ import annotations
@@ -121,7 +121,7 @@ class RiskIn(BaseModel):
 
 class DecisionIn(BaseModel):
     choice: Literal["cancel", "confirm", "confirm_pin", "use_suggested"]
-    pin: Optional[str] = Field(None, description="demo PIN for a STEP_UP confirmation (any 4 digits)")
+    pin: Optional[str] = Field(None, description="demo PIN for a STEP_UP or HOLD confirmation (any 4 digits)")
 
 
 @app.get("/api/v1/customers")
@@ -131,7 +131,8 @@ def customers():
 
 @app.post("/api/v1/risk-score")
 def risk_score(body: RiskIn):
-    """Score a Send Money before it executes. ALLOW goes through; NUDGE/STEP_UP/HOLD return the Bangla warning."""
+    """Score a Send Money before it executes. ALLOW goes through; NUDGE/STEP_UP/HOLD return the Bangla warning and
+    the customer answers it with /alerts/{id}/decision (HOLD is the strongest warning, not a hold)."""
     w = world()
     if body.customer:
         return _call(w.score, body.customer, body.to, body.amount, body.device_id)

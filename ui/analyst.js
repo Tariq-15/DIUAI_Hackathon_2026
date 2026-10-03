@@ -1,24 +1,27 @@
-/* Analyst copilot (Layer 3): live alert queue, complaint cases, recharges, SHAP evidence, money network, the
-   customer's amount habit, 4-part case report, human actions, and the federated-learning results.
+/* Analyst copilot (Layer 3): an overview dashboard (where the warned money went, what customers decided, the
+   held-out test window), the live alert queue, complaint cases, recharges, SHAP evidence, money network, the
+   customer's amount habit, 4-part case report, follow-up actions, and the federated-learning results.
    English or Bangla (the case report itself stays English). */
 (function () {
   const P = window.Prohori;
   const { L } = P;
   const $ = (id) => document.getElementById(id);
-  const S = { alerts: [], seen: new Set(), sel: null, filter: 'all', pinned: false, health: null, first: true, tab: 'alerts', detail: null };
+  const S = { alerts: [], seen: new Set(), sel: null, filter: 'all', pinned: false, health: null, first: true, tab: 'overview', detail: null,
+    model: null, auditInfo: null, ovSig: '' };
   if (P.embed) $('proto').classList.add('hidden');
   document.addEventListener('click', (e) => { const d = $('proto'); if (d.open && !d.contains(e.target)) d.open = false; });
   $('analyst').value = P.store.get('prohori.analyst') || '';
   $('analyst').addEventListener('input', () => P.store.set('prohori.analyst', $('analyst').value.trim()));
-  const tbl = (head, rows) => `<div class="tscroll"><table class="t"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  const tbl = (head, rows, cls = '') => `<div class="tscroll tbox"><table class="t ${cls}"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
   const pct = (v) => (v == null ? '—' : `${(100 * v).toFixed(1)}%`);
 
   // ---------------------------------------------------------------- tabs
-  const TABS = ['alerts', 'agents', 'model', 'fl', 'audit'];
+  const TABS = ['overview', 'alerts', 'agents', 'model', 'fl', 'audit'];
   function openTab(t) {
     S.tab = t;
     document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === t));
     TABS.forEach((x) => $(`tab-${x}`).classList.toggle('hidden', x !== t));
+    if (t === 'overview') loadOverview();
     if (t === 'agents') loadAgents();
     if (t === 'model') loadModel();
     if (t === 'fl') loadFL();
@@ -26,7 +29,7 @@
   }
   $('tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tab]');
-    if (b) openTab(b.dataset.tab);
+    if (b) { openTab(b.dataset.tab); window.scrollTo(0, 0); }
   });
 
   // ---------------------------------------------------------------- queue
@@ -39,9 +42,9 @@
   });
 
   const STATUS = {
-    held_for_review: ['পর্যালোচনার জন্য আটকে আছে', 'held: needs review'], awaiting_customer: ['গ্রাহকের উত্তরের অপেক্ষা', 'waiting for customer'],
+    awaiting_customer: ['গ্রাহকের উত্তরের অপেক্ষা', 'waiting for customer'],
     cancelled_by_customer: ['গ্রাহক বাতিল করেছেন', 'customer cancelled'], sent_after_warning: ['সতর্কতার পরও পাঠিয়েছেন', 'customer sent anyway'],
-    released_by_analyst: ['বিশ্লেষক ছেড়ে দিয়েছেন', 'released by analyst'], recipient_frozen: ['প্রাপক স্থগিত', 'recipient frozen'],
+    recipient_flagged: ['প্রাপক চিহ্নিত', 'recipient flagged'],
     dismissed: ['বাতিল (ভুল সতর্কতা)', 'dismissed'], historical: ['টেস্ট উইন্ডো', 'test window'],
     changed_to_suggested: ['প্রস্তাবিত নম্বরে বদলেছেন', 'switched to the suggested number'],
     complaint_received: ['অভিযোগ গৃহীত', 'complaint received'], details_requested: ['আরও তথ্য চাওয়া হয়েছে', 'details requested'],
@@ -49,6 +52,11 @@
     resolved: ['নিষ্পত্তি', 'resolved'],
   };
   const status = (s) => (STATUS[s] ? L(...STATUS[s]) : s);
+  // the dot beside a status: amber = waiting for the customer, teal = money kept, red = sent anyway
+  const ST_CLASS = { awaiting_customer: 's-wait', cancelled_by_customer: 's-kept', changed_to_suggested: 's-kept', sent_after_warning: 's-sent',
+    complaint_received: 's-case', details_requested: 's-case', hold_requested: 's-case', recipient_contacted: 's-case', recipient_flagged: 's-case' };
+  const stPill = (s) => `<span class="st ${ST_CLASS[s] || ''}"><i></i>${P.esc(status(s))}</span>`;
+  const bandName = (b) => (b === 'COMPLAINT' ? L('অভিযোগ', 'COMPLAINT') : b === 'STEP_UP' ? 'STEP-UP' : b);
   const CHOICE = {
     cancelled: ['বাতিল করেছেন', 'cancelled'], confirmed: ['সতর্কতার পর নিশ্চিত করেছেন', 'confirmed after warning'],
     confirmed_pin: ['আবার পিন দিয়ে পাঠিয়েছেন', 're-entered PIN and sent'], used_suggested: ['প্রস্তাবিত নম্বর বেছে নিয়েছেন', 'switched to the suggested number'],
@@ -60,7 +68,13 @@
       const fresh = list.filter((a) => a.source === 'live' && !S.seen.has(a.id));
       list.forEach((a) => S.seen.add(a.id));
       S.alerts = list;
-      renderFeed(S.first ? [] : fresh.map((a) => a.id));
+      const flash = S.first ? [] : fresh.map((a) => a.id);
+      renderFeed(flash);
+      const nLive = list.filter((a) => a.source === 'live').length;
+      $('nav-live').textContent = P.n(nLive);
+      $('nav-live').classList.toggle('hidden', !nLive);
+      if (flash.length) S.auditInfo = null;           // new entries in the chain: fetch it again
+      if (S.tab === 'overview') loadOverview(flash);
       if (fresh.length && !S.first && !S.pinned) select(fresh[0].id);
       else if (S.sel) refreshDetail();
       S.first = false;
@@ -79,19 +93,19 @@
     if (S.filter === 'recharge') a = a.filter((x) => x.kind === 'recharge');
     $('count').textContent = `(${P.n(a.length)})`;
     $('feed').innerHTML = a.map((x) => `
-      <div class="al ${x.id === S.sel ? 'sel' : ''} ${flash.includes(x.id) ? 'fresh' : ''}" data-id="${x.id}">
-        <div class="t"><span><span class="band band-${x.band}">${x.band === 'COMPLAINT' ? L('অভিযোগ', 'COMPLAINT') : x.band}</span>
+      <div class="al ${x.id === S.sel ? 'sel' : ''} ${flash.includes(x.id) ? 'fresh' : ''}" data-id="${x.id}" data-band="${x.band}">
+        <div class="t"><span><span class="band band-${x.band}">${bandName(x.band)}</span>
           ${x.kind === 'complaint' || x.kind === 'recharge' ? '' : `<b class="num">${Math.round(x.risk_score)}</b>`}
-          ${x.kind === 'recharge' ? `<span class="chip" style="padding:1px 7px">📱 ${L('রিচার্জ', 'recharge')}</span>` : ''}
-          ${x.unusual_amount ? `<span class="chip" style="padding:1px 7px">💰 ${L('অস্বাভাবিক পরিমাণ', 'unusual amount')}</span>` : ''}
-          ${x.source === 'live' ? '<span class="chip" style="padding:1px 7px">LIVE</span>' : ''}
-          ${x.wrong_number ? `<span class="chip" style="padding:1px 7px">🔢 ${L('ভুল নম্বর?', 'wrong number?')}</span>` : ''}
-          ${x.planted_id ? `<span class="chip" style="padding:1px 7px">${P.esc(x.planted_id)}</span>` : ''}</span>
+          ${x.kind === 'recharge' ? `<span class="chip">📱 ${L('রিচার্জ', 'recharge')}</span>` : ''}
+          ${x.unusual_amount ? `<span class="chip">💰 ${L('অস্বাভাবিক পরিমাণ', 'unusual amount')}</span>` : ''}
+          ${x.source === 'live' ? '<span class="chip">LIVE</span>' : ''}
+          ${x.wrong_number ? `<span class="chip">🔢 ${L('ভুল নম্বর?', 'wrong number?')}</span>` : ''}
+          ${x.planted_id ? `<span class="chip">${P.esc(x.planted_id)}</span>` : ''}</span>
           <span class="num muted">${P.esc(String(x.created).slice(5, 16).replace('T', ' '))}</span></div>
-        <div class="r"><span class="num">${P.tk(x.amount)}</span> · ${P.esc(x.sender_id)} → ${P.esc(x.receiver_id || '?')}</div>
-        <div class="r">${P.esc(x.title || x.top_reason || '')}</div>
-        ${x.kind === 'complaint' ? `<div class="r muted">${P.esc(x.top_reason || '')}</div>` : ''}
-        <div class="r muted">${P.esc(status(x.status))}</div></div>`).join('') || `<div class="empty">${L('কোনো অ্যালার্ট নেই', 'No alerts')}</div>`;
+        <div class="r"><span class="num amt">${P.tk(x.amount)}</span> <span class="num">${P.esc(x.sender_id)} → ${P.esc(x.receiver_id || '?')}</span></div>
+        <div class="r why">${P.esc(x.title || x.top_reason || '')}</div>
+        ${x.kind === 'complaint' ? `<div class="r muted why">${P.esc(x.top_reason || '')}</div>` : ''}
+        ${stPill(x.status)}</div>`).join('') || `<div class="empty">${L('এই ফিল্টারে কোনো অ্যালার্ট নেই। অন্য ফিল্টার বেছে নিন, অথবা ফোন থেকে একটি লেনদেন পাঠান।', 'No alerts match this filter. Pick another filter, or send a transfer on the phone.')}</div>`;
   }
   $('feed').addEventListener('click', (e) => {
     const it = e.target.closest('[data-id]');
@@ -117,6 +131,179 @@
       renderDetail(d);
     }
   }
+
+  // ---------------------------------------------------------------- overview dashboard
+  // Built from what the other tabs already load: the alert list (this session), the model card (held-out test
+  // window), health and the audit chain. Nothing here is a separate count kept on the server.
+  const BANDS3 = ['HOLD', 'STEP_UP', 'NUDGE'];
+  const ASKS = { HOLD: ['সবচেয়ে জোরালো সতর্কতা', 'strongest warning'], STEP_UP: ['আবার পিন', 'PIN again'], NUDGE: ['একটি প্রশ্ন', 'one question'] };
+  const SCEN = { S1: ['ওটিপি নিয়ে অ্যাকাউন্ট দখল', 'OTP takeover'], S2: ['টাকা তোলার ওয়ালেট', 'Collector wallet'], S3: ['মিউল চেইন', 'Mule chain'],
+    S4: ['অসৎ এজেন্ট', 'Rogue agent'], S5: ['ভুয়া অনলাইন বিক্রেতা', 'Fake online seller'], S6: ['সিম বদল', 'SIM swap'],
+    S7: ['ফোনে চাপ দিয়ে পাঠানো', 'Victim guided on a call'], S8: ['চুরি করা কার্ড', 'Stolen card'] };
+  const sum = (xs) => xs.reduce((t, a) => t + (+a.amount || 0), 0);
+  const kept = (a) => a.customer_choice === 'cancelled' || a.customer_choice === 'used_suggested';
+  const count = (v) => P.n(Number(v).toLocaleString('en-US'));
+
+  function sessionStats() {
+    const live = S.alerts.filter((a) => a.source === 'live');
+    const warn = live.filter((a) => a.kind !== 'complaint');
+    const hold = warn.filter((a) => a.band === 'HOLD');
+    return { live, warn,
+      kept: warn.filter(kept), sent: warn.filter((a) => a.customer_choice && !kept(a)), wait: warn.filter((a) => !a.customer_choice),
+      byBand: Object.fromEntries(BANDS3.map((b) => [b, warn.filter((a) => a.band === b).length])),
+      holdCancelled: hold.filter(kept).length, holdAnswered: hold.filter((a) => a.customer_choice).length,
+      wrong: warn.filter((a) => a.wrong_number), complaints: live.filter((a) => a.kind === 'complaint') };
+  }
+
+  // one horizontal bar: label, mark from a zero baseline, value at the tip
+  const hbar = (label, small, share, value, cls, tipText) => `<div class="hb" data-tip="${P.esc(tipText)}" tabindex="0">
+      <span class="lab">${label}${small ? `<small>${small}</small>` : ''}</span>
+      <span class="track axis0">${share > 0 ? `<i class="${cls}" style="width:${Math.min(100, 100 * share).toFixed(1)}%"></i>` : ''}</span><span class="v">${value}</span></div>`;
+
+  function loadOverview(flash = []) {
+    if (!S.model && !S.modelBusy) {
+      S.modelBusy = true;
+      P.api('/api/v1/model').then((m) => { S.model = m; }).catch(() => {}).finally(() => { S.modelBusy = false; if (S.tab === 'overview') renderOverview(); });
+    }
+    if (!S.auditInfo && !S.auditBusy) {
+      S.auditBusy = true;
+      P.api('/api/v1/audit').then((a) => { S.auditInfo = a.verify; }).catch(() => {}).finally(() => { S.auditBusy = false; if (S.tab === 'overview') renderOverview(); });
+    }
+    renderOverview(flash);
+  }
+
+  function renderOverview(flash = []) {
+    const st = sessionStats();
+    const h = S.health || {};
+    const sig = JSON.stringify([P.lang, S.alerts.map((a) => [a.id, a.status, a.customer_choice]), !!S.model, S.auditInfo, h.model_trees, (h.clock || '').slice(0, 16)]);
+    if (sig === S.ovSig && !flash.length) return;       // nothing changed: keep the page (and any open tooltip) as it is
+    S.ovSig = sig;
+    const n = st.warn.length;
+    const amt = { k: sum(st.kept), s: sum(st.sent), w: sum(st.wait) };
+
+    // -- where the warned money went
+    const parts = [['k', amt.k, st.kept.length, L('ওয়ালেটে থেকে গেছে', 'Stayed in the wallet'), L(`${P.n(st.kept.length)}টি বাতিল বা নম্বর ঠিক করা`, `${st.kept.length} cancelled or corrected`)],
+      ['s', amt.s, st.sent.length, L('সতর্কতার পরও পাঠানো হয়েছে', 'Sent after the warning'), L(`${P.n(st.sent.length)}টি, গ্রাহকের নিজের সিদ্ধান্তে`, `${st.sent.length}, the customer's own choice`)],
+      ['w', amt.w, st.wait.length, L('গ্রাহকের উত্তরের অপেক্ষায়', 'Waiting for the customer'), L(`${P.n(st.wait.length)}টি এখনো ফোনের পর্দায়`, `${st.wait.length} still open on the phone`)]];
+    const seg = n ? `<div class="seg" role="img" aria-label="${P.esc(parts.map((p) => `${p[3]}: ${P.money(p[1])}`).join('; '))}">${parts.filter((p) => p[1] > 0)
+      .map((p) => `<i class="${p[0]}" style="flex:${p[1]} 1 0%" data-tip="${P.esc(`${p[3]}: ${P.money(p[1])}`)}" tabindex="0"></i>`).join('')}</div>`
+      : '<div class="seg none"></div>';
+    const flow = `<section class="panel flow">
+        <div class="flow-top"><div><h2>${L('সতর্ক করা টাকা কোথায় গেল', 'Where the warned money went')}</h2>
+            <p class="sub">${L('প্রহরী শুধু সতর্ক করে। বাতিল করবেন না পাঠাবেন, সেই সিদ্ধান্ত গ্রাহকের; কোনো লেনদেন এখানে আটকে থাকে না।', 'Prohori only warns. Cancelling or sending is the customer\'s decision; no transfer waits here.')}</p></div>
+          <div class="flow-total">${L('এই সেশনে সতর্ক করা হয়েছে', 'Warned about this session')}<b>${P.money(amt.k + amt.s + amt.w)}</b>${L(`${P.n(n)}টি সতর্কতা`, `${n} warning${n === 1 ? '' : 's'}`)}</div></div>
+        <div class="hero-fig"><b>${P.money(amt.k)}</b><span>${L('সতর্কবার্তার পর ওয়ালেটেই থেকে গেছে', 'stayed in the wallet after a warning')}</span></div>
+        ${seg}
+        ${n ? `<div class="flow-legend">${parts.map((p) => `<div><i class="sw ${p[0]}"></i><span>${p[3]}</span><b>${P.money(p[1])}</b><em>${p[4]}</em></div>`).join('')}</div>`
+          : `<div class="flow-empty">${L('এই সেশনে এখনো কোনো সতর্কতা নেই। ফোন থেকে একটি লেনদেন পাঠান; কয়েক সেকেন্ডের মধ্যে এখানে দেখা যাবে।', 'No warnings yet in this session. Send a transfer on the phone and it shows up here within a few seconds.')}</div>`}
+      </section>`;
+
+    // -- four figures
+    const switched = st.wrong.filter((a) => a.customer_choice === 'used_suggested').length;
+    const tile = (lbl, val, note) => `<div class="tile"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="note">${note}</div></div>`;
+    const tiles = `<div class="tiles">
+      ${tile(L('এই সেশনে সতর্কতা', 'Warnings this session'), P.n(n), BANDS3.map((b) => `<span class="band band-${b}">${bandName(b)} ${P.n(st.byBand[b])}</span>`).join(''))}
+      ${tile(L('জোরালো সতর্কতার পর বাতিল', 'Cancelled after the strongest warning'), st.holdAnswered ? `${P.n(st.holdCancelled)} <small>${L('/', 'of')} ${P.n(st.holdAnswered)}</small>` : '—',
+        st.holdAnswered ? L('HOLD সতর্কতার উত্তর দেওয়া গ্রাহক', 'customers who answered a HOLD warning') : L('এখনো কোনো HOLD সতর্কতার উত্তর আসেনি', 'No HOLD warning has been answered yet'))}
+      ${tile(L('সম্ভাব্য ভুল নম্বর', 'Likely wrong numbers'), P.n(st.wrong.length), L(`${P.n(switched)}টিতে গ্রাহক ঠিক নম্বরে বদলেছেন`, `${switched} switched to the number they meant`))}
+      ${tile(L('অভিযোগ জমা', 'Complaints filed'), P.n(st.complaints.length), L('১০ কর্মদিবসের মধ্যে উত্তর দিতে হবে', 'each is answered within 10 working days'))}</div>`;
+
+    // -- latest warnings (live first, then the test-window cases the queue already holds)
+    const latest = [...st.live, ...S.alerts.filter((a) => a.source !== 'live')].slice(0, 8);
+    const rows = latest.map((a) => `<tr data-open="${P.esc(a.id)}" tabindex="0" class="${flash.includes(a.id) ? 'fresh' : ''}">
+        <td class="num nw">${P.esc(String(a.created).slice(a.source === 'live' ? 11 : 5, 16).replace('T', ' '))}<div class="src">${a.source === 'live' ? 'LIVE' : L('টেস্ট উইন্ডো', 'test window')}</div></td>
+        <td class="nw"><span class="band band-${a.band}">${bandName(a.band)}</span>${a.kind === 'complaint' || a.kind === 'recharge' ? '' : ` <span class="num muted">${Math.round(a.risk_score)}</span>`}</td>
+        <td class="num nw"><b>${P.money(a.amount)}</b></td>
+        <td><div class="why">${P.esc(a.title || a.top_reason || '')}</div><div class="src num">${P.esc(a.sender_id)} → ${P.esc(a.receiver_id || '?')}</div></td>
+        <td>${stPill(a.status)}</td></tr>`).join('');
+    const table = `<section class="panel"><div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div><h2>${L('সর্বশেষ সতর্কতা', 'Latest warnings')}</h2><p class="sub">${L('সারিতে ক্লিক করলে প্রমাণসহ কেসটি খুলবে।', 'Click a row to open the case with its evidence.')}</p></div>
+          <button class="mini-btn" data-go-tab="alerts">${L('সব অ্যালার্ট দেখুন', 'See all alerts')}</button></div>
+        ${rows ? tbl([L('সময়', 'Time'), L('ব্যান্ড', 'Band'), L('পরিমাণ', 'Amount'), L('মূল কারণ, কার থেকে কার কাছে', 'Main reason, from and to'), L('গ্রাহকের সিদ্ধান্ত', 'Customer\'s answer')], rows, 'lt')
+          : `<div class="empty">${L('এখনো কোনো অ্যালার্ট নেই।', 'No alerts yet.')}</div>`}</section>`;
+
+    // -- warnings by band, this session
+    const maxB = Math.max(1, ...BANDS3.map((b) => st.byBand[b]));
+    const byBand = `<section class="panel"><h2>${L('ব্যান্ড অনুযায়ী সতর্কতা', 'Warnings by band')}</h2><p class="sub" style="margin-bottom:8px">${L('এই সেশনে, গ্রাহকের কাছে কী চাওয়া হয়েছে', 'This session, and what each one asks of the customer')}</p>
+        ${BANDS3.map((b) => hbar(bandName(b), L(...ASKS[b]), st.byBand[b] / maxB, P.n(st.byBand[b]), `b-${b}`, `${bandName(b)}: ${st.byBand[b]}`)).join('')}</section>`;
+
+    // -- the held-out test window (model card)
+    const m = S.model;
+    let honest = '', test = '';
+    if (m && m.friction && m.bands) {
+      const sh = m.friction.legit_txn_share_by_band || {};
+      const per = (b) => Math.round(10000 * (sh[b] || 0));
+      const warned = BANDS3.map(per);
+      const maxW = Math.max(1, ...warned);
+      honest = `<section class="panel"><h2>${L('প্রতি ১০,০০০ সৎ লেনদেনে', 'Out of 10,000 honest transfers')}</h2><p class="sub">${L('আলাদা রাখা টেস্ট উইন্ডোতে মাপা', 'Measured on the held-out test window')}</p>
+          <p class="big-line"><b>${count(10000 - warned.reduce((a, b) => a + b, 0))}</b> ${L('কোনো সতর্কতা ছাড়াই চলে যায়। বাকিগুলো:', 'go straight through with no warning. The rest:')}</p>
+          ${BANDS3.map((b, i) => hbar(bandName(b), L(...ASKS[b]), warned[i] / maxW, count(warned[i]), `b-${b}`, `${bandName(b)}: ${warned[i]} / 10,000`)).join('')}</section>`;
+      const fused = (m.comparison || []).find((r) => /fused/i.test(r.model)) || (m.comparison || [])[0] || {};
+      const apd = m.friction.alerts_per_day || {};
+      const maxA = Math.max(1, ...BANDS3.map((b) => apd[b] || 0));
+      const scen = (m.per_scenario || []).map((r) => hbar(P.esc(L(...(SCEN[r.scenario] || [r.scenario, r.scenario]))), L(`${count(r.fraud_txns)}টি লেনদেন`, `${r.fraud_txns} transfers`),
+        r.recall_stepup, `${P.n(Math.round(100 * r.recall_stepup))}%`, '', `${L(...(SCEN[r.scenario] || [r.scenario, r.scenario]))}: ${(100 * r.recall_stepup).toFixed(1)}% (${r.fraud_txns})`)).join('');
+      test = `<section class="panel"><div class="row" style="justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div><h2>${L('আলাদা রাখা টেস্ট উইন্ডো: ১০ দিন, যা মডেল কখনো দেখেনি', 'Held-out test window: 10 days the model never saw')}</h2>
+              <p class="sub">${L('সিন্থেটিক ডেটা, তাই সংখ্যাগুলো ঊর্ধ্বসীমা হিসেবে পড়ুন।', 'Synthetic data, so read these numbers as upper bounds.')}</p></div>
+            <button class="mini-btn" data-go-tab="model">${L('মডেল ও ন্যায্যতা', 'Model and fairness')}</button></div>
+          <div class="kv">
+            <div><span>${L('স্কোর করা লেনদেন', 'Transactions scored')}</span><b>${count(fused.n || 0)}</b></div>
+            <div><span>${L('প্রতারণার লেনদেন', 'Scam transactions among them')}</span><b>${count(fused.positives || 0)}</b></div>
+            <div><span>${L('প্রতারণায় সতর্কতা গেছে (NUDGE বা বেশি)', 'Scam transactions that got a warning')}</span><b>${pct((m.bands['NUDGE+'] || {}).recall)}</b></div>
+            <div><span>${L('HOLD সতর্কতা যা সত্যিই প্রতারণা', 'HOLD warnings that were real scams')}</span><b>${pct((m.bands['HOLD+'] || {}).precision)}</b></div>
+            <div><span>${L('কোনো সতর্কতা ছাড়া সৎ লেনদেন', 'Honest transfers with no warning')}</span><b>${sh.ALLOW == null ? '—' : `${(100 * sh.ALLOW).toFixed(2)}%`}</b></div></div>
+          <div class="ov-two" style="--lbl:150px">
+            <div><h3>${L('প্রতারণার ধরন অনুযায়ী ধরা পড়া', 'Scam types caught')}</h3><p class="sub" style="margin:-6px 0 8px">${L('STEP-UP বা তার বেশি সতর্কতা পাওয়া প্রতারণার লেনদেনের অংশ', 'Share of scam transfers that reached STEP-UP or above')}</p>${scen}</div>
+            <div style="--lbl:96px"><h3>${L('দিনে গড়ে কতগুলো সতর্কতা', 'Warnings on an average day')}</h3><p class="sub" style="margin:-6px 0 8px">${L('১০ দিনের গড়, ব্যান্ড অনুযায়ী', 'Mean over the 10 days, by band')}</p>
+              ${BANDS3.map((b) => hbar(bandName(b), L(...ASKS[b]), (apd[b] || 0) / maxA, P.n(apd[b] ?? '—'), `b-${b}`, `${bandName(b)}: ${apd[b]} / ${L('দিন', 'day')}`)).join('')}</div></div>
+        </section>`;
+    }
+
+    const au = S.auditInfo;
+    $('overview').innerHTML = `<div class="ov-head"><div><h1>${L('সারসংক্ষেপ', 'Overview')}</h1>
+          <p>${L('এই সেশনে প্রহরী কী নিয়ে সতর্ক করেছে, আর গ্রাহকেরা কী সিদ্ধান্ত নিয়েছেন।', 'What Prohori warned about in this session, and what each customer decided.')}</p></div>
+        <div class="ov-sys">${h.clock ? `<span class="chip">${L('ডেমো ঘড়ি', 'Demo clock')} <b class="num">${P.n(h.clock.slice(11, 16))}</b></span>` : ''}
+          ${h.model_trees ? `<span class="chip"><b class="num">${count(h.model_trees)}</b> ${L('গাছের মডেল', 'trees in the model')}</span>` : ''}
+          ${h.wallets_in_state ? `<span class="chip"><b class="num">${count(h.wallets_in_state)}</b> ${L('ওয়ালেট লাইভ স্টোরে', 'wallets in the live store')}</span>` : ''}
+          ${au ? `<span class="chip ${au.ok ? 'ok-chip' : 'bad-chip'}">${au.ok ? L(`✓ অডিট চেইন ঠিক আছে, ${P.n(au.entries)}টি এন্ট্রি`, `✓ Audit chain verified, ${au.entries} entries`) : L('✗ অডিট চেইন ভাঙা', '✗ Audit chain broken')}</span>` : ''}</div></div>
+      ${flow}${tiles}<div class="ov-grid">${table}<div class="ov-side">${byBand}${honest}</div></div>${test}`;
+  }
+
+  function openCase(id) {
+    S.pinned = true;
+    openTab('alerts');
+    window.scrollTo(0, 0);
+    select(id).then(() => { const el = document.querySelector('#feed .al.sel'); if (el) el.scrollIntoView({ block: 'nearest' }); });
+  }
+  $('overview').addEventListener('click', (e) => {
+    const go = e.target.closest('[data-go-tab]');
+    if (go) { openTab(go.dataset.goTab); window.scrollTo(0, 0); return; }
+    const row = e.target.closest('[data-open]');
+    if (row) openCase(row.dataset.open);
+  });
+  $('overview').addEventListener('keydown', (e) => {
+    const row = e.key === 'Enter' && e.target.closest('[data-open]');
+    if (row) openCase(row.dataset.open);
+  });
+
+  // one tooltip for every chart mark: hover or keyboard focus on anything with data-tip
+  const tip = document.createElement('div');
+  tip.className = 'tip';
+  tip.setAttribute('role', 'tooltip');
+  document.body.appendChild(tip);
+  function showTip(el) {
+    tip.textContent = el.dataset.tip;
+    tip.classList.add('on');
+    const r = el.getBoundingClientRect();
+    tip.style.left = `${Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, r.left + r.width / 2 - tip.offsetWidth / 2))}px`;
+    tip.style.top = `${r.top - tip.offsetHeight - 8 < 8 ? r.bottom + 8 : r.top - tip.offsetHeight - 8}px`;
+  }
+  ['mouseover', 'focusin'].forEach((ev) => document.addEventListener(ev, (e) => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) showTip(el); else tip.classList.remove('on');
+  }));
+  ['mouseout', 'focusout', 'scroll'].forEach((ev) => document.addEventListener(ev, () => tip.classList.remove('on'), true));
 
   // ---------------------------------------------------------------- detail
   function wrongNumberPanel(sug, typed, choice) {
@@ -154,8 +341,8 @@
   function header(d, extra) {
     const truth = d.truth ? `<span class="chip" title="Known only because the data is synthetic">${L('সিন্থেটিক সত্য', 'synthetic truth')}: ${d.truth.is_fraud ? `fraud ${P.esc(d.truth.scenario)} (${P.esc(d.truth.role)})` : 'legitimate'}</span>` : '';
     return `<div class="row" style="flex-wrap:wrap;gap:10px">
-        <span class="band band-${d.band}" style="font-size:14px">${d.band === 'COMPLAINT' ? L('অভিযোগ', 'COMPLAINT') : d.band}</span>
-        <b style="font-size:20px" class="num">${P.tk(d.amount)}</b>
+        <span class="band band-${d.band}" style="font-size:14px">${bandName(d.band)}</span>
+        <b class="case-amt">${P.tk(d.amount)}</b>
         <span class="num">${P.esc(d.sender_id)} → ${P.esc(d.receiver_id || '?')}</span>
         ${d.policy_override ? `<span class="chip">policy: ${P.esc(d.policy_override.replace(/_/g, ' '))}</span>` : ''}
         ${d.planted_id ? `<span class="chip">${P.esc(d.planted_id)}: ${P.esc(d.title)}</span>` : ''} ${truth} ${extra || ''}
@@ -171,7 +358,7 @@
         <div class="panel graph"><h3>${L('টাকার নেটওয়ার্ক (২৪ ঘণ্টা আগে, ৩ ঘণ্টা পরে)', 'Money network (24 h before, 3 h after)')}</h3>${drawNetwork(d.network, d)}
           <div class="legend"><span><i style="background:#005bac"></i>${L('প্রেরক', 'sender')}</span><span><i style="background:#c62828"></i>${L('প্রাপক', 'recipient')}</span>
           <span><i style="background:#7b8bb0"></i>${L('অন্য প্রেরক', 'payer')}</span><span><i style="background:#e07a10"></i>${L('এজেন্ট', 'agent')}</span><span><i style="background:#7b3fb3"></i>${L('একই ফোন', 'shared phone')}</span>
-          <span><i style="background:#b23b3b"></i>${L('সাজানো প্রতারণার ভূমিকা', 'planted fraud role')}</span><span><i style="background:#fff;border:2px solid #c62828"></i>${L('১৬২৬৮-এ অভিযোগ', 'reported to 16268')}</span><span>🔒 ${L('স্থগিত', 'frozen')}</span></div></div>
+          <span><i style="background:#b23b3b"></i>${L('সাজানো প্রতারণার ভূমিকা', 'planted fraud role')}</span><span><i style="background:#fff;border:2px solid #c62828"></i>${L('১৬২৬৮-এ অভিযোগ', 'reported to 16268')}</span><span>🚩 ${L('চিহ্নিত', 'flagged')}</span></div></div>
       </div>`;
   }
 
@@ -193,15 +380,15 @@
     const rep = d.report;
     const rec = new Set(rep.actions);
     const labels = rep.action_labels;
-    const fits = (k) => (d.kind === 'complaint' ? !['RELEASE_TRANSACTION', 'VERIFY_OWNER', 'REVIEW_AGENT'].includes(k)
+    const fits = (k) => (d.kind === 'complaint' ? !['VERIFY_OWNER', 'REVIEW_AGENT'].includes(k)
       : d.kind === 'recharge' ? ['VERIFY_OWNER', 'WATCHLIST', 'DISMISS'].includes(k) : !COMPLAINT_ONLY.includes(k));
     const order = [...rep.actions, ...Object.keys(labels).filter((k) => !rec.has(k) && fits(k))];
-    const can = (k) => !(k === 'RELEASE_TRANSACTION' && !(d.source === 'live' && d.status === 'held_for_review'));
     return `<div class="panel">
-        <h3>${L('সিদ্ধান্ত নিন', 'Decide')}</h3>
-        <div class="actions" id="acts">${order.map((k) => `<button data-act="${k}" class="${rec.has(k) ? 'rec' : ''} ${k === 'DISMISS' ? 'warn' : ''}" ${can(k) ? '' : 'disabled'} title="${P.esc(L(labels[k].en, labels[k].bn))}">${P.esc(L(labels[k].bn, labels[k].en))}</button>`).join('')}</div>
+        <h3>${L('পরবর্তী পদক্ষেপ', 'Follow up')}</h3>
+        ${d.kind === 'complaint' ? '' : `<div class="small muted" style="margin-bottom:8px">${L('গ্রাহক সতর্কবার্তা পেয়েছেন এবং নিজেই সিদ্ধান্ত নেন; কোনো লেনদেন এখানে অপেক্ষায় থাকে না।', 'The customer has been warned and decides; no transfer waits here.')}</div>`}
+        <div class="actions" id="acts">${order.map((k) => `<button data-act="${k}" class="${rec.has(k) ? 'rec' : ''} ${k === 'DISMISS' ? 'warn' : ''}" title="${P.esc(L(labels[k].en, labels[k].bn))}">${P.esc(L(labels[k].bn, labels[k].en))}</button>`).join('')}</div>
         <input class="field" id="note" placeholder="${L('অডিট লগের জন্য নোট (বাতিল করতে আবশ্যক)', 'Note for the audit log (required to dismiss)')}" style="margin-top:10px;font-size:14px;padding:9px">
-        <div class="small muted" style="margin-top:6px">${d.frozen_recipient ? L('🔒 প্রাপক স্থগিত: নতুন যেকোনো লেনদেন আটকে যাবে। ', '🔒 The recipient is frozen: any new transfer to it is held. ') : ''}${d.hold_amount ? L(`আটকানোর অনুরোধ: ${P.tk(d.hold_amount)}। `, `Hold requested: ${P.tk(d.hold_amount)}. `) : ''}${L('প্রতিটি পদক্ষেপ আপনার নামে লগ হয়।', 'Every action is logged with your name.')}</div>
+        <div class="small muted" style="margin-top:6px">${d.flagged_recipient ? L('🚩 প্রাপক চিহ্নিত: সেখানে নতুন যেকোনো লেনদেনে গ্রাহক সবচেয়ে জোরালো সতর্কবার্তা পাবেন, সিদ্ধান্ত গ্রাহকেরই। ', '🚩 The recipient is flagged: any new transfer to it gets the strongest warning; the customer still decides. ') : ''}${d.hold_amount ? L(`আটকানোর অনুরোধ: ${P.tk(d.hold_amount)}। `, `Hold requested: ${P.tk(d.hold_amount)}. `) : ''}${L('প্রতিটি পদক্ষেপ আপনার নামে লগ হয়।', 'Every action is logged with your name.')}</div>
         <h3 style="margin-top:14px">${L('এই অ্যালার্টের ট্রেইল', 'Trail for this alert')}</h3>
         <div class="audit">${d.audit.map((e) => `<div>${P.esc(e.at.slice(11, 19))} · <b>${P.esc(e.actor)}</b> (${P.esc(e.role)}) ${P.esc(e.action)} ${e.detail && e.detail.note ? `· “${P.esc(e.detail.note)}”` : ''} <span class="muted">#${P.esc(e.hash.slice(0, 10))}</span></div>`).join('') || `<div class="muted">${L('ঐতিহাসিক কেস: অফলাইনে স্কোর করা, লাইভ ট্রেইল নেই।', 'Historical case: scored offline, no live trail.')}</div>`}</div>
       </div>`;
@@ -214,7 +401,7 @@
       const b = e.target.closest('[data-act]');
       if (!b) return;
       const analyst = $('analyst').value.trim();
-      if (!analyst) { $('analyst').focus(); alert(L('আগে আপনার নাম লিখুন: প্রতিটি পদক্ষেপ একজন মানুষ অনুমোদন করেন।', 'Enter your name first: a person approves every action.')); return; }
+      if (!analyst) { $('analyst').focus(); alert(L('আগে আপনার নাম লিখুন: প্রতিটি পদক্ষেপ নামসহ লগ হয়।', 'Enter your name first: every action is logged with a name.')); return; }
       try {
         await P.api(`/api/v1/alerts/${d.id}/action`, { method: 'POST', body: { action: b.dataset.act, analyst, note: $('note').value } });
         await select(d.id);
@@ -241,8 +428,8 @@
           <div><span>${L('গ্রাহক', 'Customer')}</span><b>${P.esc(choice)}</b></div>
           <div><span>${L('অ্যালার্ট', 'Alert')}</span><b class="num">${P.esc(d.id)}</b></div>
         </div>
-        <div class="gauge" style="margin-top:12px"><i style="left:calc(${Math.min(99.4, d.risk_score)}% - 2px)"></i></div>
-        <div class="row small muted" style="justify-content:space-between"><span>ALLOW</span><span>NUDGE 30</span><span>STEP-UP 60</span><span>HOLD 80</span></div>
+        <div class="gauge" style="margin-top:14px" role="img" aria-label="${L('ঝুঁকি স্কোর', 'Risk score')} ${d.risk_score}/100"><i style="left:calc(${Math.min(99.4, d.risk_score)}% - 2px)"></i></div>
+        <div class="gauge-scale"><span style="left:0">ALLOW</span><span style="left:30%">NUDGE 30</span><span style="left:60%">STEP-UP 60</span><span style="left:80%">HOLD 80</span></div>
       </div>
       ${wrongNumberPanel(d.suggestion, d.typed, d.customer_choice ? choice : null)}
       ${habitPanel(d.habit)}
@@ -258,8 +445,8 @@
     $('detail').innerHTML = `
       <div class="panel">
         <div class="row" style="flex-wrap:wrap;gap:10px">
-          <span class="band band-${d.band}" style="font-size:14px">${d.band}</span><span class="chip">📱 ${L('মোবাইল রিচার্জ', 'Mobile recharge')}</span>
-          <b style="font-size:20px" class="num">${P.tk(d.amount)}</b><span class="num">${P.esc(d.sender_id)} → ${P.esc(rc.number)}</span>
+          <span class="band band-${d.band}" style="font-size:14px">${bandName(d.band)}</span><span class="chip">📱 ${L('মোবাইল রিচার্জ', 'Mobile recharge')}</span>
+          <b class="case-amt">${P.tk(d.amount)}</b><span class="num">${P.esc(d.sender_id)} → ${P.esc(rc.number)}</span>
           <span class="chip">${P.esc(d.title || '')}</span></div>
         <div class="kv" style="margin-top:10px">
           <div><span>${L('কার নম্বর', 'Whose number')}</span><b>${whose}</b></div>
@@ -382,7 +569,7 @@
       const label = n.kind === 'customer' ? `…${String(n.id).slice(-4)}` : n.id;
       const sub = [n.role !== 'other' ? n.role : '', n.age_days !== null && n.age_days !== undefined && n.kind === 'customer' && n.age_days < 120 ? `${Math.round(n.age_days)}d old` : ''].filter(Boolean).join(' · ');
       nodes += `<g>${shape}<title>${P.esc(`${n.id} · ${n.kind} · ${n.role}${n.age_days != null ? ` · opened ${n.age_days} days before` : ''}${n.reported ? ' · reported' : ''}`)}</title>
-        <text x="${x}" y="${y + r + 12}" text-anchor="middle" font-size="10.5" fill="#33405a" font-family="ui-monospace,Consolas,monospace">${P.esc(label)}${n.frozen ? ' 🔒' : ''}</text>
+        <text x="${x}" y="${y + r + 12}" text-anchor="middle" font-size="10.5" fill="#33405a" font-family="ui-monospace,Consolas,monospace">${P.esc(label)}${n.flagged ? ' 🚩' : ''}</text>
         ${sub && (big || n.kind !== 'customer' || byCol[cols.indexOf(Lv.get(n.id))].length <= 6) ? `<text x="${x}" y="${y + r + 23}" text-anchor="middle" font-size="9.5" fill="#7b8597">${P.esc(sub)}</text>` : ''}</g>`;
     });
     return `<svg viewBox="0 0 ${W} ${H + 20}" role="img" aria-label="Money network around the alert">
@@ -439,7 +626,7 @@
     const im = m.impact || {}, fr = m.friction || {};
     const fair = (m.fairness || []).map((r) => `<tr style="${r.flag ? 'background:#fff4e5' : ''}"><td>${P.esc(r.attribute)}</td><td>${P.esc(r.group)}</td>
       <td class="num">${r.legit_txns}</td><td class="num">${pct(r.fpr_nudge)}</td><td class="num">${r.fpr_nudge_ratio}×</td><td class="num">${pct(r.fpr_stepup)}</td><td class="num">${r.fpr_stepup_ratio}×</td><td>${r.flag ? L('নজরে রাখুন', 'watch') : ''}</td></tr>`).join('');
-    const demo = (m.demo || []).map((r) => `<tr><td>${P.esc(r.id)}</td><td>${P.esc(r.title)}</td><td>${P.esc(r.expected)}</td><td><span class="band band-${r.actual === 'FLAGGED' ? 'HOLD' : r.actual}">${P.esc(r.actual)}</span></td><td class="num">${r.risk_score}</td></tr>`).join('');
+    const demo = (m.demo || []).map((r) => `<tr><td class="nw">${P.esc(r.id)}</td><td>${P.esc(r.title)}</td><td>${P.esc(r.expected)}</td><td><span class="band band-${r.actual === 'FLAGGED' ? 'HOLD' : r.actual}">${P.esc(r.actual)}</span></td><td class="num">${r.risk_score}</td></tr>`).join('');
     $('model').innerHTML = `<h3>${L('আলাদা রাখা টেস্ট উইন্ডো (দিন ৫১–৬০, প্রশিক্ষণ বা টিউনিং-এ কখনো ব্যবহার হয়নি) · সিন্থেটিক ডেটা, ঊর্ধ্বসীমা হিসেবে পড়ুন', 'Held-out test window (days 51–60, never used for training or tuning) · synthetic data, read as upper bounds')}</h3>
       <div class="kv" style="margin-bottom:12px">
         <div><span>${L('রক্ষা পাওয়া ভুক্তভোগীর টাকা (ঘোষিত অনুমানে)', 'Victim money protected (stated stop-rate assumptions)')}</span><b class="num">${pct(im.expected_prevented_share)}</b></div>
@@ -604,8 +791,15 @@
   // ---------------------------------------------------------------- audit
   async function loadAudit() {
     const a = await P.api('/api/v1/audit');
-    $('audit').innerHTML = `<h3>${L('অডিট লগ', 'Audit log')} <span class="chip">${a.verify.ok ? L('✓ হ্যাশ চেইন যাচাই হয়েছে', '✓ hash chain verified') : `✗ broken at #${a.verify.broken_at}`}</span> <span class="small muted">${P.n(a.verify.entries)} ${L('এন্ট্রি', 'entries')}</span></h3>
-      <div class="audit">${a.entries.slice().reverse().map((e) => `<div>#${e.seq} ${P.esc(e.at.replace('T', ' '))} · <b>${P.esc(e.actor)}</b> (${P.esc(e.role)}) ${P.esc(e.action)} ${e.alert_id ? `· ${P.esc(e.alert_id)}` : ''} <span class="muted">${P.esc(e.hash.slice(0, 16))}… prev ${P.esc(e.prev.slice(0, 8))}</span></div>`).join('')}</div>`;
+    S.auditInfo = a.verify;
+    const rows = a.entries.slice().reverse().map((e) => `<tr><td>${e.seq}</td><td>${P.esc(e.at.replace('T', ' '))}</td>
+      <td class="who"><b>${P.esc(e.actor)}</b> <span class="muted">${P.esc(e.role)}</span></td><td>${P.esc(e.action)}</td><td>${P.esc(e.alert_id || '')}</td>
+      <td class="who">${e.detail && e.detail.note ? `“${P.esc(e.detail.note)}”` : ''}</td>
+      <td title="${P.esc(e.hash)}">${P.esc(e.hash.slice(0, 16))}…</td><td class="muted" title="${P.esc(e.prev)}">${P.esc(e.prev.slice(0, 8))}…</td></tr>`).join('');
+    $('audit').innerHTML = `<h3>${L('অডিট লগ', 'Audit log')} <span class="chip ${a.verify.ok ? 'ok-chip' : 'bad-chip'}">${a.verify.ok ? L('✓ হ্যাশ চেইন যাচাই হয়েছে', '✓ hash chain verified') : `✗ broken at #${a.verify.broken_at}`}</span> <span class="small muted">${P.n(a.verify.entries)} ${L('এন্ট্রি', 'entries')}</span></h3>
+      <p class="small muted" style="margin-top:0">${L('মডেলের প্রতিটি সতর্কতা, গ্রাহকের প্রতিটি সিদ্ধান্ত, অভিযোগ ও বিশ্লেষকের পদক্ষেপ এখানে জমা হয়। প্রতিটি সারি আগের সারির হ্যাশ বহন করে, তাই কোনো সারি বদলালে চেইন ভেঙে যায়।',
+        'Every model warning, customer decision, complaint and analyst action lands here. Each row carries the hash of the row before it, so changing any row breaks the chain.')}</p>
+      ${tbl(['#', L('সময়', 'When'), L('কে', 'Who'), L('কী', 'Action'), L('অ্যালার্ট', 'Alert'), L('নোট', 'Note'), L('হ্যাশ', 'Hash'), L('আগের হ্যাশ', 'Previous')], rows, 'audit-t')}`;
   }
 
   // ---------------------------------------------------------------- language switch
@@ -625,14 +819,18 @@
   boot().then(() => {
     setInterval(poll, 2500);
     setInterval(async () => {
-      try { const h = await P.api('/health'); $('clock').textContent = `${L('ডেমো ঘড়ি', 'demo clock')} ${h.clock.replace('T', ' ').slice(0, 16)}`; } catch (e) { /* offline */ }
+      try {
+        const h = await P.api('/health');
+        S.health = h;
+        $('clock').textContent = `${L('ডেমো ঘড়ি', 'demo clock')} ${h.clock.replace('T', ' ').slice(0, 16)}`;
+      } catch (e) { /* offline */ }
     }, 5000);
   });
 
   // the showcase's reset: start over without reloading the page (the in-browser engine stays up)
   window.ProhoriCopilot = {
     async restart() {
-      Object.assign(S, { alerts: [], sel: null, detail: null, pinned: false, first: true, model: null });
+      Object.assign(S, { alerts: [], sel: null, detail: null, pinned: false, first: true, model: null, auditInfo: null, ovSig: '' });
       S.seen.clear();
       $('detail').innerHTML = `<div class="panel empty">${L('একটি অ্যালার্ট বেছে নিন।', 'Pick an alert.')}</div>`;
       await boot();
