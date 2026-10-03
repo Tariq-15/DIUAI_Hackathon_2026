@@ -96,7 +96,6 @@ input, textarea, select { font: inherit; }
 .svc .ic { width: 46px; height: 46px; border-radius: 14px; background: #eef5fc; display: grid; place-items: center; font-size: 22px; }
 .svc.hot .ic { background: var(--hold-soft); }
 .shield { margin: 12px; border-radius: 16px; padding: 14px; color: #fff; background: linear-gradient(120deg, #003a70, #005bac 60%, #00a3e0); display: flex; gap: 12px; align-items: center; }
-.shield .big { font-size: 34px; }
 .shield b { display: block; font-size: 14px; }
 .shield span { font-size: 12px; opacity: .9; }
 .card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
@@ -394,8 +393,13 @@ details.why > *:not(summary) { margin-top: 8px; }
 .an { background: var(--page); }
 .an-head { background: var(--shell); gap: 14px; padding: 10px 16px; position: sticky; top: 0; z-index: 70; }
 .an-head .brand { display: flex; align-items: center; gap: 9px; font-size: 17px; white-space: nowrap; }
-.an-head .brand .mark { width: 28px; height: 28px; border-radius: 8px; background: var(--upay-yellow); display: grid; place-items: center; flex: none; }
-.an-head .brand .mark svg { width: 18px; height: 18px; fill: none; stroke: #1b1b1b; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+/* the Prohori logo (ui/img): drawn for a white background, so on the navy bars it sits on a small white tile */
+.mark { background: #fff; border-radius: 10px; padding: 2px; object-fit: contain; flex: none; display: block; }
+.an-head .brand .mark { width: 34px; height: 34px; }
+.show-head .brand { display: flex; align-items: center; gap: 9px; }
+.shield .mark { width: 46px; height: 46px; border-radius: 13px; }
+.boot-logo { display: block; width: 132px; height: auto; margin: 0 auto 10px; }
+.boot.mini .boot-logo { display: none; }
 .an-tabs button { display: inline-flex; align-items: center; gap: 8px; color: #aab6d3; font-size: 14px; padding: 8px 12px; border-radius: 9px; position: relative; }
 .an-tabs button svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .an-tabs button:hover { color: #fff; background: rgba(255, 255, 255, .06); }

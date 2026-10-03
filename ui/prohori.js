@@ -120,7 +120,8 @@
     if (!eng || params.get('embed') === '1' || eng.state.ready) return;
     const el = document.createElement('div');
     el.className = 'boot';
-    el.innerHTML = `<div class="boot-card"><div class="spin"></div><b>${L('প্রহরী চালু হচ্ছে', 'Starting Prohori')}</b>
+    el.innerHTML = `<div class="boot-card"><img class="boot-logo" src="img/prohori-logo.png" alt="Prohori" width="132" height="153">
+      <div class="spin"></div><b>${L('প্রহরী চালু হচ্ছে', 'Starting Prohori')}</b>
       <div class="small" id="boot-msg"></div><div class="boot-bar"><i id="boot-bar"></i></div>
       <p class="small muted" id="boot-note"></p></div>`;
     document.body.appendChild(el);
