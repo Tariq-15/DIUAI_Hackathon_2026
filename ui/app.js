@@ -12,6 +12,10 @@
   };
 
   if (P.embed) { $('proto').classList.add('hidden'); $('stage').classList.add('embed'); }
+  document.addEventListener('click', (e) => {                // the i panel closes when you tap elsewhere
+    const d = $('proto');
+    if (d.open && !d.contains(e.target)) d.open = false;
+  });
 
   function toast(msg) {
     const t = $('toast');
@@ -120,6 +124,9 @@
   }
 
   function slipText(sug) { return sug && sug.slip ? L(sug.slip.bn, sug.slip.en) : ''; }
+  const almost = (sug) => L(`<b>${P.esc(sugName(sug))}</b>-এর নম্বরের প্রায় মতো (আগে ${P.bn(sug.count)} বার পাঠিয়েছেন)`,
+    `Almost <b>${P.esc(sugName(sug))}</b>'s number (sent there ${sug.count} times)`);
+  const times = (v) => (v >= 10 ? Math.round(v) : (+v).toFixed(1));
   function sugName(sug) { return L(sug.name, sug.name_en) || P.phone(sug.msisdn); }
   function privacyNote() {
     return `<div class="fl-note">🔒 ${L('এই মিলটি আপনার নিজের লেনদেনের ইতিহাস দিয়ে করা হয়; আসল অ্যাপে এটি ফোনেই চলবে, আপনার পরিচিত নম্বর কোথাও যাবে না। কোন ভুলগুলো বেশি হয় (পাশের বোতাম, দুই ডিজিট উল্টে যাওয়া) তা শেখা হয়েছে <b>ফেডারেটেড লার্নিং</b>-এ: ফোনগুলো শুধু নয়েজ মেশানো সংখ্যা পাঠায়, সার্ভার কেবল যোগফল দেখে।',
@@ -137,11 +144,10 @@
       const sug = h.suggestion;
       el.innerHTML = `<div class="hint warn"><b>⚠️ ${L('নম্বরটি কি ঠিক আছে?', 'Is this the right number?')}</b>
         ${P.numDiff(h.number, sug.msisdn, sug.slip && sug.slip.positions)}
-        <div>${L(`<b>${P.esc(sugName(sug))}</b>-এর নম্বরের সাথে প্রায় মিলে যায় (আগে ${P.bn(sug.count)} বার পাঠিয়েছেন)। ${P.esc(slipText(sug))}।`,
-          `It is almost <b>${P.esc(sugName(sug))}</b>'s number (you have sent there ${sug.count} times): ${P.esc(slipText(sug))}.`)}</div>
+        <div>${almost(sug)}</div>
         <div class="row"><button class="btn btn-primary" id="hint-use">✓ ${P.esc(L(`${sugName(sug)}-কে পাঠান`, `Send to ${sugName(sug)}`))}</button>
           <button class="btn btn-ghost" id="hint-keep">${L('না, এই নম্বরটিই', 'No, keep this number')}</button></div>
-        ${privacyNote()}</div>`;
+        <details class="why"><summary>${L('কেন?', 'Why?')}</summary><p class="small">${P.esc(slipText(sug))}${L("।", ".")}</p>${privacyNote()}</details></div>`;
       $('hint-use').addEventListener('click', () => pickRecipient(sug.msisdn, sug.name || P.phone(sug.msisdn), sug.name_en, S.pendingAmount, null));
       $('hint-keep').addEventListener('click', () => pickRecipient(h.number, 'নতুন নম্বর', 'New number', S.pendingAmount, null));
     } else if (!h.exists) {
@@ -188,21 +194,17 @@
   function habitLine(kind, amount) {
     const h = S.me && S.me.habits && S.me.habits[kind];
     if (!h) return '';
-    if (!h.enough) {
-      return `<div class="habit small muted">📊 ${L('আপনার সাধারণ পরিমাণ বোঝার মতো যথেষ্ট লেনদেন এখনো হয়নি।', 'Not enough history yet to know your usual amount.')}</div>`;
-    }
-    const verb = kind === 'send' ? ['পাঠান', 'send'] : ['রিচার্জ করেন', 'recharge'];
+    if (!h.enough) return `<div class="habit small muted">📊 ${L('এখনো যথেষ্ট লেনদেন হয়নি', 'Not enough history yet')}</div>`;
     const from = Math.max(h.usual * h.threshold, h.floor);
     const ratio = h.usual ? amount / h.usual : 0;
-    let out = `<div class="habit">📊 ${L(`সাধারণত আপনি প্রায় <b>${money(h.usual)}</b> ${verb[0]} (${money(h.low)}–${money(h.high)}), সপ্তাহে প্রায় ${P.n(h.per_week)} বার`,
-      `You usually ${verb[1]} about <b>${money(h.usual)}</b> (${money(h.low)} to ${money(h.high)}), about ${h.per_week} a week`)}</div>`;
+    const what = kind === 'send' ? ['লেনদেন', 'transfers'] : ['রিচার্জ', 'recharges'];
+    let out = `<div class="habit">📊 ${L(`সাধারণত <b>${money(h.usual)}</b> (${money(h.low)}–${money(h.high)})`, `Usually <b>${money(h.usual)}</b> (${money(h.low)} to ${money(h.high)})`)}</div>`;
     if (amount && ratio >= h.threshold && amount >= h.floor) {
-      out += `<div class="hint warn habit-warn">⚠️ ${L(`এটি আপনার সাধারণ পরিমাণের <b>${P.n(ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1))} গুণ</b>। পাঠানোর আগে প্রহরী একবার জিজ্ঞেস করবে।`,
-        `This is <b>${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)} times</b> your usual amount. Prohori will ask you once before it goes.`)}</div>`;
-    } else {
-      out += `<div class="small muted habit-note">${L(`${money(from)} বা তার বেশি হলে প্রহরী একবার জিজ্ঞেস করবে। সীমাটি ফেডারেটেড লার্নিং-এ শেখা: ফোনগুলো শুধু নয়েজ মেশানো হিস্টোগ্রাম পাঠায়, কোনো পরিমাণ নয়।`,
-        `From ${money(from)} Prohori asks once. The limit was learned with federated learning: phones send only noisy histograms, never an amount.`)}</div>`;
+      out += `<div class="hint warn habit-warn">⚠️ ${L(`সাধারণের ${P.n(times(ratio))} গুণ: প্রহরী একবার জিজ্ঞেস করবে`, `${times(ratio)}× your usual: Prohori will ask once`)}</div>`;
     }
+    out += `<details class="why"><summary>${L('এটা কী?', 'What is this?')}</summary><p class="small">${L(
+      `আপনার শেষ ${P.n(h.n)}টি ${what[0]} থেকে, সপ্তাহে প্রায় ${P.n(h.per_week)} বার। ${money(from)} বা তার বেশি হলে প্রহরী একবার জিজ্ঞেস করবে। সীমাটি ফেডারেটেড লার্নিং-এ শেখা: ফোনগুলো শুধু নয়েজ মেশানো হিস্টোগ্রাম পাঠায়, কোনো পরিমাণ নয়।`,
+      `From your last ${h.n} ${what[1]}, about ${h.per_week} a week. From ${money(from)} Prohori asks once. The limit was learned with federated learning: phones send only noisy histograms, never an amount.`)}</p></details>`;
     return out;
   }
   function drawAmountHabit() { $('a-habit').innerHTML = habitLine('send', amountOf($('amount'))); }
@@ -335,32 +337,33 @@
     const sug = res.suggestion;
     let [icon, title, sub] = TITLES[res.band];
     const hab = res.habit && res.habit.unusual ? res.habit : null;
+    const habFirst = hab && res.band === 'NUDGE' && !sug;               // the customer's own habit is why it asks
     if (sug && res.band === 'NUDGE') { icon = '🔢'; title = ['ভুল নম্বর হতে পারে', 'This may be the wrong number']; }
-    else if (hab && res.band === 'NUDGE') {
+    else if (habFirst) {
       icon = '💰';
       title = S.flow === 'recharge' ? ['রিচার্জের পরিমাণটা অস্বাভাবিক', 'Unusual recharge for you'] : ['পরিমাণটা আপনার জন্য অস্বাভাবিক', 'Unusual amount for you'];
     } else if (S.flow === 'recharge' && res.band === 'NUDGE') { icon = '📱'; title = ['অল্প সময়ে অনেক রিচার্জ', 'Many recharges in a short time']; }
-    const reasons = res.reasons.filter((r) => r.code !== 'agent_spike' && !(sug && r.code === 'wrong_recipient')).slice(0, sug ? 2 : 3)
-      .map((r) => `<li><span>•</span><span>${P.esc(L(r.bn, r.en))}</span></li>`).join('');
+    const reasons = res.reasons.filter((r) => r.code !== 'agent_spike' && !(sug && r.code === 'wrong_recipient'));
+    const li = (list) => list.map((r) => `<li><span>•</span><span>${P.esc(L(r.bn, r.en))}</span></li>`).join('');
+    let lead = '';
+    if (sug) lead = almost(sug);
+    else if (habFirst) {
+      lead = hab.ratio && hab.why.includes('amount')
+        ? L(`সাধারণত <b>${money(hab.usual)}</b>; এবার তার <b>${P.n(times(hab.ratio))} গুণ</b>`, `You usually ${S.flow === 'recharge' ? 'recharge' : 'send'} <b>${money(hab.usual)}</b>; this is <b>${times(hab.ratio)}×</b>`)
+        : L(`আজ মোট <b>${money(hab.day_total)}</b>; সাধারণ দিনে প্রায় ${money(hab.day_usual)}`, `<b>${money(hab.day_total)}</b> today; a usual day is about ${money(hab.day_usual)}`);
+    } else if (reasons.length) lead = P.esc(L(reasons[0].bn, reasons[0].en));
+    const legend = `<p class="small muted">${L('ধূসর বিন্দু = আগের পরিমাণ, সবুজ = সাধারণ, লাল = এবার। সীমা ফেডারেটেড লার্নিং-এ শেখা; আপনার পরিমাণগুলো ফোনেই থাকে।',
+      'Grey dots = earlier amounts, green = usual, red = this one. The limit was learned with federated learning; your amounts stay on the phone.')}</p>`;
+
     let body = `
       <div class="row" style="align-items:flex-start"><div style="font-size:30px">${icon}</div>
         <div class="grow"><h2>${L(...title)}</h2><div class="small muted">${L(...sub)} · <span class="num">${money(S.amount)}</span> → ${P.esc(nameOf())}</div></div>
         <button class="listen" id="listen">🔊 ${L('শুনুন', 'Listen')}</button></div>`;
-    if (sug) {
-      body += `${P.numDiff(sug.typed || S.to, sug.msisdn, sug.slip && sug.slip.positions)}
-        <p style="margin:0 0 6px;font-size:14.5px;line-height:1.5">${L(
-          `আপনি কি <b>${P.esc(sugName(sug))}</b>-কে পাঠাতে চেয়েছিলেন? সেখানে আগে ${P.bn(sug.count)} বার পাঠিয়েছেন। ${P.esc(slipText(sug))}।`,
-          `Did you mean <b>${P.esc(sugName(sug))}</b>? You have sent there ${sug.count} times. ${P.esc(slipText(sug))}.`)}</p>`;
-    }
-    if (hab) {
-      body += `<div class="habitbox"><div class="small"><b>${L('আপনার আগের পরিমাণগুলোর তুলনায়', 'Against your earlier amounts')}</b>
-        <span class="muted">(${L(`শেষ ${P.n(hab.n)}টি`, `last ${hab.n}`)})</span></div>${P.habitStrip(hab)}
-        <div class="small muted">${L('ধূসর বিন্দু = আগের পরিমাণ, সবুজ = সাধারণ, লাল = এবার। সীমা ফেডারেটেড লার্নিং-এ শেখা; আপনার পরিমাণগুলো ফোনেই থাকে।',
-    'Grey dots = earlier amounts, green = usual, red = this one. The limit was learned with federated learning; your amounts stay on the phone.')}</div></div>`;
-    }
-    if (reasons) body += `<ul class="reasons">${reasons}</ul>`;
+    if (sug) body += P.numDiff(sug.typed || S.to, sug.msisdn, sug.slip && sug.slip.positions);
+    if (habFirst) body += `<div class="habit-mini">${P.habitStrip(hab)}</div>`;
+    if (lead) body += `<p class="lead">${lead}</p>`;
     if (res.policy_override === 'recipient_frozen_by_analyst') {
-      body += `<p class="small"><b>${L('এই নম্বরটি upay-এর পর্যালোচনায় আছে।', 'This number is under review by upay.')}</b></p>`;
+      body += `<p class="lead"><b>${L('এই নম্বরটি upay-এর পর্যালোচনায় আছে।', 'This number is under review by upay.')}</b></p>`;
     }
     const useBtn = sug && res.choices.includes('use_suggested')
       ? `<button class="btn btn-primary btn-block" data-choice="use_suggested" style="margin-bottom:8px">✓ ${P.esc(L(`${sugName(sug)}-কে পাঠান (${P.phone(sug.msisdn)})`, `Send to ${sugName(sug)} (${P.phone(sug.msisdn)})`))}</button>` : '';
@@ -369,23 +372,30 @@
       body += `<div class="ask">${P.esc(question)}</div>${useBtn}
         <button class="btn ${sug ? 'btn-ghost' : 'btn-primary'} btn-block" data-choice="cancel">${sug ? L('বাতিল করুন', 'Cancel') : L('বাতিল করুন (প্রস্তাবিত)', 'Cancel (recommended)')}</button>
         <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="confirm">${sug ? L('না, এই নম্বরটিই ঠিক, পাঠান', 'No, this number is right, send')
-          : S.flow === 'recharge' ? L('হ্যাঁ, আমি নিজেই জেনে-বুঝে রিচার্জ করছি', 'Yes, I am recharging this myself')
-            : hab && res.policy_override === 'unusual_amount' ? L('হ্যাঁ, পরিমাণ ঠিক আছে, পাঠান', 'Yes, the amount is right, send')
+          : S.flow === 'recharge' ? L('হ্যাঁ, আমি নিজেই রিচার্জ করছি', 'Yes, I am recharging myself')
+            : habFirst ? L('হ্যাঁ, পরিমাণ ঠিক আছে, পাঠান', 'Yes, the amount is right, send')
               : L('হ্যাঁ, চিনি, পাঠাতে চাই', 'Yes, I know them, send')}</button>`;
     } else if (res.band === 'STEP_UP') {
       body += `<div class="ask">${P.esc(question)}</div>${useBtn}
         <input class="field num" id="pin2" inputmode="numeric" maxlength="4" placeholder="${L('পিন (ডেমো: যেকোনো ৪ ডিজিট)', 'PIN (demo: any 4 digits)')}" style="margin-bottom:8px">
         <button class="btn ${sug ? 'btn-ghost' : 'btn-primary'} btn-block" data-choice="cancel">${L('বাতিল করুন (প্রস্তাবিত)', 'Cancel (recommended)')}</button>
-        <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="confirm_pin" id="pin2-go" disabled>${L('পিন দিয়ে পাঠান', 'Send with PIN')}</button>
-        <div class="safety">${L('upay কখনো ফোনে আপনার পিন বা ওটিপি চায় না।', 'upay never asks for your PIN or OTP on the phone.')}</div>`;
+        <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="confirm_pin" id="pin2-go" disabled>${L('পিন দিয়ে পাঠান', 'Send with PIN')}</button>`;
     } else {
-      body += `<p style="font-size:14.5px;line-height:1.5;margin:4px 0 12px">${L('একজন upay কর্মকর্তা দ্রুত বিষয়টি দেখবেন। <b>আপনার টাকা এখনো আপনার ওয়ালেটেই আছে।</b> কেউ ফোনে তাড়া দিলে লেনদেন করবেন না।',
-        'An upay officer will look at it shortly. <b>Your money is still in your wallet.</b> If someone is rushing you on the phone, do not send.')}</p>${useBtn}
+      body += `<p class="lead"><b>${L('আপনার টাকা এখনো আপনার ওয়ালেটেই আছে।', 'Your money is still in your wallet.')}</b> ${L('একজন upay কর্মকর্তা দেখবেন।', 'An upay officer will check it.')}</p>${useBtn}
         <button class="btn btn-primary btn-block" data-choice="wait">${L('ঠিক আছে, অপেক্ষা করব', 'OK, I will wait')}</button>
         <button class="btn btn-ghost btn-block" style="margin-top:8px" data-choice="cancel">${L('লেনদেন বাতিল করুন', 'Cancel the transfer')}</button>
         <a class="btn btn-link btn-block" style="display:block;text-align:center" href="tel:16268">📞 ${L('১৬২৬৮-এ কল করুন', 'Call 16268')}</a>`;
     }
-    if (sug) body += privacyNote();
+    const why = [];
+    const rest = sug || habFirst ? reasons : reasons.slice(1);
+    if (rest.length) why.push(`<ul class="reasons">${li(rest)}</ul>`);
+    if (sug && slipText(sug)) why.push(`<p class="small">${P.esc(slipText(sug))}${L("।", ".")}</p>`);
+    if (hab && !habFirst) why.push(`<div class="habit-mini">${P.habitStrip(hab)}</div>`);
+    if (hab) why.push(legend);
+    if (res.band === 'HOLD') why.push(`<p class="small">${L('কেউ ফোনে তাড়া দিলে লেনদেন করবেন না।', 'If someone is rushing you on the phone, do not send.')}</p>`);
+    if (res.band === 'STEP_UP') why.push(`<p class="small">${L('upay কখনো ফোনে আপনার পিন বা ওটিপি চায় না।', 'upay never asks for your PIN or OTP on the phone.')}</p>`);
+    if (sug) why.push(privacyNote());
+    if (why.length) body += `<details class="why"><summary>${L('কেন এই সতর্কতা?', 'Why this warning?')}</summary>${why.join('')}</details>`;
     $('sheet').className = `sheet ${res.band}${sug ? ' WRONG' : ''}`;
     $('sheet').innerHTML = body;
     $('sheet-wrap').classList.remove('hidden');
@@ -544,9 +554,9 @@
       <div class="item" data-persona="${c.key}"><div class="avatar">${P.esc(L(c.name_bn, c.name_en).charAt(0))}</div>
         <div class="grow"><b>${P.esc(L(c.name_bn, c.name_en))}</b> ${c.key === S.me.key ? `<span class="chip">${L('এখন', 'current')}</span>` : ''}
           <div class="small muted">${P.esc(L(c.role_bn, c.role_en || c.role_bn))} · <span class="num">${P.phone(c.msisdn)}</span></div></div></div>`).join('');
-    $('privacy-card').innerHTML = `<b>🔒 ${L('আপনার তথ্য কোথায় থাকে', 'Where your data stays')}</b><br>${L(
+    $('privacy-card').innerHTML = `<details class="why flat"><summary>🔒 ${L('আপনার তথ্য কোথায় থাকে', 'Where your data stays')}</summary><p class="small">${L(
       `ভুল নম্বর যাচাই আপনার নিজের লেনদেনের ইতিহাস দিয়ে ফোনেই হয়। ভুলের ধরন শেখা হয়েছে ফেডারেটেড লার্নিং-এ (${P.esc(S.slipSource || 'hand-set costs')})। প্রতারণা শনাক্তের মডেলটিও আটটি বিভাগের ডেটা এক জায়গায় না এনে প্রশিক্ষণ দেওয়া যায় (বিশ্লেষক প্যানেলের Federated ট্যাব দেখুন)।`,
-      `The wrong-number check uses your own transfer history, on the phone. The slip patterns were learned with federated learning (${P.esc(S.slipSource || 'hand-set costs')}). The scam model can also be trained across the eight divisions without pooling their data (see the Federated tab in the analyst copilot).`)}`;
+      `The wrong-number check uses your own transfer history, on the phone. The slip patterns were learned with federated learning (${P.esc(S.slipSource || 'hand-set costs')}). The scam model can also be trained across the eight divisions without pooling their data (see the Federated tab in the analyst copilot).`)}</p></details>`;
     S.redraw = renderPersonas;
   }
   $('personas').addEventListener('click', (e) => {
@@ -668,7 +678,7 @@
           <div class="receipt" style="margin-top:4px"><div><span>ID</span><b class="num">${P.esc(t.id)}</b></div><div><span>${L('নম্বর', 'Number')}</span><span class="num">${P.phone(t.number)}</span></div>
           <div><span>${L('পরিমাণ', 'Amount')}</span><b class="num">${money(t.amount)}</b></div><div><span>${L('সময়', 'Time')}</span><span class="num">${P.n(String(t.at).replace('T', ' ').slice(0, 16))}</span></div></div></div>` : ''}
         ${chips.length ? `<div class="understood" style="margin-top:10px">${chips.map((c) => `<span class="chip">${P.esc(c)}</span>`).join('')}</div>` : ''}
-        <p class="small muted" style="margin-top:10px">${P.esc(L(st.escalation_bn, st.escalation_en))}</p>`;
+        <details class="why"><summary>${L('সন্তুষ্ট না হলে', 'Not satisfied?')}</summary><p class="small">${P.esc(L(st.escalation_bn, st.escalation_en))}</p></details>`;
     };
     show('case');
     S.redraw = draw;

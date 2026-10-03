@@ -9,8 +9,6 @@
   <script src="engine.js"></script>
 </head>
 <body>
-  <div class="proto" id="proto"><span data-en="Prototype • synthetic data • not the real upay app">প্রোটোটাইপ • সিন্থেটিক ডেটা • upay-এর আসল অ্যাপ নয়</span><span class="links"> · <b>প্রহরী</b> scam shield ·
-    <a href="analyst.html" style="color:#9fd0ff">analyst copilot</a> · <a href="index.html" style="color:#9fd0ff">showcase</a></span></div>
   <div class="stage" id="stage">
     <div class="phone">
       <div class="screen" id="screen">
@@ -40,12 +38,17 @@
               </div>
               <div class="shield">
                 <div class="big">🛡️</div>
-                <div><b data-en="Prohori is watching over you">প্রহরী আপনার পাহারায়</b><span data-en="Every transfer is checked before the money leaves. A mistyped number or a likely scam gets a warning with the reason; the choice is yours.">টাকা পাঠানোর আগেই প্রতিটি লেনদেন যাচাই হয়। ভুল নম্বর বা প্রতারণার সন্দেহ হলে কারণসহ সতর্ক করে, সিদ্ধান্ত আপনার।</span></div>
+                <div><b data-en="Prohori is watching over you">প্রহরী আপনার পাহারায়</b><span data-en="Every transfer is checked before the money leaves.">টাকা পাঠানোর আগেই প্রতিটি লেনদেন যাচাই হয়।</span></div>
+                <details class="head-info" id="proto"><summary aria-label="About this demo" title="About this demo">i</summary>
+                <div class="info-panel">
+                  <b data-en="Prohori: scam and wrong-number shield">প্রহরী: প্রতারণা ও ভুল নম্বর থেকে সুরক্ষা</b>
+                  <p data-en="Prototype on synthetic data. Not the real upay app.">প্রোটোটাইপ, সিন্থেটিক ডেটায়। upay-এর আসল অ্যাপ নয়।</p>
+                  <p data-en="Models score, rules decide, people approve.">মডেল স্কোর দেয়, নিয়ম সিদ্ধান্ত নেয়, মানুষ অনুমোদন করে।</p>
+                  <p><a href="analyst.html" data-en="Analyst copilot">বিশ্লেষক কোপাইলট</a> · <a href="index.html" data-en="Showcase">শোকেস</a></p>
+                </div></details>
               </div>
               <div style="padding:0 12px 16px">
-                <div class="card small" data-en="<b>Remember</b><br>upay never asks for your PIN or OTP by phone or message. If in doubt, call 16268.">
-                  <b>মনে রাখবেন</b><br>upay কখনো ফোন বা মেসেজে আপনার পিন বা ওটিপি চায় না। সন্দেহ হলে ১৬২৬৮ নম্বরে কল করুন।
-                </div>
+                <div class="card small" data-en="upay never asks for your PIN or OTP. In doubt? Call <b>16268</b>.">upay কখনো পিন বা ওটিপি চায় না। সন্দেহ হলে <b>১৬২৬৮</b>।</div>
               </div>
             </div>
           </section>
@@ -62,7 +65,7 @@
               <div id="to-hint"></div>
               <div class="small muted" style="margin-bottom:4px" data-en="Saved contacts">পরিচিত নম্বর</div>
               <div class="list card" id="contacts" style="padding:2px 8px"></div>
-              <div class="small muted" style="margin:14px 0 6px" data-en="Demo scenarios · Prohori checks each with the real models">ডেমো পরিস্থিতি · প্রহরী আসল মডেল দিয়ে যাচাই করবে</div>
+              <div class="small muted" style="margin:14px 0 6px" data-en="Demo scenarios">ডেমো পরিস্থিতি</div>
               <div class="scen" id="scenarios"></div>
               <details class="kit hidden" id="kit-send"><summary><span data-en="🧪 Test numbers from the dataset (for judges)">🧪 ডেটাসেটের টেস্ট নম্বর (বিচারকদের জন্য)</span></summary><div id="kit-send-body"></div></details>
             </div>
@@ -127,7 +130,7 @@
           <section class="view hidden" id="v-complain">
             <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="Report a problem">সমস্যা জানান</h1></div>
             <div class="scroll">
-              <p class="small" style="margin-top:0" data-en="Sent money to the wrong number, or tricked into sending? Tell us in your own words: Bangla, Banglish or English.">ভুল নম্বরে টাকা গেছে, বা প্রতারণার শিকার? নিজের ভাষায় লিখুন: বাংলা, Banglish বা English।</p>
+              <p class="small" style="margin-top:0" data-en="Wrong number or a scam? Tell us in your own words.">ভুল নম্বর বা প্রতারণা? নিজের ভাষায় লিখুন।</p>
               <div class="small muted" data-en="1. What happened?">১. কী হয়েছে?</div>
               <div class="choice-chips" id="c-problem">
                 <button data-problem="wrong_number" class="on" data-en="Sent to a wrong number">ভুল নম্বরে পাঠিয়েছি</button>
@@ -142,7 +145,9 @@
               <div class="scen" id="c-samples"></div>
               <div id="c-preview"></div>
               <label class="consent"><input type="checkbox" id="c-consent">
-                <span data-en="I agree that upay's dispute team may read what I wrote and the matched transfer, only to resolve this complaint and prevent fraud. It is kept for the case and deleted after the legal retention period. I understand a return depends on the recipient's consent or a legal process.">আমি সম্মতি দিচ্ছি: আমার লেখা ও মিলে যাওয়া লেনদেন শুধু upay-এর অভিযোগ দল দেখবে, এই অভিযোগ নিষ্পত্তি ও প্রতারণা রোধের জন্য। কেস চলাকালীন রাখা হবে, আইনি সংরক্ষণকাল শেষে মুছে ফেলা হবে। বুঝেছি, টাকা ফেরত পাওয়া প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে।</span></label>
+                <span data-en="I agree that upay's dispute team may see what I wrote and the matched transfer, for this complaint only.">আমি সম্মতি দিচ্ছি: আমার লেখা ও মিলে যাওয়া লেনদেন শুধু এই অভিযোগের জন্য upay-এর অভিযোগ দল দেখবে।</span></label>
+              <details class="why"><summary data-en="Full notice">পুরো বিজ্ঞপ্তি</summary>
+                <p class="small" data-en="Used only to resolve this complaint and prevent fraud. Kept for the case and deleted after the legal retention period. A return of the money depends on the recipient's consent or a legal process; the sender is responsible for the number entered.">শুধু এই অভিযোগ নিষ্পত্তি ও প্রতারণা রোধে ব্যবহার হবে। কেস চলাকালীন রাখা হবে, আইনি সংরক্ষণকাল শেষে মুছে ফেলা হবে। টাকা ফেরত পাওয়া প্রাপকের সম্মতি বা আইনি প্রক্রিয়ার উপর নির্ভর করে; সঠিক নম্বরে পাঠানোর দায়িত্ব প্রেরকের।</p></details>
               <button class="btn btn-primary btn-block" style="margin-top:12px" id="c-submit" data-en="Submit complaint">অভিযোগ জমা দিন</button>
             </div>
           </section>
@@ -158,7 +163,7 @@
           <section class="view hidden" id="v-scam">
             <div class="appbar"><button class="back" data-go="home">←</button><h1 data-en="Scam check">প্রতারক যাচাই</h1></div>
             <div class="scroll">
-              <p class="small" style="margin-top:0" data-en="Type or paste what a caller or message said (Bangla, Banglish or English). Prohori looks for known scam tricks. The text is not stored or sent anywhere.">কেউ ফোন বা মেসেজে যা বলেছে, এখানে লিখুন বা পেস্ট করুন (বাংলা, Banglish বা English)। প্রহরী পরিচিত প্রতারণার কৌশল খুঁজবে। লেখাটি কোথাও সংরক্ষণ বা পাঠানো হয় না।</p>
+              <p class="small" style="margin-top:0" data-en="Paste what a caller or message said. The text stays on this phone.">কেউ ফোন বা মেসেজে যা বলেছে, লিখুন বা পেস্ট করুন। লেখাটি এই ফোনেই থাকে।</p>
               <textarea class="field" id="scam-text" rows="5" placeholder="যেমন: আমি upay অফিস থেকে বলছি…" data-en-ph="e.g. I am calling from the upay office…"></textarea>
               <div class="small muted" style="margin:8px 0 4px" data-en="Examples">উদাহরণ</div>
               <div class="scen" id="scam-samples"></div>

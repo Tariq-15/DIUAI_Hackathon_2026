@@ -73,8 +73,8 @@ approve.**
   your device. The first visit downloads about 30 MB and starts in about 15 s; a refresh downloads nothing and starts
   in about 7 s from the device ([why](#deployment-and-caching)).
 - The page shows the upay-style phone and the analyst copilot side by side. **Both | Phone only | Copilot only**
-  switches the layout without reloading; **বাং | EN** switches the language on both screens; **↺ reset demo**
-  restages the demo world.
+  switches the layout without reloading; **বাং | EN** switches the language on both screens; **ⓘ Guide** lists the
+  demo steps; **↺ reset demo** restages the demo world.
 - Works on a laptop and on a phone (390 px). `app.html` (phone only) and `analyst.html` (copilot only) also open on
   their own; in separate tabs they share one engine where the browser supports SharedWorker.
 
@@ -109,7 +109,7 @@ Every warning also appears in the copilot on the right, with its evidence.
 | Feature | What the person sees | How the AI is used |
 |---|---|---|
 | **Wrong-number check** | As the number is typed: known contact, new number, no wallet, or "আপনি কি মা-কে পাঠাতে চেয়েছিলেন?" with the wrong digits marked; one tap sends to the number meant | Keypad-aware Damerau–Levenshtein distance to the contacts the customer pays often; which slips are common was **learned with federated learning** on phones |
-| **Scam check before the money moves** | After the PIN, four bands: **ALLOW** goes through, **NUDGE** asks one question, **STEP-UP** asks for the PIN again, **HOLD** pauses it for an analyst ("your money is still in your wallet"); the reasons in Bangla or English; 🔊 reads it aloud | **LightGBM** + **Isolation Forest** + money-network **graph rules** on 73 streaming features, fused into a 0–100 score; **SHAP** picks the reasons; a plain-code policy picks the band |
+| **Scam check before the money moves** | After the PIN, four bands: **ALLOW** goes through, **NUDGE** asks one question, **STEP-UP** asks for the PIN again, **HOLD** pauses it for an analyst ("your money is still in your wallet"). The screen stays short: the title, the main reason and the choice; every other reason sits under **Why this warning?** 🔊 reads it aloud | **LightGBM** + **Isolation Forest** + money-network **graph rules** on 73 streaming features, fused into a 0–100 score; **SHAP** picks the reasons; a plain-code policy picks the band |
 | **Amount habit (Send Money and recharge)** | "You usually send about Tk 600 (Tk 232 to 1,590), about 4 a week"; past the customer's own limit Prohori asks once and draws the last 30 amounts beside this one | Each phone keeps its own last 30 amounts; what counts as unusual (16× for Send Money, 9.5× for recharge) was **learned with federated analytics** across 11,285 phones |
 | **Mobile Recharge** | Own number or a contact; a Tk 1,000 recharge or three quick recharges to other people's numbers get one check | The recharge habit plus a rapid-recharge rule (the fraud model is not trained on recharges) |
 | **Report a problem (Banglish)** | Write in Bangla, Banglish or English; the app shows what it understood, matches the transfer and tracks the case (10 working days) | Transparent **rules**, not a language model: amounts, last four digits, day and time words, transfer matching |
@@ -444,9 +444,10 @@ archive/ferot/              Track 06 prototype (see above)
 | 2. Detection engine | `src/serve/live.py` + the trained bundle | The same streaming feature store, LightGBM, Isolation Forest, graph rules and four-band policy used in evaluation, plus the keypad-slip check with federated costs. Nothing is pre-recorded: every transfer is scored when it is sent |
 | 3. Investigation copilot | `ui/analyst.html` | Live queue (pre-send alerts, complaints and recharges; filters for complaints, wrong numbers, unusual amounts and recharges), SHAP evidence, the money network, the digit diff for wrong numbers, the customer's **amount habit** (usual amount, range, how often, this amount against the learned limit), the customer's own words for complaints, a four-part case report, actions that need an analyst's name. Tabs: Agent Watch, model and fairness, **federated learning and privacy** (slip costs, amount habits, cross-silo model), hash-chained audit log |
 
-`ui/index.html` shows the phone and the copilot side by side with the demo script along the top. **Both | Phone only |
-Copilot only** in the header switches the layout on the same page: nothing reloads, so the engine and everything done
-so far stay (on a phone it shows one screen at a time). `index.html#phone` and `#copilot` open straight in that
+`ui/index.html` shows the phone and the copilot side by side under a one-line header. **Both | Phone only |
+Copilot only** switches the layout on the same page: nothing reloads, so the engine and everything done so far stay
+(on a phone it shows one screen at a time). **ⓘ Guide** holds the demo steps, the principle and the prototype note.
+On the phone, warnings stay short and explanations open on demand (**Why this warning?**, **What is this?**, ⓘ). `index.html#phone` and `#copilot` open straight in that
 layout. **↺ reset demo** restages the world and restarts both screens in place. The **বাং | EN** switch changes both
 screens at once, and the language carries over when you open `app.html` or `analyst.html` on their own.
 
@@ -837,8 +838,9 @@ As required by the rulebook (§4.4, §9.2):
   Font: Noto Sans Bengali (Google Fonts, SIL OFL 1.1). `archive/ferot/` lists its own (React, Vite, Tailwind CSS…).
 - **Data:** entirely synthetic, generated by `src/datagen`. No real customer data. Phone numbers use the 010 prefix.
 - **Brand:** "upay" is used only to describe who the prototype is for. No upay logo files or assets are used. The
-  upay-style screens imitate the look of a wallet app (yellow and blue colours) and are labelled on screen as a
-  prototype on synthetic data, not upay's app.
+  upay-style screens imitate the look of a wallet app (yellow and blue colours) and are labelled as a prototype on
+  synthetic data, not upay's app: in every page title, the **ⓘ Guide** of the showcase and the ⓘ on the phone and the
+  copilot.
 
 ## License
 

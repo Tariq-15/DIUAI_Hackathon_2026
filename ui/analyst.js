@@ -7,6 +7,7 @@
   const $ = (id) => document.getElementById(id);
   const S = { alerts: [], seen: new Set(), sel: null, filter: 'all', pinned: false, health: null, first: true, tab: 'alerts', detail: null };
   if (P.embed) $('proto').classList.add('hidden');
+  document.addEventListener('click', (e) => { const d = $('proto'); if (d.open && !d.contains(e.target)) d.open = false; });
   $('analyst').value = P.store.get('prohori.analyst') || '';
   $('analyst').addEventListener('input', () => P.store.set('prohori.analyst', $('analyst').value.trim()));
   const tbl = (head, rows) => `<div class="tscroll"><table class="t"><thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
