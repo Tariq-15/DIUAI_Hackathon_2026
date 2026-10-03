@@ -17,7 +17,7 @@
 AI Hackathon 2026 (DIU CPC × upay) · Track 01: Trust & Risk Intelligence, with our Track 06 work merged in<br>
 **Prototype on synthetic data. Not an upay product; the wallet screens are an upay-style mock.**
 
-<img src="docs/images/showcase.png" alt="The Prohori showcase: the upay-style phone pauses a Tk 15,000 transfer and explains why; the analyst copilot shows the same live alert with its risk score, the customer's amount habit and the SHAP evidence" width="100%">
+<img src="docs/images/showcase.png" alt="The Prohori showcase: the upay-style phone shows a strong warning on a Tk 15,000 transfer with Cancel (recommended) and send with PIN; the copilot's Overview shows where the warned money went (stayed in the wallet, sent after the warning, waiting for the customer) and the same live warning in its table" width="100%">
 
 </div>
 
@@ -59,11 +59,12 @@ the three layers of the Track 01 brief:
 
 1. **Guardian on the phone:** checks the number as it is typed, and every Send Money and recharge after the PIN.
 2. **Detection engine:** trained models on a streaming feature store score each transfer live.
-3. **Copilot for upay's analysts:** the evidence, the money network and a case report; a person approves every action.
+3. **Copilot for upay's analysts:** the evidence, the money network and a case report, for follow-up after the
+   warning. No transfer waits for an analyst.
 
 **The purpose.** Protect the customer without getting in their way (98.72% of honest transactions see no friction),
-explain every warning in plain Bangla or English, and keep people in charge. **Models score, rules decide, people
-approve.**
+explain every warning in plain Bangla or English, and leave the decision with the customer: Prohori warns, it never
+holds a transfer. **Models score, rules warn, the customer decides.**
 
 ## Live demo
 
@@ -88,19 +89,21 @@ the number and amount on the phone. The same list is on the phone (Send Money an
 | 1 | Send Tk 800 to Mother (saved contact) | **ALLOW**, sent |
 | 2 | Type `01076254275` (Mother's number with the last two digits swapped) | "Did you mean Mother?" with digits 10 and 11 marked, before the amount |
 | 3 | Send **Tk 15,000** to Mother | **NUDGE**: "25 times what you usually send", his last 30 amounts drawn beside it |
-| 4 | Send Tk 15,000 to `01090000001` ("job deposit") | **HOLD**: 14 different people paid this number in 24 hours |
+| 4 | Send Tk 15,000 to `01090000001` ("job deposit") | **HOLD**, the strongest warning: 14 different people paid this number in 24 hours. Cancel, or send anyway with the PIN: the choice is the customer's |
 | 5 | Recharge your own number **Tk 1,000** | **NUDGE**: 10 times his usual Tk 99 recharge |
 | 6 | Account → customer Salma → "takeover test" scenario | **HOLD**: new phone after a SIM swap |
 | 7 | Send Tk 800 to the swapped number anyway (step 2, then "No, this number is right"), then Report a problem: *"Bhai ajke bhul kore 800 taka onno number e chole gese, number er sesh 4 digit 4275"* | the copilot opens a case: matched transfer, genuine wrong send, hold capped at the wallet's balance |
 
-Every warning also appears in the copilot on the right, with its evidence.
+Every warning also appears on the copilot's **Overview** on the right within a few seconds: the bar at the top shows
+how much of the warned money stayed in the wallet, was sent anyway, or is still waiting for the customer. Click the
+row to open the case with its evidence.
 
 ## Features
 
 <table>
 <tr>
 <td align="center" width="25%"><img src="docs/images/phone-typo.png" width="210" alt="Phone in Bangla: the typed number with the last two digits marked wrong and the number meant, with a Send to Mother button"><br><b>Wrong number</b><br>caught while typing</td>
-<td align="center" width="25%"><img src="docs/images/phone-hold.png" width="210" alt="Phone in Bangla: the Tk 15,000 transfer is paused, with the reasons and a chart of the customer's earlier amounts"><br><b>HOLD</b><br>scam paused before it moves</td>
+<td align="center" width="25%"><img src="docs/images/phone-hold.png" width="210" alt="Phone in Bangla: a strong warning on the Tk 15,000 transfer with the main reason, Cancel (recommended) and send anyway with the PIN"><br><b>HOLD</b><br>strongest warning before it moves</td>
 <td align="center" width="25%"><img src="docs/images/phone-habit.png" width="210" alt="Phone in Bangla: unusual amount for you, Tk 15,000 to Mother against a usual Tk 600"><br><b>Unusual for you</b><br>25× the usual amount</td>
 <td align="center" width="25%"><img src="docs/images/phone-recharge.png" width="210" alt="Phone in Bangla: unusual recharge, Tk 1,000 against a usual Tk 99"><br><b>Recharge</b><br>10× the usual recharge</td>
 </tr>
@@ -109,17 +112,20 @@ Every warning also appears in the copilot on the right, with its evidence.
 | Feature | What the person sees | How the AI is used |
 |---|---|---|
 | **Wrong-number check** | As the number is typed: known contact, new number, no wallet, or "আপনি কি মা-কে পাঠাতে চেয়েছিলেন?" with the wrong digits marked; one tap sends to the number meant | Keypad-aware Damerau–Levenshtein distance to the contacts the customer pays often; which slips are common was **learned with federated learning** on phones |
-| **Scam check before the money moves** | After the PIN, four bands: **ALLOW** goes through, **NUDGE** asks one question, **STEP-UP** asks for the PIN again, **HOLD** pauses it for an analyst ("your money is still in your wallet"). The screen stays short: the title, the main reason and the choice; every other reason sits under **Why this warning?** 🔊 reads it aloud | **LightGBM** + **Isolation Forest** + money-network **graph rules** on 73 streaming features, fused into a 0–100 score; **SHAP** picks the reasons; a plain-code policy picks the band |
+| **Scam check before the money moves** | After the PIN, four bands: **ALLOW** goes through, **NUDGE** asks one question, **STEP-UP** asks for the PIN again, **HOLD** is the strongest warning ("your money is still in your wallet", cancel recommended, the PIN again to send anyway). Prohori never holds a transfer: the customer always decides. The screen stays short: the title, the main reason and the choice; every other reason sits under **Why this warning?** 🔊 reads it aloud | **LightGBM** + **Isolation Forest** + money-network **graph rules** on 73 streaming features, fused into a 0–100 score; **SHAP** picks the reasons; a plain-code policy picks the band |
 | **Amount habit (Send Money and recharge)** | "You usually send about Tk 600 (Tk 232 to 1,590), about 4 a week"; past the customer's own limit Prohori asks once and draws the last 30 amounts beside this one | Each phone keeps its own last 30 amounts; what counts as unusual (16× for Send Money, 9.5× for recharge) was **learned with federated analytics** across 11,285 phones |
 | **Mobile Recharge** | Own number or a contact; a Tk 1,000 recharge or three quick recharges to other people's numbers get one check | The recharge habit plus a rapid-recharge rule (the fraud model is not trained on recharges) |
 | **Report a problem (Banglish)** | Write in Bangla, Banglish or English; the app shows what it understood, matches the transfer and tracks the case (10 working days) | Transparent **rules**, not a language model: amounts, last four digits, day and time words, transfer matching |
-| **Analyst copilot** | Live queue with filters, SHAP evidence, the money network, the amount habit, the customer's own words, a four-part case report, actions that need a name, audit log | Template report built only from the evidence; optional **Claude** rewording (off by default, numbers checked against the evidence) |
+| **Analyst copilot** | An **Overview** dashboard (where the warned money went, what customers decided, warnings by band, the held-out test window), then a live queue with filters, SHAP evidence, the money network, the amount habit, the customer's own words, a four-part case report, follow-up actions that need a name, audit log | Template report built only from the evidence; optional **Claude** rewording (off by default, numbers checked against the evidence) |
 | **Agent Watch** | Rogue cash-out agents, per area, per day | Peer z-scores and a Poisson test for register harvesting (only 9 rogue agents: too few to train on) |
 | **Federated & privacy tab** | The three federated results, with what leaves a phone and what never does | Secure aggregation (masks that cancel in the sum) + differential privacy; a **federated GBDT** across 8 divisions exported as a LightGBM model |
 | **Am I talking to a scammer?** | Paste what a caller said; Prohori names the known tricks | Rule-based cue check; the text is not stored |
 | **Test numbers** | 27 real numbers from the dataset to try, with the expected answer | Each answer recorded by running the same code on a freshly staged demo |
 
 <table>
+<tr>
+<td colspan="2"><img src="docs/images/copilot-overview.png" alt="Copilot Overview dashboard: a bar showing Tk 15,000 stayed in the wallet, Tk 4,500 sent after the warning and Tk 15,000 waiting for the customer; four figures; the latest warnings table; warnings by band; and what 10,000 honest transfers see"><br><b>Copilot overview:</b> where the warned money went, what customers decided, and the held-out test window</td>
+</tr>
 <tr>
 <td width="50%"><img src="docs/images/copilot-evidence.png" alt="Copilot: SHAP bars for the HOLD alert and the money network where 14 payers send to a two-day-old wallet that cashes out at agent A00044"><br><b>Copilot:</b> why it fired, and where the money went</td>
 <td width="50%"><img src="docs/images/copilot-complaint.png" alt="Copilot complaint case: the customer's Banglish words, what the rules read, the matched transfer and the digit comparison"><br><b>Copilot:</b> a Banglish complaint matched to the transfer</td>
@@ -201,8 +207,8 @@ Data: 683,148 transactions, 3,664 fraud (0.54%); validation **14/14 checks pass*
 
 - Victim-side scam transactions (money leaving a victim) flagged STEP_UP or higher: **90.8%** (NUDGE+ 95.4%).
 - Expected victim money protected: **Tk 2,401,775 of Tk 2,526,620 (95.1%)** under the stated stop-rate assumptions.
-- Honest customers over the 10 test days: 7.3% saw any warning, 2.6% were asked for a PIN step-up, 0.9% had a transaction held. Legit transactions allowed without friction: 98.72%.
-- Analyst load: 77.5 HOLD cases/day → 258.3 h manual vs 38.8 h with the copilot over 10 days (assumed minutes per case).
+- Honest customers over the 10 test days: 7.3% saw any warning, 2.6% were asked for a PIN step-up, 0.9% got the strongest (HOLD) warning. Legit transactions allowed without friction: 98.72%.
+- Analyst follow-up (after the customer has decided; no transfer waits for it): 77.5 HOLD alerts/day → 258.3 h manual vs 38.8 h with the copilot over 10 days (assumed minutes per case).
 
 **Ablation:** removing a feature group and retraining costs the most PR-AUC for counterparty (−0.137), behaviour (−0.026), complaints (−0.016) (full model 0.962). Component view: LightGBM only 0.962; LightGBM + IsolationForest 0.962; LightGBM + graph rules 0.962; fused (all three) 0.962.
 
@@ -440,9 +446,9 @@ archive/ferot/              Track 06 prototype (see above)
 
 | Layer | Where | What it does |
 |---|---|---|
-| 1. Pre-Transaction Guardian | `ui/app.html`, upay-style phone | **As the number is typed:** known contact ✓, new number, no wallet, or "Did you mean মা (01076-254257)?" with the wrong digits marked. **After the PIN:** Prohori scores the transfer. **ALLOW** goes through. **NUDGE** asks a question with the evidence and a cancel default (for a likely slip: "Send to মা instead"). **STEP_UP** asks for the PIN again. **HOLD** pauses it for an analyst ("your money is still in your wallet"). 🔊 reads the warning aloud (the browser's own voice, no network). **Amount habit:** the amount screen shows "you usually send about Tk 600 (Tk 232 to 1,590), about 4 a week" and warns as you type when an amount is past the customer's own limit; the warning shows the last 30 amounts as dots with this one in red. **Mobile Recharge** with the same habit check and a rapid-recharge rule. Also: **Report a problem** (Banglish complaints, consent never pre-ticked, case tracker), an "Am I talking to a scammer?" checker, and **test numbers** from the dataset under Send Money and Recharge |
+| 1. Pre-Transaction Guardian | `ui/app.html`, upay-style phone | **As the number is typed:** known contact ✓, new number, no wallet, or "Did you mean মা (01076-254257)?" with the wrong digits marked. **After the PIN:** Prohori scores the transfer. **ALLOW** goes through. **NUDGE** asks a question with the evidence and a cancel default (for a likely slip: "Send to মা instead"). **STEP_UP** asks for the PIN again. **HOLD** is the strongest warning ("your money is still in your wallet"): cancel is recommended, the PIN again sends it anyway; no transfer is held for an analyst. 🔊 reads the warning aloud (the browser's own voice, no network). **Amount habit:** the amount screen shows "you usually send about Tk 600 (Tk 232 to 1,590), about 4 a week" and warns as you type when an amount is past the customer's own limit; the warning shows the last 30 amounts as dots with this one in red. **Mobile Recharge** with the same habit check and a rapid-recharge rule. Also: **Report a problem** (Banglish complaints, consent never pre-ticked, case tracker), an "Am I talking to a scammer?" checker, and **test numbers** from the dataset under Send Money and Recharge |
 | 2. Detection engine | `src/serve/live.py` + the trained bundle | The same streaming feature store, LightGBM, Isolation Forest, graph rules and four-band policy used in evaluation, plus the keypad-slip check with federated costs. Nothing is pre-recorded: every transfer is scored when it is sent |
-| 3. Investigation copilot | `ui/analyst.html` | Live queue (pre-send alerts, complaints and recharges; filters for complaints, wrong numbers, unusual amounts and recharges), SHAP evidence, the money network, the digit diff for wrong numbers, the customer's **amount habit** (usual amount, range, how often, this amount against the learned limit), the customer's own words for complaints, a four-part case report, actions that need an analyst's name. Tabs: Agent Watch, model and fairness, **federated learning and privacy** (slip costs, amount habits, cross-silo model), hash-chained audit log |
+| 3. Investigation copilot | `ui/analyst.html` | **Overview** (opens first): how much of the warned money stayed in the wallet, was sent anyway or is still waiting; warnings by band; the latest warnings; and the held-out test window (scam types caught, warnings per day, what 10,000 honest transfers see). Then the live queue (pre-send alerts, complaints and recharges; filters for complaints, wrong numbers, unusual amounts and recharges), SHAP evidence, the money network, the digit diff for wrong numbers, the customer's **amount habit** (usual amount, range, how often, this amount against the learned limit), the customer's own words for complaints, a four-part case report, actions that need an analyst's name. Tabs: Agent Watch, model and fairness, **federated learning and privacy** (slip costs, amount habits, cross-silo model), hash-chained audit log |
 
 `ui/index.html` shows the phone and the copilot side by side under a one-line header. **Both | Phone only |
 Copilot only** switches the layout on the same page: nothing reloads, so the engine and everything done so far stay
@@ -495,16 +501,18 @@ labelled with the synthetic ground truth so judges can see both kinds.
 <summary><b>Rules that keep people in control</b></summary>
 
 Plain code, `src/serve/live.py` and `copilot.py`:
-- The customer cancels or confirms NUDGE/STEP_UP warnings. A HOLD cannot be pushed through by the customer;
-  only an analyst can release it. A likely keypad slip always gets a one-tap check, even when the model says ALLOW.
+- Prohori only warns. The customer cancels or confirms every warning: one tap for a NUDGE, the PIN again for
+  STEP_UP and HOLD. HOLD is the name of the top score band (80 and above), not a hold: no transfer waits for an
+  analyst. A likely keypad slip always gets a one-tap check, even when the model says ALLOW.
   So does an amount past the customer's own habit (at least 16 times their usual Send Money amount and at least
   Tk 2,000, or a 24-hour total at least 13 times their usual day and at least Tk 5,000; for recharges 9.5 times and
   Tk 200). These rules only ask; they never block. Recharges are not scored by the model (it was not trained on
   them): they get the habit check and the rapid-recharge rule.
-- Recommended actions come from a fixed list (freeze recipient, verify owner, contact senders, review agent,
-  release, watchlist, dismiss, hold disputed amount, ask recipient consent, ask customer details), picked by rules.
-  Every action needs an analyst name; a dismissal needs a reason.
-- An analyst's freeze becomes policy: any later transfer to that wallet is held (`recipient_frozen_by_analyst`).
+- Recommended follow-up actions come from a fixed list (flag recipient, verify owner, contact senders, review agent,
+  watchlist, dismiss, hold disputed amount, ask recipient consent, ask customer details), picked by rules.
+  Every action needs an analyst name; a dismissal needs a reason. None of them stops or releases a transfer.
+- An analyst's flag becomes policy: any later transfer to that wallet gets the strongest warning
+  (`recipient_flagged_by_analyst`), and the customer still decides.
 - A complaint needs explicit consent (never pre-ticked). A hold is never more than the disputed amount or what the
   wallet holds. Nothing promises a refund: upay's terms make the sender responsible for the number entered, and a
   return needs the recipient's consent or a legal process. The customer is told how to escalate to Bangladesh Bank.

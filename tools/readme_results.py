@@ -45,9 +45,10 @@ def main():
           f"- Expected victim money protected: **Tk {i['expected_prevented_tk']:,} of Tk {i['victim_loss_tk']:,} "
           f"({pct(i['expected_prevented_share'])})** under the stated stop-rate assumptions.",
           f"- Honest customers over the 10 test days: {pct(f['customers_nudged_share'])} saw any warning, "
-          f"{pct(f['customers_stepup_share'])} were asked for a PIN step-up, {pct(f['customers_held_share'])} had a "
-          f"transaction held. Legit transactions allowed without friction: {pct(f['legit_txn_share_by_band']['ALLOW'], 2)}.",
-          f"- Analyst load: {f['alerts_per_day']['HOLD']} HOLD cases/day → {f['analyst_hours_manual']} h manual vs "
+          f"{pct(f['customers_stepup_share'])} were asked for a PIN step-up, {pct(f['customers_held_share'])} got the "
+          f"strongest (HOLD) warning. Legit transactions allowed without friction: {pct(f['legit_txn_share_by_band']['ALLOW'], 2)}.",
+          f"- Analyst follow-up (after the customer has decided; no transfer waits for it): {f['alerts_per_day']['HOLD']} "
+          f"HOLD alerts/day → {f['analyst_hours_manual']} h manual vs "
           f"{f['analyst_hours_with_copilot']} h with the copilot over 10 days (assumed minutes per case)."]
     if m.get("ablation"):
         full = m["ablation"][0]["pr_auc"]
