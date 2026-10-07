@@ -790,12 +790,13 @@ class LiveWorld:
         if a is None or a.get("kind") != "complaint":
             raise KeyError(cid)
         c = a["complaint"]
-        step = {"complaint_received": 1, "details_requested": 1, "hold_requested": 2, "recipient_contacted": 2,
-                "recipient_flagged": 2, "dismissed": 3, "resolved": 3}.get(a["status"], 1)
+        step = {"complaint_received": 1, "details_requested": 1, "details_received": 1, "hold_requested": 2,
+                "recipient_contacted": 2, "recipient_flagged": 2, "dismissed": 3, "resolved": 3}.get(a["status"], 1)
         e, t = c["extraction"], c["match"]["transfer"]
         deadline_bn = bn_num(pd.Timestamp(c["deadline"]).strftime("%d/%m/%Y"))
         return dict(
             case_id=cid, status=a["status"], step=step, steps_bn=COMPLAINT_STEPS_BN, deadline=c["deadline"],
+            thread=c.get("thread", []), can_respond=a["status"] == "details_requested",
             understood=dict(amount=e["amount"], number=e["number"] or (f"…{e['number_last4']}" if e["number_last4"] else None),
                             day_offset=e["day_offset"], hour=e["hour"], language=e["language"]),
             transfer=dict(id=t["id"], amount=t["amount"], number=t["number"], at=t["at"]) if t else None,
@@ -805,6 +806,7 @@ class LiveWorld:
                         "The sender is responsible for the number entered; a return depends on the recipient's consent or legal process."),
             steps_en=["Received", "Under review", "Action taken", "Resolved"],
             next_en={"details_requested": "We need more details: which transfer, how much, when.",
+                     "details_received": "Thanks — your reply was sent to the officer reviewing your case.",
                      "hold_requested": "A temporary hold of the disputed amount has been requested.",
                      "recipient_contacted": "The recipient has been asked for consent to return the money.",
                      "recipient_flagged": "The recipient's wallet has been flagged: anyone who sends to it is warned first."
@@ -812,12 +814,36 @@ class LiveWorld:
             escalation_en="If you are not satisfied, you can complain to Bangladesh Bank's Customers Interest Protection Centre "
                           "(hotline 16236). upay helpline 16268.",
             next_bn={"details_requested": "আরও তথ্য দরকার: কোন লেনদেন, কত টাকা, কখন।",
+                     "details_received": "ধন্যবাদ — আপনার উত্তর কর্মকর্তার কাছে পাঠানো হয়েছে।",
                      "hold_requested": "বিরোধকৃত পরিমাণ সাময়িকভাবে আটকানোর অনুরোধ করা হয়েছে।",
                      "recipient_contacted": "প্রাপকের সম্মতি চাওয়া হয়েছে।",
                      "recipient_flagged": "প্রাপকের ওয়ালেট চিহ্নিত করা হয়েছে: সেখানে টাকা পাঠাতে গেলে সবাই আগে সতর্কবার্তা পাবেন।"
                      }.get(a["status"], "একজন কর্মকর্তা দেখছেন।"),
             escalation_bn="সন্তুষ্ট না হলে বাংলাদেশ ব্যাংকের কাস্টমার্স ইন্টারেস্ট প্রটেকশন সেন্টারে (হটলাইন ১৬২৩৬) অভিযোগ করতে পারবেন। উপায় হেল্পলাইন ১৬২৬৮।",
         )
+
+    def respond_to_complaint(self, persona: str, cid: str, text: str) -> dict:
+        """The customer answers an analyst's ASK_CUSTOMER_DETAILS request. Only the filer may reply, and only
+        while a reply is actually wanted; the reply never changes the model's score or the case type, only the
+        thread an analyst reads next to the case."""
+        with self.lock:
+            p = self.personas.get(persona)
+            if p is None:
+                raise KeyError(f"unknown customer {persona}")
+            a = self.alerts.get(cid)
+            if a is None or a.get("kind") != "complaint":
+                raise KeyError(cid)
+            if a["sender_id"] != p["wallet"]:
+                raise PermissionError("this complaint was not filed by this customer")
+            if a["status"] != "details_requested":
+                raise ValueError("no additional details were requested for this case")
+            text = (text or "").strip()
+            if not 1 <= len(text) <= 1000:
+                raise ValueError("write a short reply, up to 1000 characters")
+            a["complaint"].setdefault("thread", []).append(dict(role="customer", by=persona, text=text, at=self.iso(self.clock())))
+            a["status"] = "details_received"
+            self._audit("customer", "customer", "complaint.reply_details", cid, {"length": len(text)})
+            return self.complaint_status(cid)
 
     # ------------------------------------------------------------------ analyst side
     def list_alerts(self, include_allowed: bool = False) -> list[dict]:
@@ -968,6 +994,10 @@ class LiveWorld:
                     note = (note + " " if note else "") + f"[hold requested: Tk {a['hold_amount']:,.0f}]"
                 a["status"] = {"HOLD_DISPUTED_AMOUNT": "hold_requested", "ASK_RECIPIENT_CONSENT": "recipient_contacted",
                                "ASK_CUSTOMER_DETAILS": "details_requested"}[action]
+                if action == "ASK_CUSTOMER_DETAILS":        # the customer answers this through /complaints/{cid}/respond
+                    a["complaint"].setdefault("thread", []).append(dict(
+                        role="analyst", by=analyst, text=note or "Which transfer, how much, and when?",
+                        at=self.iso(self.clock())))
             a.setdefault("actions", []).append(dict(action=action, analyst=analyst, note=note, at=self.iso(self.clock())))
             self._audit(analyst, "analyst", f"analyst.{action.lower()}", alert_id, {"note": note})
             return dict(alert_id=alert_id, status=a["status"], flagged=sorted(self.flagged))

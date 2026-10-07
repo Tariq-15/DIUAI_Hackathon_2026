@@ -640,12 +640,21 @@
       if (u.number) chips.push(`${L('নম্বর', 'number')} ${u.number}`);
       if (u.day_offset !== null && u.day_offset !== undefined) chips.push(({ 0: L('আজ', 'today'), 1: L('গতকাল', 'yesterday') })[u.day_offset] || L(`${P.bn(u.day_offset)} দিন আগে`, `${u.day_offset} days ago`));
       const t = st.transfer;
+      const thread = st.thread || [];
+      const bubble = (m) => `<div class="thread-msg ${m.role}"><span class="thread-ic">${m.role === 'analyst' ? '🕵️' : '🧑'}</span>
+        <div class="thread-body"><div class="thread-who">${m.role === 'analyst' ? L('বিশ্লেষক', 'Analyst') : L('আপনি', 'You')}</div><div>${P.esc(m.text)}</div></div></div>`;
+      const replyBox = st.can_respond ? `<div class="thread-reply row" style="margin-top:8px;gap:6px">
+          <input id="case-reply-text" placeholder="${L('উত্তর লিখুন…', 'Type your reply…')}" maxlength="1000" style="flex:1">
+          <button class="pill" id="case-reply-send" data-cid="${P.esc(st.case_id)}" aria-label="${L('পাঠান', 'Send')}">📨</button>
+        </div>` : '';
       $('case-body').innerHTML = `<div class="card">
           <div class="row" style="justify-content:space-between"><b class="num" style="font-size:18px">${P.esc(st.case_id)}</b>
             <span class="chip">${L('শেষ তারিখ', 'Due')} <span class="num">${P.n(st.deadline)}</span></span></div>
           <div class="tracker">${steps.map((s, i) => `<div class="${i < st.step ? 'done' : ''}">${P.esc(s)}</div>`).join('')}</div>
           <p style="font-size:14px;line-height:1.5;margin:6px 0">${P.esc(L(st.message_bn, st.message_en))}</p>
           <p class="small" style="margin:6px 0"><b>${L('পরের ধাপ', 'Next')}:</b> ${P.esc(L(st.next_bn, st.next_en))}</p></div>
+        ${thread.length || st.can_respond ? `<div class="card" style="margin-top:10px"><div class="small muted">💬 ${L('বিশ্লেষকের সাথে যোগাযোগ', 'Follow-up with the analyst')}</div>
+          <div class="thread" style="margin-top:6px">${thread.map(bubble).join('')}</div>${replyBox}</div>` : ''}
         ${t ? `<div class="card" style="margin-top:10px"><div class="small muted">${L('মিলে যাওয়া লেনদেন', 'Matched transfer')}</div>
           <div class="receipt" style="margin-top:4px"><div><span>ID</span><b class="num">${P.esc(t.id)}</b></div><div><span>${L('নম্বর', 'Number')}</span><span class="num">${P.phone(t.number)}</span></div>
           <div><span>${L('পরিমাণ', 'Amount')}</span><b class="num">${money(t.amount)}</b></div><div><span>${L('সময়', 'Time')}</span><span class="num">${P.n(String(t.at).replace('T', ' ').slice(0, 16))}</span></div></div></div>` : ''}
@@ -668,6 +677,19 @@
       } catch (e) { /* keep polling */ }
     }, 3000);
   }
+  $('case-body').addEventListener('click', async (e) => {
+    const b = e.target.closest('#case-reply-send');
+    if (!b) return;
+    const input = $('case-reply-text');
+    const text = (input.value || '').trim();
+    if (!text) { toast(L('একটি উত্তর লিখুন', 'Write a reply first')); return; }
+    b.disabled = true;
+    try {
+      const st = await P.api(`/api/v1/complaints/${b.dataset.cid}/respond`, { method: 'POST', body: { customer: S.me.key, text } });
+      openCase(b.dataset.cid, st);
+      toast(L('উত্তর পাঠানো হয়েছে', 'Reply sent'));
+    } catch (err) { toast(err.message); b.disabled = false; }
+  });
 
   // ---------------------------------------------------------------- scam checker
   const SAMPLES = [

@@ -26,6 +26,7 @@
         <span class="small num" id="clock"></span>
         <div class="row an-switches">
           <button class="langsw" data-lang-toggle></button>
+          <button class="i-btn tour-btn" id="tour-start" aria-label="Judge walkthrough" title="Judge walkthrough">🧭</button>
           <details class="guide" id="proto"><summary class="i-btn" aria-label="About this demo" title="About this demo">i</summary>
             <div class="info-panel">
               <p class="small" data-bn="প্রোটোটাইপ, সিন্থেটিক ডেটায় · upay-এর আসল সিস্টেম নয়">Prototype on synthetic data · not an upay system</p>
@@ -58,6 +59,24 @@
     <main class="an-body single hidden" id="tab-model"><div class="panel" id="model"></div></main>
     <main class="an-body single hidden" id="tab-fl"><div class="panel" id="fl"></div></main>
     <main class="an-body single hidden" id="tab-audit"><div class="panel" id="audit"></div></main>
+  </div>
+  <div class="tour hidden" id="tour">
+    <div class="tour-card">
+      <div class="tour-head">
+        <span class="tour-icon" id="tour-icon">🧭</span>
+        <span class="tour-step-no" id="tour-no"></span>
+        <button class="tour-x" id="tour-skip" aria-label="Close">×</button>
+      </div>
+      <h4 id="tour-title"></h4>
+      <p class="small" id="tour-body"></p>
+      <div class="tour-foot">
+        <div class="tour-dots" id="tour-dots"></div>
+        <div class="tour-btns">
+          <button class="btn-link" id="tour-back" data-bn="পেছনে">Back</button>
+          <button class="btn-primary" id="tour-next" data-bn="পরবর্তী">Next</button>
+        </div>
+      </div>
+    </div>
   </div>
   <script src="prohori.js"></script>
   <script src="analyst.js"></script>

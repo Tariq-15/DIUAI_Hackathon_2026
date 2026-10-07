@@ -1,86 +1,162 @@
 # Prohori feedback implementation plan
 
-This plan turns the Phase 1 judge feedback in the supplied NeuroXLab feedback page into work that can be completed against the current Prohori repository. The project is a Track 01 Trust & Risk Intelligence submission; its customer-facing pre-transfer guard and analyst copilot are the primary users. Track 06 wrong-send support is an integrated capability, not a replacement for the Track 01 focus.
+This plan turns the Phase 1 judge feedback (NeuroXLab feedback page) into prioritised work against the current
+repository. Prohori is a **Track 01 Trust & Risk Intelligence** submission: the customer-facing pre-transfer guard
+and the analyst copilot are the primary users; Track 06 wrong-send support is an integrated capability, not a
+replacement for the Track 01 focus.
 
-## Current evidence and limits
+Work is ordered by **points recoverable ÷ effort**, not by criterion number. Delivery and measurement protocols stay
+in [feedback delivery](feedback_delivery.md); this file is the prioritised backlog.
 
-Implementation status and protocols: [feedback delivery](feedback_delivery.md). The repository now includes an isolated multi-seed runner, recipient baseline matrix, policy/fairness uncertainty, and opt-in verified server analyst identities. Execution is pending because this workstation has no Python interpreter on PATH. Customer studies, unseen-scenario scoring, local-state federation, robustness experiments, device measurements and production ledger integration remain open; the checkboxes below are not evidence of completion.
+## Phase 1 scores and the lever behind each
 
-The repository already has a time-disjoint test window, component ablations, fairness reports, federated simulations, a browser and server scorer, an API, and phone/analyst interfaces. Use the existing outputs as a baseline before adding more claims. Relevant artifacts include `reports/evaluation.md`, `reports/metrics_test.json`, `reports/fairness.csv`, `reports/federated_*.json`, and `docs/test_numbers.md`.
+| Criterion | Score | Biggest lever in the comments |
+|---|---|---|
+| Problem relevance | 15.67 / 20 | J2: "no clear target user; does not map to a track" (J1/J3 already positive) |
+| AI/ML depth | 14.67 / 20 | J1: unseen scenarios, multi-seed, incremental value of non-LightGBM components; J2: "no sign of train/test separation" |
+| Business/customer impact | **9.33 / 20** | lowest share; assumed stop rates and analyst minutes; J2: "no impact metric, no economic reasoning" |
+| Prototype quality | 8.0 / 15 | J2: "little/no source code found; no visible UI"; J1: prove the 58 tests and parity, cut the ~12 s load |
+| Innovation | 7.0 / 10 | J1: quantify keypad vs ordinary edit distance; J2: no stated differentiator vs existing fintech |
+| Scalability & integration | 5.67 / 10 | J2: "no API design for a real backend; no deployment / data-store" |
+| Responsible AI & security | 3.33 / 5 | rural/older FPR; verified analyst identity; externally anchored audit; federation threat model |
 
-All metrics from synthetic data are simulation evidence. Do not describe assumed warning stop rates, analyst minutes saved, or simulated customer behavior as measured impact. Customer validation, complaint-handler input, real transaction samples, and a live pilot require partner access and must be reported as pending until obtained.
+**Two framing facts drive the ordering.**
 
-## Work plan
+1. **Judge 2 lost us points by not finding things that exist** — source code, the UI, the API design, train/test
+   separation. Those are built. A large fraction of the gap is packaging and presentation, the cheapest points on
+   the board.
+2. **Execution has started (2026-10-07).** The environment is provisioned and the first dated artifacts exist:
+   **61 tests pass** (`runs/feedback/verification/`) and the keypad vs ordinary-edit-distance diagnostic
+   (`runs/feedback/recipient_matrix.json`). The multi-seed full re-run is in progress; latency and partner work are
+   still pending. Phase 2 rewards dated artifacts, not plans. Every metric from synthetic data remains simulation
+   evidence; assumed stop rates, analyst minutes saved and simulated customer behaviour must not be reported as
+   measured impact.
 
-### P0 — Sharpen the problem, user, and track
+## Tier 0 — Packaging wins (fixes "can't find it"; days, no new engineering)
 
-- [ ] In the README, pitch, and demo opening, name the primary persona: an upay customer about to send money to a potentially fraudulent or mistyped recipient.
-- [ ] Name the secondary persona: upay trust/risk operations analyst investigating high-risk transfers and complaints. Describe merchants and agents as affected counterparties, not primary product users.
-- [ ] State the mapping explicitly: Track 01 Trust & Risk Intelligence is the primary track; keypad-aware wrong-number prevention and complaint matching are supporting Track 06 capabilities.
-- [ ] Add a short validation protocol for upay customers and complaint handlers: task walkthroughs for scam warnings, keypad-slip suggestions for unfamiliar recipients and similar numbers, comprehension, incorrect suggestions, and whether the user can safely cancel or continue. Record sample, method, and limitations; do not imply interviews happened before they do.
+- [ ] Make the submitted bundle legible: source paths, UI screenshots, live demo link and `/docs` API surface at the
+      top level. Add a one-page "where is everything" map (code paths, demo URL, API docs, the test command).
+- [ ] Make the train/validation/test split unmissable: days 1–40 train, 41–50 validation, 51–60 untouched test, read
+      once. Put the split next to every headline metric in the README opening and the pitch, not in a collapsed
+      section. (Directly answers J2's "no sign of train/test separation".)
+- [ ] Name the personas and track in the README, pitch and demo opening: primary — an upay customer about to send to
+      a potentially fraudulent or mistyped recipient; secondary — an upay trust/risk operations analyst. Merchants
+      and agents are affected counterparties, not primary users. Track 01 primary; keypad-aware wrong-number
+      prevention and complaint matching support Track 06.
 
-**Acceptance:** README and presentation have consistent personas/track framing; a reviewer can identify whose decision the product supports and at what point in the transfer.
+**Acceptance:** a reviewer opening the bundle finds code, UI and API within one click, can state whose decision the
+product supports and at what moment, and sees the test window beside every headline result.
 
-### P1 — Make the evaluation claims stronger and auditable
+## Tier 1 — Execute the offline evidence (highest value, no partner needed)
 
-- [ ] Preserve the existing time split (training, validation, untouched test window) and report it next to every headline result. Never tune thresholds on the test window.
-- [ ] Re-run the current evaluation across multiple generator seeds. Report mean and range for PR-AUC, precision/recall by risk band, false-positive rates, wrong-number suggestion precision/coverage, and scenario-level catches. Keep the current seed-42 run as a reproducibility reference.
-- [ ] Expand component ablations to isolate the incremental value of keypad-aware distance over ordinary edit distance, amount habits over the base model, graph signals, and federated vs central learning. Include error counts and confidence intervals where sample sizes support them.
-- [ ] Evaluate keypad suggestions on an explicit matrix: familiar vs unfamiliar recipient, one-key error vs adjacent swap, and similar-number contacts. Measure suggestion precision, recall/coverage, false suggestions, and no-suggestion cases against ordinary edit distance.
-- [ ] Add unseen scenario variants and a documented evaluation set; keep them held out from feature and threshold tuning.
-- [ ] Document why the system combines components even when one model dominates a particular aggregate metric. Show per-scenario or subgroup improvements and failure cases rather than asserting that each component improves every metric.
-- [ ] Add a privacy-preserving cross-silo evaluation that uses local silo state and aggregated sufficient statistics only. Document which existing federated runs still rely on a pooled feature store or pooled validation thresholds; do not call that deployment-ready federation.
+Blocked only on a working interpreter. Resolve the environment first (see Dependencies), then run and commit dated
+artifacts under `runs/feedback/`.
 
-**Acceptance:** a reproducible report separates existing test results from multi-seed/unseen-scenario results, has an explicit baseline for ordinary edit distance, and discloses any pooled-data assumptions.
+- [x] Provision Python 3.12 on PATH (done: Python 3.12.10, Windows 11; optuna and matplotlib added to complete the
+      pipeline environment). Captured in the verification record.
+- [x] `python -m tools.feedback_verify --out-root runs/feedback/verification` (2026-10-07, commit `7fc5ec1`):
+      **61 tests pass, 0 failures**, with pip freeze, git HEAD, working-tree status and JUnit archived. Supersedes
+      the historical 58-test badge.
+- [~] `python -m tools.feedback_evaluate --out-root runs/feedback-full --run-seeds --seeds 42 43 44 --trials 30`:
+      **in progress** (seeds 42/43/44, 30 Optuna trials each; regenerates ~600k-row data per seed). Will yield mean
+      and range for PR-AUC, band precision/recall/FPR, wrong-number suggestion precision/coverage, and scenario
+      catches. Seed-42 remains the reproducibility reference, isolated from new seeds. A `--trials 0` quick
+      stability variant is available if a completed multi-seed result is needed sooner.
+- [x] Keypad vs ordinary-edit-distance matrix (`runs/feedback/recipient_matrix.json`, 2026-10-07): keypad catches
+      adjacent-digit **swaps 6/12 vs ordinary edit distance 0/12** (unit-cost Levenshtein scores a transposition as
+      2 and never suggests), at the cost of more false suggestions on legitimately-similar numbers (9 vs 6); both
+      correctly stay silent on distant numbers and exact contacts. Small fixed diagnostic (n=60/model, wide binomial
+      intervals); labelled "not customer validation".
+- [ ] Prepare and freeze an unseen later-window scenario set (lower-volume collectors, older warmed mules, delayed
+      cash-out, fewer complaints, seasonal lump transfers); publish variant parameters and denominators before
+      scoring; never refit on it.
+- [ ] Incremental ablations: keypad-aware distance over ordinary edit distance, amount habits over the base model,
+      graph signals, federated vs central — with error counts and intervals where sample size supports them. Document
+      *why* components are combined even when LightGBM dominates the aggregate: show per-scenario and subgroup wins
+      and failure cases, not an assertion that each component improves every metric.
 
-### P2 — Replace assumed impact with a pilot measurement design
+**Acceptance:** a reproducible report separates the seed-42 reference from multi-seed and unseen-scenario results,
+carries an explicit ordinary-edit-distance baseline, and discloses every pooled-data assumption.
 
-- [ ] Define primary outcomes: wrong-number transfers prevented per 1,000 eligible sends; scam transfer completion after warning by band; incorrect suggestion rate; legitimate-transfer abandonment; customer comprehension; analyst handling time and case disposition quality.
-- [ ] Define economic accounting with partner-approved inputs: prevented loss (observed amount at risk, not a simulated stop-rate multiplier), operational review cost, customer support cost, and implementation/serving cost. Show formula and sensitivity ranges; do not claim ROI without validated inputs.
-- [ ] Design a staged evaluation: usability study first; shadow scoring with no transaction intervention; then a partner-approved controlled pilot with consent, guardrails, incident escalation, and rollback. Establish minimum sample sizes and decision thresholds before the pilot.
-- [ ] Treat NUDGE/STEP_UP/HOLD stop rates and analyst minutes as assumptions until directly measured. Label current projections as modeled scenarios and show how outcomes change when assumptions vary.
+## Tier 2 — Impact reframing (the 9.33/20, the largest raw gap)
 
-**Acceptance:** impact tables distinguish observed, simulated, and assumed values and show a concrete measurement path for each claim.
+- [ ] Replace the single "money protected" headline with one table that labels every number as **simulated
+      detection**, **modeled scenario**, or **observed**. Current stop rates (NUDGE .3 / STEP_UP .7 / HOLD 1) and
+      analyst times (20 vs 3 min) are assumptions: report prevented-value projections at 0 / 0.5 / 1× each non-ALLOW
+      stop rate and handling savings at 3 / 10 / 20 min.
+- [ ] State the economic formula with partner-approvable low/base/high inputs: net benefit = observed attributable
+      prevented loss − incremental review cost − incremental support cost − implementation/serving cost. Do not
+      publish ROI until inputs and outcomes are validated. (Answers J2 "no economic reasoning" and J3 "replace
+      assumed stop rates".)
+- [ ] Define the primary pilot outcomes and denominators (wrong-number transfers prevented per 1,000 eligible sends,
+      scam completion after warning by band, incorrect-suggestion rate, legitimate abandonment, comprehension,
+      analyst handling time and disposition quality) as the measurement path for each claim.
 
-### P3 — Demonstrate prototype and integration quality
+**Acceptance:** impact tables distinguish observed, simulated and assumed values, and show a concrete measurement
+path for each claim.
 
-- [ ] Produce a compact verification record for the existing automated test suite and browser/server prediction parity, with commands, environment, date, and results. Do not report a test count without a captured run.
-- [ ] Measure initial load and scoring latency on a low-end phone profile and a typical laptop; identify optimizations against a stated target. Measure concurrent analyst actions and recovery after refresh/interrupted sessions.
-- [ ] Exercise API behavior for authorization, idempotency, timeout, unavailable scorer, retries, and audit-event persistence. Document a real MFS pre-transfer contract: request fields, decision response, latency budget, authentication, replay protection, and fail-safe behavior.
-- [ ] Document production data-store and deployment boundaries: authoritative server-side scoring and policy, protected audit records, client receives only decision/explanation, retention/access controls, and operational monitoring. The browser demo is not authoritative for transaction holds.
-- [ ] Demonstrate end-to-end customer and analyst flows using the current UI; track interaction friction and recovery issues from the usability pass.
+## Tier 3 — Prototype, integration and Responsible-AI depth
 
-**Acceptance:** a reviewer can see measured performance, reproducible parity evidence, a backend integration contract, and a clear boundary between demo and authoritative production controls.
+- [ ] Latency and robustness measurements (needs the Tier 1 environment): cold/warm load and p50/p95 scoring latency
+      on a low-end phone profile and a typical laptop, ≥30 reps, against a stated target; concurrent analyst actions,
+      refresh/interruption/backend restart and recovery. Answers J1's ~12 s load concern.
+- [ ] Turn the production integration contract into a runnable adapter stub: score-without-commit bound to a ledger
+      transaction; request fields, decision response, latency budget (p95 < 200 ms design target), authentication,
+      replay protection and fail-safe (timeout/unavailable never fabricates ALLOW). Demonstrate
+      `PROHORI_INTEGRATION=1` token auth with a reused idempotency key returning 409. (Answers J2 "no API design that
+      could connect to a real backend".)
+- [ ] Document production data-store and deployment boundaries: authoritative server-side scoring and policy,
+      protected append-only audit records with external hash anchoring, client receives decision/explanation only,
+      retention/access controls and monitoring. State plainly that the browser demo and the in-memory world are not
+      authoritative for holds.
+- [ ] Fairness remediation study on validation for rural farmers and older customers: calibration, sample size and
+      feature causes; candidate mitigation confirmed on the untouched later window; no silent per-group thresholds.
+      Add Wilson intervals, minimum-support labels (≥1,000 legit txns) and intervention rates alongside FPR.
+- [ ] Verified analyst identities and role-based authorization in the integration prototype; log actor, action,
+      target, timestamp and reason server-side. Define key management, rotation, verification and recovery for the
+      anchored audit; avoid implying the local hash chain is independently tamper-proof.
+- [ ] Federation threat model with simulated robustness experiments: client dropout before/after mask exchange,
+      small cohorts, colluding neighbours and coordinator, gradient sign flips, oversized and poisoned updates.
+      Report attack strength and compromised-client count; state what secure aggregation and differential privacy do
+      not protect against. Add a local-state cross-silo evaluation that uses aggregated sufficient statistics only
+      and reports the accuracy loss from unavailable cross-silo edges.
 
-### P4 — Close fairness, security, and federation gaps
+**Acceptance:** measured performance, a runnable backend-integration contract, a clear demo-vs-production boundary,
+fairness follow-up with measured outcomes, and federation claims that name their tested threat assumptions.
 
-- [ ] Use the existing group FPR findings as a prioritized remediation study, especially rural farmers and older customers. Examine calibration, sample size, and feature causes; test candidate mitigations on validation data and confirm on a later untouched evaluation set. Do not silently introduce per-group thresholds.
-- [ ] Add uncertainty intervals and minimum-support labels to fairness results. Report intervention rates and customer outcomes alongside FPR so low-volume groups are not overinterpreted.
-- [ ] Replace entered-name-only analyst actions with authenticated identities and role-based authorization in any integration prototype; log actor, action, target, timestamp, and reason server-side.
-- [ ] Define append-only audit storage and external hash anchoring for a production design; identify key management, rotation, verification, and recovery. Avoid implying a local hash chain is independently tamper-proof.
-- [ ] Threat-model federated aggregation for client dropout, collusion, malicious updates, poisoning, and small cohorts. Add simulated robustness experiments and state what secure aggregation and differential privacy do not protect against.
-- [ ] Validate customer-facing Bangla and warning comprehension with target users, including accessibility and age-related usability.
+## Tier 4 — Partner-gated (present as protocol, label pending)
 
-**Acceptance:** fairness follow-up has measured outcomes, consequential actions require verified permissions in the integration design, and federation/privacy claims name tested threat assumptions.
+- [ ] Customer and complaint-handler usability study (24 customers across age/urban-rural/USSD, 6 handlers), then
+      partner-approved shadow scoring, then a consented controlled pilot with guardrails, incident escalation and
+      rollback. Fully specified in [feedback delivery](feedback_delivery.md); report as pending until partner access
+      and approval are obtained. Customer validation and real-data work cannot be completed solo and must never be
+      implied to have happened.
 
-## Sequence and dependencies
+## Dependencies and sequence
 
-1. Complete P0 and capture the current baseline before changing model behavior.
-2. Run P1 offline using the existing generated-data pipeline; keep new seeds/scenarios isolated from tuning.
-3. Complete P3 technical verification and P4 offline threat/fairness analyses in parallel where possible.
-4. Run customer/handler validation and any real-data or live-pilot work only with an MFS partner and approved access. P2 real-world outcomes depend on that access.
-5. Update README, pitch, and demo claims only from dated artifacts produced by these work items.
+1. **Tier 0** packaging and persona/track framing — immediately; no interpreter needed.
+2. **Resolve the environment** (Python 3.12 on PATH or a container) — this unblocks all of Tier 1 and the Tier 3
+   latency work. It is the single gate in front of the highest-value evidence.
+3. **Tier 1** offline evidence — run against the existing generated-data pipeline; keep new seeds and the unseen
+   window isolated from tuning; commit dated artifacts.
+4. **Tier 2** impact reframing — can proceed in parallel with Tier 1; finalise numbers once Tier 1 artifacts land.
+5. **Tier 3** integration, latency, fairness and federation — in parallel where possible after the environment is up.
+6. **Tier 4** customer/handler validation and any live-pilot work — only with an MFS partner and approved access.
+7. Update README, pitch and demo claims **only** from dated artifacts produced by these items.
 
 ## Feedback traceability
 
-| Judge feedback theme | Plan section |
-|---|---|
-| Target user and track fit | P0 |
-| Customer and complaint-handler validation | P0, P4 |
-| Unseen scenarios, seeds, ablations, baseline comparison | P1 |
-| Real impact, economic reasoning, assumed stop rates/time | P2 |
-| Test evidence, load, low-end devices, concurrency, recovery | P3 |
-| Secure pre-transfer integration, API, throughput, data store | P3 |
-| Cross-division privacy-preserving graph/federated design | P1, P4 |
-| Rural/older customer false positives, explainability, fairness | P4 |
-| Verified analyst permissions and tamper-evident audit | P4 |
+| Judge feedback theme | Score | Plan tier |
+|---|---|---|
+| Target user and track fit | 15.67/20 | Tier 0 |
+| Train/test separation visibility | 14.67/20 | Tier 0, Tier 1 |
+| Unseen scenarios, seeds, ablations, baseline comparison | 14.67/20 | Tier 1 |
+| Keypad vs ordinary edit distance, incorrect suggestions | 7.0/10 | Tier 1 |
+| Real impact, economic reasoning, assumed stop rates/time | 9.33/20 | Tier 2 |
+| "Source code / UI not found", prove tests and parity | 8.0/15 | Tier 0, Tier 1 |
+| Load time, low-end devices, concurrency, recovery | 8.0/15 | Tier 3 |
+| Secure pre-transfer integration, API, data store | 5.67/10 | Tier 3 |
+| Rural/older false positives, explainability, fairness | 3.33/5 | Tier 3 |
+| Verified analyst permissions, anchored audit, federation threats | 3.33/5 | Tier 3 |
+| Cross-division privacy-preserving graph/federated design | 5.67/10 | Tier 3 |
+| Customer and complaint-handler validation | 15.67/20 | Tier 4 |

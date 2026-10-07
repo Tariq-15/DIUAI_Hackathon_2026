@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prohori — Post-Feedback Changelog</title>
+<style>
+  :root {
+    --upay-yellow: #ffcc00; --upay-yellow-soft: #fff6cc; --upay-blue: #005bac; --upay-blue-dark: #003a70;
+    --ink: #1d2433; --ink-2: #4a5468; --ink-3: #7b8597; --line: #e3e7ee; --paper: #f6f7fb;
+    --good: #0f8a5f; --bad: #c62828; --wait: #d9a400; --shadow: 0 10px 34px -12px rgba(16, 32, 64, .25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", -apple-system, "Noto Sans Bengali", Arial, sans-serif; color: var(--ink); background: var(--paper); }
+  header.top { background: linear-gradient(160deg, var(--upay-blue-dark), var(--upay-blue)); color: #fff; padding: 34px 8vw 28px; }
+  header.top .eyebrow { color: var(--upay-yellow); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+  header.top h1 { margin: 8px 0 6px; font-size: clamp(26px, 3.6vw, 42px); }
+  header.top p { margin: 0; color: #dbe6f5; font-size: 15px; max-width: 760px; line-height: 1.5; }
+  header.top .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  header.top .meta span { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 36px 8vw 70px; }
+  h2 { color: var(--upay-blue-dark); font-size: 20px; margin: 34px 0 6px; padding-bottom: 8px; border-bottom: 2px solid var(--line); }
+  h2:first-child { margin-top: 0; }
+  .lead { color: var(--ink-2); font-size: 14.5px; line-height: 1.6; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .item { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin: 12px 0; box-shadow: var(--shadow); }
+  .item .h { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+  .item .h b { font-size: 15px; color: var(--upay-blue-dark); }
+  .status { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+  .status.done { background: #e7f6ef; color: var(--good); }
+  .status.wip { background: #fff3da; color: #946b00; }
+  .status.open { background: #fdeceb; color: var(--bad); }
+  .item p { margin: 6px 0; font-size: 14px; line-height: 1.55; color: var(--ink); }
+  .item ul { margin: 6px 0 0; padding-left: 20px; }
+  .item li { font-size: 13.5px; line-height: 1.55; margin: 4px 0; color: var(--ink); }
+  code { background: var(--paper); border: 1px solid var(--line); padding: 1.5px 6px; border-radius: 5px; font-size: 12.5px; color: var(--upay-blue-dark); }
+  .num { font-weight: 800; color: var(--upay-blue-dark); }
+  .good { color: var(--good); font-weight: 800; } .bad { color: var(--bad); font-weight: 800; }
+  .notcommit { background: #fff3da; border: 1px solid #f0d78a; border-radius: 10px; padding: 12px 16px; font-size: 13.5px; color: #6b5200; margin: 20px 0; }
+  .footer { text-align: center; color: var(--ink-3); font-size: 12.5px; margin-top: 40px; }
+  @media print { header.top { background: var(--upay-blue-dark) !important; } .item { box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">Session log · 2026-10-07</div>
+  <h1>What changed after Phase 1 feedback</h1>
+  <p>Honest, dated record of this session's work against the Phase 1 judge feedback. Every item below is
+    traceable to a file in this repo. Nothing was invented for this log.</p>
+  <div class="meta">
+    <span>Base commit <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff">7fc5ec1</code></span>
+    <span>Status: uncommitted working-tree changes</span>
+    <span>Plan: docs/feedback_implementation_plan.md</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="notcommit">⚠ <b>Nothing in this log is committed to git yet.</b> Everything below is visible only in the
+    working tree (<code>git status</code>) until a commit is made.</div>
+
+  <h2>Environment — the blocker the previous verification record flagged</h2>
+  <div class="item">
+    <div class="h"><b>Python was reported unavailable on PATH</b><span class="status done">Resolved</span></div>
+    <p>The 2026-10-07 verification record originally said Python was unavailable, so none of the evidence tooling had ever run.</p>
+    <ul>
+      <li>Confirmed Python 3.12.10 is in fact installed and on PATH.</li>
+      <li>Installed the packages the pipeline actually needs: <code>optuna</code> (hyperparameter tuning) and <code>matplotlib</code> (evaluation plots) — both were absent and caused real failures, caught by the smoke test below.</li>
+      <li>Fixed a real bug in <code>tools/feedback_evaluate.py</code>: it read <code>metrics_test.json</code> with <code>.read_text()</code> and no encoding, which crashes on Windows (cp1252 default) against the Bangla reason-code strings inside the file. Now reads with <code>encoding='utf-8'</code>. Without this fix, the multi-seed aggregation step would have failed after a 30+ minute training run.</li>
+    </ul>
+  </div>
+
+  <h2>Executed and verified — not just planned</h2>
+
+  <div class="item">
+    <div class="h"><b>Verification record — test suite, versions, commit</b><span class="status done">Done</span></div>
+    <p><code>python -m tools.feedback_verify --out-root runs/feedback/verification</code> ran for real.</p>
+    <p>Result: <span class="good">61 tests pass, 0 failures, 0 errors, 0 skipped</span> (JUnit at <code>runs/feedback/verification/pytest.xml</code>), commit <code>7fc5ec1</code>, pip freeze and git status archived.</p>
+    <p>The README's test badge said 58; updated to <b>61</b> to match this captured run.</p>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>Keypad vs. ordinary edit-distance diagnostic</b><span class="status done">Done</span></div>
+    <p><code>python -m tools.feedback_evaluate --out-root runs/feedback</code> refreshed <code>recipient_matrix.json</code>.</p>
+    <p>Result: on digit-transposition ("swap") slips, the keypad check gets <span class="num">6 of 12</span> right; unit-cost Levenshtein gets <span class="bad">0 of 12</span> (it scores a swap as distance 2 and never suggests).</p>
+    <p>The keypad check also produces more false suggestions on legitimately similar numbers (9 vs. 6 of 12) — that trade-off is reported, not hidden. Small, fixed diagnostic (n=60 per model), explicitly labelled "not customer validation" in the artifact itself.</p>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>Smoke test before the long run</b><span class="status done">Done</span></div>
+    <p><code>--run-seeds --seeds 42 --scale 0.1 --trials 0</code> — run before committing to the long multi-seed job.</p>
+    <p>It caught both real bugs above (missing matplotlib, the encoding bug) before they could waste a 1.5-hour run.</p>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>Multi-seed full evaluation</b><span class="status wip">In progress</span></div>
+    <p><code>--run-seeds --seeds 42 43 44 --trials 30</code> — not finished at the time of this log.</p>
+    <ul>
+      <li>Seed 42: complete, PR-AUC <span class="good">0.9622</span> — reproduces the published seed-42 reference exactly.</li>
+      <li>Seed 43: complete, PR-AUC <span class="good">0.9708</span>.</li>
+      <li>Seed 44: running (last seen in the <code>features</code> stage).</li>
+      <li><code>runs/feedback-full/summary.json</code> will exist only once all three seeds finish; it does not exist yet.</li>
+    </ul>
+  </div>
+
+  <h2>Product features built this session</h2>
+
+  <div class="item">
+    <div class="h"><b>Judge onboarding tour</b><span class="status done">Built</span></div>
+    <p><code>ui/analyst.html</code>, <code>ui/analyst.js</code>, <code>ui/prohori.css</code> — a 🧭 button in the copilot header opens a 9-step, icon-based, bilingual (bn/en) walkthrough that switches tabs and highlights the real Overview, alert queue, SHAP/money-network, Agent Watch, model/fairness, federated/privacy and audit-log elements.</p>
+    <p>Auto-opens once for a first-time, non-embedded visit; suppressed inside the showcase's embedded iframe view (matching how the existing "About this demo" guide already behaves there).</p>
+    <p>Verified structurally: every DOM id referenced in the JS was cross-checked against the HTML; a local <code>uvicorn</code> server was booted and the served files fetched with <code>curl</code> to confirm the new markup, CSS and JS ship.</p>
+    <p><span class="bad">Not done:</span> an actual browser click-through — installing Playwright's Chromium (195 MB) didn't fit the time budget, so this was verified structurally, not visually, and that limitation is stated rather than glossed over.</p>
+  </div>
+
+  <div class="item">
+    <div class="h"><b>Customer ↔ analyst follow-up channel</b><span class="status done">Built</span></div>
+    <p>Closes a real product gap: an analyst could ask a complaint filer for more details (the existing <code>ASK_CUSTOMER_DETAILS</code> action), but the customer had no way to respond; the thread dead-ended.</p>
+    <ul>
+      <li><code>src/serve/live.py</code>: <code>respond_to_complaint()</code> — ownership-checked (only the wallet that filed the complaint may reply), audit-logged (<code>complaint.reply_details</code>), appends to a <code>thread</code> list on the complaint record, moves status <code>details_requested → details_received</code>.</li>
+      <li><code>src/serve/api.py</code>: new route <code>POST /api/v1/complaints/{cid}/respond</code>.</li>
+      <li><code>ui/app.js</code>: the customer's case tracker shows the thread (🕵️ analyst / 🧑 customer bubbles) and a 📨 reply box when a reply is wanted.</li>
+      <li><code>ui/analyst.js</code>: the copilot's complaint detail view shows the same thread, plus a ⏳ "waiting for customer" indicator.</li>
+    </ul>
+    <p>All touched JS/Python files pass a syntax check (<code>node --check</code>, <code>python -m py_compile</code>). <span class="bad">Not done:</span> a live click-through test of the full request→reply round trip in a running browser, for the same Playwright-install time reason as above.</p>
+  </div>
+
+  <h2>Documentation updated to match reality, not aspiration</h2>
+  <div class="item">
+    <ul>
+      <li><code>docs/feedback_delivery.md</code> — the verification-record section no longer says "Python was unavailable"; states the actual result (61 passed, 0 failed) with artifact paths.</li>
+      <li><code>docs/feedback_implementation_plan.md</code> — ticked only the items that actually ran (environment, verify, keypad matrix); the multi-seed item marked in-progress; partner-gated items still pending.</li>
+      <li><code>README.md</code> — test badge corrected to 61; the "execution… pending" line now points at the dated artifacts instead of asserting nothing had run.</li>
+      <li><code>docs/pitch_deck.md</code> / <code>docs/pitch_deck.html</code> — every claim paired with the file or command that reproduces it, including an explicit slide listing what is still a modeled assumption, not a measurement.</li>
+    </ul>
+  </div>
+
+  <h2>Explicitly still open — not claimed as done</h2>
+  <div class="item">
+    <ul>
+      <li>The multi-seed run itself (seed 44 and the aggregated <code>summary.json</code>).</li>
+      <li>Any customer or complaint-handler usability study, shadow scoring, or pilot — all partner-gated, per <code>docs/feedback_delivery.md</code>; none of that access exists.</li>
+      <li>Browser-level (not just structural) verification of the two new UI features.</li>
+      <li>Everything in Tiers 2–4 of <code>docs/feedback_implementation_plan.md</code> (impact reframing, integration adapter, fairness remediation study, federation threat experiments) — not started this session.</li>
+      <li><b>None of this session's changes are committed to git.</b> Visible only in the working tree until a commit is made.</li>
+    </ul>
+  </div>
+
+  <div class="footer">Prohori · AI Hackathon 2026 · Track 01 Trust &amp; Risk Intelligence</div>
+</div>
+</body>
+</html>

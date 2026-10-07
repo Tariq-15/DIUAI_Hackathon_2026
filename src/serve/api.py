@@ -221,6 +221,16 @@ def complaint_status(cid: str):
     return _call(world().complaint_status, cid)
 
 
+class ComplaintReplyIn(BaseModel):
+    customer: str
+    text: str = Field(..., min_length=1, max_length=1000)
+
+
+@app.post("/api/v1/complaints/{cid}/respond")
+def complaint_respond(cid: str, body: ComplaintReplyIn):
+    return _call(world().respond_to_complaint, body.customer, cid, body.text)
+
+
 class ScamIn(BaseModel):
     text: str = Field(..., min_length=3, max_length=2000)
 

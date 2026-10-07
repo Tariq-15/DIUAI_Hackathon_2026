@@ -9,14 +9,14 @@
 [![Live demo](https://img.shields.io/badge/live%20demo-Hugging%20Face-ffcc00?logo=huggingface&logoColor=black)](https://tariq15-prohori.static.hf.space)
 ![Track 01](https://img.shields.io/badge/track%2001-Trust%20%26%20Risk%20Intelligence-005bac)
 ![Python](https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-58%20passing-0f8a5f)
+![Tests](https://img.shields.io/badge/tests-61%20passing-0f8a5f)
 [![CI](https://github.com/Tariq-15/DIUAI_Hackathon_2026/actions/workflows/ci.yml/badge.svg)](https://github.com/Tariq-15/DIUAI_Hackathon_2026/actions/workflows/ci.yml)
 ![Data](https://img.shields.io/badge/data-100%25%20synthetic-7b8597)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 [Judge feedback implementation plan](docs/feedback_implementation_plan.md)
 
-[Feedback delivery and measurement protocols](docs/feedback_delivery.md) · Offline studies: `python -m tools.feedback_evaluate --out-root runs/feedback --run-seeds --seeds 42 43 44 --trials 30`. New runs are isolated from the seed-42 reference. Execution and partner validation are pending; see the dated verification record.
+[Feedback delivery and measurement protocols](docs/feedback_delivery.md) · Offline studies: `python -m tools.feedback_evaluate --out-root runs/feedback --run-seeds --seeds 42 43 44 --trials 30`. New runs are isolated from the seed-42 reference. Verified 2026-10-07 (commit `7fc5ec1`): **61 tests pass, 0 failures** (`runs/feedback/verification/`, with JUnit); the keypad vs ordinary-edit-distance diagnostic is in `runs/feedback/recipient_matrix.json`. The multi-seed full re-run and partner validation are pending.
 
 **[Open the live demo](https://tariq15-prohori.static.hf.space)** · [Test numbers](docs/test_numbers.md) · [Results](#results) · [Setup](#installation-and-setup) · [API](#api-reference)
 
@@ -372,7 +372,7 @@ PROHORI_LLM=anthropic ANTHROPIC_API_KEY=<your-anthropic-key> uvicorn src.serve.a
 
 ## Testing
 
-**Automated tests.** 58 tests, a few minutes, on the committed models plus a tiny generated world:
+**Automated tests.** 61 tests, a few minutes, on the committed models plus a tiny generated world (verified 2026-10-07: 61 passed, 0 failed; `runs/feedback/verification/`):
 
 ```bash
 pytest
@@ -441,7 +441,7 @@ src/pipeline.py             one-command runner
 tests/                      pytest: data invariants, leakage, policy, reason codes, mini training, product layer, wrong-number check, complaints, federated learning, amount habits, recharge, test numbers
 tools/                      build_static.py · deploy_space.py · readme_results.py · build_report_pdf.py
 notebooks/                  00 Kaggle end-to-end · 01 data · 02 features · 03 training · 04 test evaluation · 05 Agent Watch · 06 inference
-docs/                       test_numbers.md · images/ · data_dictionary.md · spec_review_fixes.md · prohori-plan.md · Prohori_Work_Breakdown.pdf
+docs/                       test_numbers.md · images/ · data_dictionary.md · database.md · spec_review_fixes.md · prohori-plan.md · Prohori_Work_Breakdown.pdf
 data/sample/                ~20k-row sample (2 test days) + entity tables + test_numbers.csv, committed
 artifacts/, reports/        trained bundle, federated bundle, demo state, demo world, portable models; all metrics and figures from the seed-42 run
 archive/ferot/              Track 06 prototype (see above)
@@ -667,7 +667,8 @@ warmed up with small normal activity, so "new wallet = fraud" does not work.
 **Planted demo scenarios** (all in the test window, unseen by training): SC-01…SC-08 must be caught; SB-01…SB-05
 are benign look-alikes that must not be blocked. See `reports/demo_scenarios.md`.
 
-Full column list: `docs/data_dictionary.md`.
+Full column list: `docs/data_dictionary.md`. How this maps to the in-memory live state, the audit log, and a
+proposed production schema (decisions, complaints, analyst actions, append-only audit): `docs/database.md`.
 
 </details>
 

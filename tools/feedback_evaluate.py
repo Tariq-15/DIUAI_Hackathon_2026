@@ -106,7 +106,7 @@ def main():
                    '--trials', str(args.trials), '--out-root', str(destination), '--to', 'evaluate']
         with (destination / 'pipeline.log').open('w', encoding='utf-8') as log:
             subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
-        runs.append((seed, json.loads((destination / 'reports/metrics_test.json').read_text())))
+        runs.append((seed, json.loads((destination / 'reports/metrics_test.json').read_text(encoding='utf-8'))))
     save_json(dict(date=datetime.now(timezone.utc).isoformat(), evidence='synthetic simulation',
                    split=load_config()['splits'], seeds=[s for s, _ in runs], scale=args.scale,
                    trials=args.trials, metrics=aggregate_seed_metrics(runs),

@@ -8,7 +8,7 @@
   const $ = (id) => document.getElementById(id);
   const S = { alerts: [], seen: new Set(), sel: null, filter: 'all', pinned: false, health: null, first: true, tab: 'overview', detail: null,
     model: null, auditInfo: null, ovSig: '' };
-  if (P.embed) $('proto').classList.add('hidden');
+  if (P.embed) { $('proto').classList.add('hidden'); $('tour-start').classList.add('hidden'); }
   document.addEventListener('click', (e) => { const d = $('proto'); if (d.open && !d.contains(e.target)) d.open = false; });
   $('analyst').value = P.store.get('prohori.analyst') || '';
   $('analyst').addEventListener('input', () => P.store.set('prohori.analyst', $('analyst').value.trim()));
@@ -32,6 +32,76 @@
     if (b) { openTab(b.dataset.tab); window.scrollTo(0, 0); }
   });
 
+  // ---------------------------------------------------------------- judge walkthrough (icon-based tour)
+  const TOUR = [
+    { icon: '👋', tab: 'overview', target: null,
+      title: ['প্রহরী কোপাইলটে স্বাগতম', 'Welcome to the Prohori copilot'],
+      body: ['এই গাইডটি বিচারকদের জন্য: মডেল, SHAP প্রমাণ, মানি নেটওয়ার্ক, ন্যায্যতা ও ফেডারেটেড ফলাফল কোথায় পাবেন, ধাপে ধাপে দেখাবে।',
+        'A short guided tour for judges: where to find the model, SHAP evidence, the money network, fairness and federated results.'] },
+    { icon: '📊', tab: 'overview', target: '[data-tab="overview"]',
+      title: ['সারসংক্ষেপ: সতর্কতাগুলো কী করল', 'Overview: what the warnings did'],
+      body: ['সতর্ক করা টাকা মানিব্যাগে থেকে গেল, সতর্কতার পরও পাঠানো হল, নাকি গ্রাহকের উত্তরের অপেক্ষায় আছে — এবং টেস্ট উইন্ডোর ফলাফল এখানে।',
+        'How much warned money stayed in the wallet, was sent anyway, or is still waiting — plus the held-out test-window results, all before you open a single case.'] },
+    { icon: '🔔', tab: 'alerts', target: '.queue',
+      title: ['অ্যালার্ট তালিকা ও ফিল্টার', 'The alert queue and filters'],
+      body: ['অভিযোগ, ভুল নম্বর, অস্বাভাবিক পরিমাণ, রিচার্জ — ফিল্টার দিয়ে বেছে নিন। একটি HOLD অ্যালার্ট ক্লিক করুন প্রমাণ দেখতে।',
+        'Filter by complaint, wrong number, unusual amount or recharge. Click any HOLD alert on the left to open its evidence.'] },
+    { icon: '🧠', tab: 'alerts', target: '#detail',
+      title: ['কেন ঝুঁকি: SHAP প্রমাণ ও মানি নেটওয়ার্ক', 'Why it fired: SHAP evidence and the money network'],
+      body: ['একটি অ্যালার্ট খুললে এখানে মডেলের SHAP কারণ (বারচার্ট), মানি নেটওয়ার্ক গ্রাফ, গ্রাহকের নিজের পরিমাণ অভ্যাস এবং একটি চার-অংশের কেস রিপোর্ট দেখবেন।',
+        'Open any alert and this panel shows the model’s SHAP reason bars, the money-network graph, the customer’s own amount habit, and a four-part case report — all from structured evidence, nothing invented.'] },
+    { icon: '🕵️', tab: 'agents', target: '[data-tab="agents"]',
+      title: ['এজেন্ট ওয়াচ: অসাধু ক্যাশ-আউট এজেন্ট', 'Agent Watch: rogue cash-out agents'],
+      body: ['পিয়ার z-স্কোর ও পয়সন টেস্ট দিয়ে এলাকার ভিড়ের তুলনায় সন্দেহজনক এজেন্ট ধরা হয় — মাত্র ৯টি অসাধু এজেন্ট থেকে সুপারভাইজড মডেল শেখানো সম্ভব না বলে।',
+        'Peer z-scores and a Poisson test flag agents against their area’s footfall — used because only 9 rogue agents exist, too few to train a supervised model on.'] },
+    { icon: '⚖️', tab: 'model', target: '[data-tab="model"]',
+      title: ['মডেল, অ্যাবলেশন ও ন্যায্যতা', 'Model, ablation and fairness'],
+      body: ['টেস্ট উইন্ডোর তুলনা, উপাদান অ্যাবলেশন এবং গ্রুপভিত্তিক false-positive rate (গ্রামীণ কৃষক, বয়স্ক গ্রাহক) — সবই পরিমাপসহ।',
+        'Test-window model comparison, component ablation, and the group false-positive-rate audit (rural farmers, older customers), each with measured numbers.'] },
+    { icon: '🔒', tab: 'fl', target: '[data-tab="fl"]',
+      title: ['ফেডারেটেড লার্নিং ও গোপনীয়তা', 'Federated learning and privacy'],
+      body: ['তিনটি ফেডারেটেড ফল: কীপ্যাড-স্লিপ খরচ, পরিমাণ অভ্যাসের সীমা, এবং ৮টি বিভাগ জুড়ে স্কাম মডেল — কী ফোন ছেড়ে যায়, কী কখনো যায় না।',
+        'The three federated results: keypad-slip costs, amount-habit limits, and the cross-division scam model — what leaves a phone, and what never does.'] },
+    { icon: '🧾', tab: 'audit', target: '[data-tab="audit"]',
+      title: ['অডিট লগ', 'Audit log'],
+      body: ['প্রতিটি মডেল অ্যালার্ট, গ্রাহকের সিদ্ধান্ত, অভিযোগ ও বিশ্লেষকের পদক্ষেপ একটি SHA-256 হ্যাশ-চেইন করা লগে যায়; নিচের বাটন দিয়ে যাচাই করা যায়।',
+        'Every model alert, customer decision, complaint and analyst action goes into a SHA-256 hash-chained log; the button here verifies the chain.'] },
+    { icon: '🎓', tab: 'overview', target: null,
+      title: ['ঘোরা শেষ — এখন নিজে চালান', 'Tour complete — try it yourself'],
+      body: ['হেডারের ⓘ বাটনে ২৭টি টেস্ট নম্বর আছে, প্রতিটির প্রত্যাশিত উত্তরসহ। এই 🧭 বাটনে ক্লিক করলে এই গাইড আবার চালু হবে।',
+        'The header’s ⓘ lists test numbers with each one’s recorded answer. Click this 🧭 button any time to replay this tour.'] },
+  ];
+  const TS = { i: 0, open: false };
+  function tourRender() {
+    const step = TOUR[TS.i];
+    $('tour-icon').textContent = step.icon;
+    $('tour-no').textContent = `${TS.i + 1} / ${TOUR.length}`;
+    $('tour-title').textContent = L(...step.title);
+    $('tour-body').textContent = L(...step.body);
+    $('tour-dots').innerHTML = TOUR.map((_, i) => `<i class="${i === TS.i ? 'on' : ''}"></i>`).join('');
+    $('tour-back').classList.toggle('hidden', TS.i === 0);
+    $('tour-next').textContent = L(...(TS.i === TOUR.length - 1 ? ['শেষ করুন', 'Finish'] : ['পরবর্তী', 'Next']));
+    document.querySelectorAll('.tour-highlight').forEach((x) => x.classList.remove('tour-highlight'));
+    if (step.tab && step.tab !== S.tab) openTab(step.tab);
+    if (step.target) {
+      const el = document.querySelector(step.target);
+      if (el) { el.classList.add('tour-highlight'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    }
+  }
+  function tourOpen(i = 0) {
+    TS.i = i; TS.open = true; $('tour').classList.remove('hidden'); tourRender();
+    P.store.set('prohori.tourSeen', '1');
+  }
+  function tourClose() {
+    TS.open = false; $('tour').classList.add('hidden');
+    document.querySelectorAll('.tour-highlight').forEach((x) => x.classList.remove('tour-highlight'));
+  }
+  $('tour-start').addEventListener('click', () => tourOpen(0));
+  $('tour-skip').addEventListener('click', tourClose);
+  $('tour-back').addEventListener('click', () => { if (TS.i > 0) { TS.i -= 1; tourRender(); } });
+  $('tour-next').addEventListener('click', () => { if (TS.i < TOUR.length - 1) { TS.i += 1; tourRender(); } else tourClose(); });
+  if (!P.embed && !P.store.get('prohori.tourSeen')) setTimeout(() => tourOpen(0), 600);
+
   // ---------------------------------------------------------------- queue
   $('filters').addEventListener('click', (e) => {
     const b = e.target.closest('[data-f]');
@@ -48,13 +118,15 @@
     dismissed: ['বাতিল (ভুল সতর্কতা)', 'dismissed'], historical: ['টেস্ট উইন্ডো', 'test window'],
     changed_to_suggested: ['প্রস্তাবিত নম্বরে বদলেছেন', 'switched to the suggested number'],
     complaint_received: ['অভিযোগ গৃহীত', 'complaint received'], details_requested: ['আরও তথ্য চাওয়া হয়েছে', 'details requested'],
+    details_received: ['গ্রাহকের উত্তর এসেছে', 'customer replied'],
     hold_requested: ['টাকা আটকানোর অনুরোধ', 'hold requested'], recipient_contacted: ['প্রাপকের সম্মতি চাওয়া হয়েছে', 'recipient asked for consent'],
     resolved: ['নিষ্পত্তি', 'resolved'],
   };
   const status = (s) => (STATUS[s] ? L(...STATUS[s]) : s);
   // the dot beside a status: amber = waiting for the customer, teal = money kept, red = sent anyway
   const ST_CLASS = { awaiting_customer: 's-wait', cancelled_by_customer: 's-kept', changed_to_suggested: 's-kept', sent_after_warning: 's-sent',
-    complaint_received: 's-case', details_requested: 's-case', hold_requested: 's-case', recipient_contacted: 's-case', recipient_flagged: 's-case' };
+    complaint_received: 's-case', details_requested: 's-wait', details_received: 's-case', hold_requested: 's-case',
+    recipient_contacted: 's-case', recipient_flagged: 's-case' };
   const stPill = (s) => `<span class="st ${ST_CLASS[s] || ''}"><i></i>${P.esc(status(s))}</span>`;
   const bandName = (b) => (b === 'COMPLAINT' ? L('অভিযোগ', 'COMPLAINT') : b === 'STEP_UP' ? 'STEP-UP' : b);
   const CHOICE = {
@@ -497,9 +569,22 @@
           ${cues.map((x) => `<span class="chip" style="background:#fff4e5;border-color:#f3d58c">${P.esc(x)}</span>`).join('')}</div>
         ${t ? `<div class="small" style="margin-top:8px"><b>${L('মিলে যাওয়া লেনদেন', 'Matched transfer')}:</b> <span class="num">${P.esc(t.id)} · ${P.tk(t.amount)} → ${P.esc(t.number)} · ${P.esc(String(t.at).replace('T', ' ').slice(0, 16))}</span></div>` : ''}
       </div>
+      ${threadPanel(c, d.status)}
       ${wrongNumberPanel(c.slip, c.slip && c.slip.typed, null)}
       ${evidence(d)}${report(d)}${decide(d)}`;
     wire(d);
+  }
+
+  function threadPanel(c, status) {
+    const thread = c.thread || [];
+    if (!thread.length && status !== 'details_requested') return '';
+    const bubble = (m) => `<div class="thread-msg ${m.role}"><span class="thread-ic">${m.role === 'analyst' ? '🕵️' : '🧑'}</span>
+      <div class="thread-body"><div class="thread-who">${m.role === 'analyst' ? L('বিশ্লেষক', 'Analyst') : L('গ্রাহক', 'Customer')} <span class="small muted">· ${P.esc(String(m.at).replace('T', ' ').slice(0, 16))}</span></div>
+      <div>${P.esc(m.text)}</div></div></div>`;
+    const waiting = status === 'details_requested'
+      ? `<div class="thread-msg analyst wait"><span class="thread-ic">⏳</span><div class="thread-body"><div class="small muted">${L('গ্রাহকের উত্তরের অপেক্ষায়', 'Waiting for the customer to reply (asked in the customer app)')}</div></div></div>` : '';
+    return `<div class="panel"><h3>💬 ${L('আরও তথ্যের জন্য অনুরোধ', 'Follow-up on this case')}</h3>
+      <div class="thread">${thread.map(bubble).join('')}${waiting}</div></div>`;
   }
 
   function shapBars(list) {
@@ -807,6 +892,7 @@
     renderFeed();
     if (S.detail) renderDetail(S.detail);
     if (S.tab !== 'alerts') openTab(S.tab);
+    if (TS.open) tourRender();
   });
 
   // ---------------------------------------------------------------- start
