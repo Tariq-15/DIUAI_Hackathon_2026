@@ -25,9 +25,10 @@ in [feedback delivery](feedback_delivery.md); this file is the prioritised backl
 1. **Judge 2 lost us points by not finding things that exist** — source code, the UI, the API design, train/test
    separation. Those are built. A large fraction of the gap is packaging and presentation, the cheapest points on
    the board.
-2. **Execution has started (2026-10-07).** The environment is provisioned and the first dated artifacts exist:
-   **61 tests pass** (`runs/feedback/verification/`) and the keypad vs ordinary-edit-distance diagnostic
-   (`runs/feedback/recipient_matrix.json`). The multi-seed full re-run is in progress; latency and partner work are
+2. **Execution happened (2026-10-07).** The environment is provisioned and dated artifacts exist: **61 tests
+   pass** (`runs/feedback/verification/`), the keypad vs ordinary-edit-distance diagnostic
+   (`runs/feedback/recipient_matrix.json`), and a completed multi-seed re-run across seeds 42/43/44
+   (`runs/feedback-full/summary.json`): mean PR-AUC **0.9704** (range 0.9622–0.9781). Latency and partner work are
    still pending. Phase 2 rewards dated artifacts, not plans. Every metric from synthetic data remains simulation
    evidence; assumed stop rates, analyst minutes saved and simulated customer behaviour must not be reported as
    measured impact.
@@ -57,11 +58,15 @@ artifacts under `runs/feedback/`.
 - [x] `python -m tools.feedback_verify --out-root runs/feedback/verification` (2026-10-07, commit `7fc5ec1`):
       **61 tests pass, 0 failures**, with pip freeze, git HEAD, working-tree status and JUnit archived. Supersedes
       the historical 58-test badge.
-- [~] `python -m tools.feedback_evaluate --out-root runs/feedback-full --run-seeds --seeds 42 43 44 --trials 30`:
-      **in progress** (seeds 42/43/44, 30 Optuna trials each; regenerates ~600k-row data per seed). Will yield mean
-      and range for PR-AUC, band precision/recall/FPR, wrong-number suggestion precision/coverage, and scenario
-      catches. Seed-42 remains the reproducibility reference, isolated from new seeds. A `--trials 0` quick
-      stability variant is available if a completed multi-seed result is needed sooner.
+- [x] `python -m tools.feedback_evaluate --out-root runs/feedback-full --run-seeds --seeds 42 43 44 --trials 30`
+      (2026-10-07, `runs/feedback-full/summary.json`): seeds 42/43/44, 30 Optuna trials each, each seed with its own
+      regenerated ~600k-row world. **PR-AUC mean 0.9704, range 0.9622–0.9781** (n=3). Band metrics across the same
+      three seeds: NUDGE+ recall 97.2–99.3% (mean 98.0%), STEP_UP+ precision 70.4–81.1% (mean 74.3%), HOLD+
+      precision 86.8–95.3% / recall 88.8–94.0%. Per-scenario STEP_UP+ recall: S1/S3/S6/S8 at or near 100% across all
+      three seeds; S5 (fake-seller / pressure scam) is the most seed-sensitive at 69.0–94.5% (mean 80.5%) — the
+      weakest case was already named as such in the README and remains weakest under multiple seeds, not just one.
+      Seed-42 remains the reproducibility reference; it reproduced inside this run (PR-AUC 0.9622, matching the
+      published figure exactly).
 - [x] Keypad vs ordinary-edit-distance matrix (`runs/feedback/recipient_matrix.json`, 2026-10-07): keypad catches
       adjacent-digit **swaps 6/12 vs ordinary edit distance 0/12** (unit-cost Levenshtein scores a transposition as
       2 and never suggests), at the cost of more false suggestions on legitimately-similar numbers (9 vs 6); both

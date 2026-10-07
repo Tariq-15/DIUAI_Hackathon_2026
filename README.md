@@ -16,7 +16,7 @@
 
 [Judge feedback implementation plan](docs/feedback_implementation_plan.md)
 
-[Feedback delivery and measurement protocols](docs/feedback_delivery.md) · Offline studies: `python -m tools.feedback_evaluate --out-root runs/feedback --run-seeds --seeds 42 43 44 --trials 30`. New runs are isolated from the seed-42 reference. Verified 2026-10-07 (commit `7fc5ec1`): **61 tests pass, 0 failures** (`runs/feedback/verification/`, with JUnit); the keypad vs ordinary-edit-distance diagnostic is in `runs/feedback/recipient_matrix.json`. The multi-seed full re-run and partner validation are pending.
+[Feedback delivery and measurement protocols](docs/feedback_delivery.md) · Offline studies: `python -m tools.feedback_evaluate --out-root runs/feedback --run-seeds --seeds 42 43 44 --trials 30`. New runs are isolated from the seed-42 reference. Verified 2026-10-07 (commit `7fc5ec1`): **61 tests pass, 0 failures** (`runs/feedback/verification/`, with JUnit); the keypad vs ordinary-edit-distance diagnostic is in `runs/feedback/recipient_matrix.json`; the multi-seed re-run across seeds 42/43/44 completed with mean PR-AUC **0.9704** (range 0.9622–0.9781, `runs/feedback-full/summary.json`). Partner validation remains pending.
 
 **[Open the live demo](https://tariq15-prohori.static.hf.space)** · [Test numbers](docs/test_numbers.md) · [Results](#results) · [Setup](#installation-and-setup) · [API](#api-reference)
 
@@ -170,6 +170,11 @@ Test window days 51–60, never used for training or tuning, seed 42:
 | Planted demo scenarios in an acceptable band | **13 / 13** |
 | Federated scam model across 8 divisions, PR-AUC | **0.949** (98.7% of central) |
 | Amount habit: honest transfers asked once / victim-side scam transfers caught | **0.62%** / **21.4%** |
+
+**Multi-seed check (2026-10-07):** the full pipeline (generate → train → evaluate, 30 Optuna trials) was re-run end
+to end on three independent seeds, not just seed 42 — **PR-AUC mean 0.9704, range 0.9622–0.9781** (n=3). Seed 42
+reproduced the published figure exactly. Full breakdown, including which planted scenario is the most seed-sensitive:
+`docs/feedback_implementation_plan.md` Tier 1, `runs/feedback-full/summary.json`.
 
 Synthetic data with injected patterns: read these as upper bounds. Full tables, ablation, fairness and honest notes:
 

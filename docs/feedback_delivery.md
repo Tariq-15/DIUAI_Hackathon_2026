@@ -20,6 +20,13 @@ Run `python -m tools.feedback_evaluate --out-root runs/feedback` for the fixed r
 
 Run `python -m tools.feedback_evaluate --out-root runs/feedback-full --run-seeds --seeds 42 43 44 --trials 30` for isolated full pipeline runs. Use `--scale 0.05 --trials 0` only for smoke verification; do not compare scaled results with full-data headlines. Each seed has its own data, model, report and captured log. Summary includes mean/range and seed support for PR-AUC, band precision/recall/FPR and scenario recall. Training, validation and untouched test days remain configured in `config.yaml`; fitting and policy selection use validation only. Existing feature-group and component ablations run separately per seed.
 
+**Completed 2026-10-07** (`runs/feedback-full/summary.json`): PR-AUC mean **0.9704**, range 0.9622–0.9781 (n=3; seed
+42 reproduced the published 0.9622 exactly). Band precision/recall across the three seeds: NUDGE+ recall
+97.2–99.3%, STEP_UP+ precision 70.4–81.1%, HOLD+ precision 86.8–95.3% / recall 88.8–94.0%. Per-scenario STEP_UP+
+recall is at or near 100% for S1/S3/S6/S8 across all seeds; S5 (fake-seller / pressure scam, already named as the
+weakest case on a single seed) ranges 69.0–94.5% — multiple seeds confirm it as the weakest case, not an artifact
+of one run.
+
 Policy reports now include confusion counts and Wilson intervals. Fairness reports add false-warning counts, intervals, minimum support (1,000 legitimate transfers), and intervention rates. Transaction intervals are descriptive: repeated customer observations violate independence. Customer-cluster bootstrap intervals and downstream customer outcomes remain pending.
 
 Before unseen evaluation, freeze model/cost/threshold hashes. Prepare a separate later window with lower-volume collectors, older warmed mules, delayed cash-out, fewer complaints, and legitimate seasonal lump transfers. Publish variant parameters, labels and scenario denominators before scoring; never refit on this window. Amount-habit incremental ablation and local-state cross-silo evaluation are outstanding, not completed by the runner.

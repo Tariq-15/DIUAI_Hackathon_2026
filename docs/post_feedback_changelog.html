@@ -35,7 +35,7 @@
   code { background: var(--paper); border: 1px solid var(--line); padding: 1.5px 6px; border-radius: 5px; font-size: 12.5px; color: var(--upay-blue-dark); }
   .num { font-weight: 800; color: var(--upay-blue-dark); }
   .good { color: var(--good); font-weight: 800; } .bad { color: var(--bad); font-weight: 800; }
-  .notcommit { background: #fff3da; border: 1px solid #f0d78a; border-radius: 10px; padding: 12px 16px; font-size: 13.5px; color: #6b5200; margin: 20px 0; }
+  .notcommit { background: #e7f6ef; border: 1px solid #a9ddc3; border-radius: 10px; padding: 12px 16px; font-size: 13.5px; color: #0a5c3e; margin: 20px 0; }
   .footer { text-align: center; color: var(--ink-3); font-size: 12.5px; margin-top: 40px; }
   @media print { header.top { background: var(--upay-blue-dark) !important; } .item { box-shadow: none; } }
 </style>
@@ -49,15 +49,15 @@
     traceable to a file in this repo. Nothing was invented for this log.</p>
   <div class="meta">
     <span>Base commit <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff">7fc5ec1</code></span>
-    <span>Status: uncommitted working-tree changes</span>
+    <span>Pushed as <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff">d69d3b6</code>, <code style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff">746fd80</code></span>
     <span>Plan: docs/feedback_implementation_plan.md</span>
   </div>
 </header>
 
 <div class="wrap">
 
-  <div class="notcommit">⚠ <b>Nothing in this log is committed to git yet.</b> Everything below is visible only in the
-    working tree (<code>git status</code>) until a commit is made.</div>
+  <div class="notcommit">✅ <b>Committed and pushed to <code>origin/main</code>.</b> Every item below is reflected
+    in the commits listed above; the live Hugging Face Space has also been rebuilt and redeployed from this code.</div>
 
   <h2>Environment — the blocker the previous verification record flagged</h2>
   <div class="item">
@@ -93,13 +93,12 @@
   </div>
 
   <div class="item">
-    <div class="h"><b>Multi-seed full evaluation</b><span class="status wip">In progress</span></div>
-    <p><code>--run-seeds --seeds 42 43 44 --trials 30</code> — not finished at the time of this log.</p>
+    <div class="h"><b>Multi-seed full evaluation</b><span class="status done">Completed</span></div>
+    <p><code>--run-seeds --seeds 42 43 44 --trials 30</code> — all three seeds complete, <code>runs/feedback-full/summary.json</code> written.</p>
     <ul>
-      <li>Seed 42: complete, PR-AUC <span class="good">0.9622</span> — reproduces the published seed-42 reference exactly.</li>
-      <li>Seed 43: complete, PR-AUC <span class="good">0.9708</span>.</li>
-      <li>Seed 44: running (last seen in the <code>features</code> stage).</li>
-      <li><code>runs/feedback-full/summary.json</code> will exist only once all three seeds finish; it does not exist yet.</li>
+      <li>PR-AUC: seed 42 <span class="good">0.9622</span> (reproduces the published reference exactly), seed 43 <span class="good">0.9708</span>, seed 44 <span class="good">0.9781</span> — mean <b>0.9704</b>, range 0.9622–0.9781.</li>
+      <li>Band metrics across the three seeds: NUDGE+ recall 97.2–99.3%, STEP_UP+ precision 70.4–81.1%, HOLD+ precision 86.8–95.3% / recall 88.8–94.0%.</li>
+      <li>Per-scenario STEP_UP+ recall at or near 100% for S1/S3/S6/S8 across all seeds; S5 (fake-seller / pressure scam) ranges 69.0–94.5% — confirmed as the weakest case on multiple seeds, not a single-run artifact.</li>
     </ul>
   </div>
 
@@ -138,11 +137,17 @@
   <h2>Explicitly still open — not claimed as done</h2>
   <div class="item">
     <ul>
-      <li>The multi-seed run itself (seed 44 and the aggregated <code>summary.json</code>).</li>
       <li>Any customer or complaint-handler usability study, shadow scoring, or pilot — all partner-gated, per <code>docs/feedback_delivery.md</code>; none of that access exists.</li>
       <li>Browser-level (not just structural) verification of the two new UI features.</li>
       <li>Everything in Tiers 2–4 of <code>docs/feedback_implementation_plan.md</code> (impact reframing, integration adapter, fairness remediation study, federation threat experiments) — not started this session.</li>
-      <li><b>None of this session's changes are committed to git.</b> Visible only in the working tree until a commit is made.</li>
+    </ul>
+  </div>
+
+  <h2>Committed and deployed</h2>
+  <div class="item">
+    <ul>
+      <li>Commits <code>d69d3b6</code> and <code>746fd80</code> on <code>origin/main</code>: the database doc, the pitch deck and this changelog, the judge onboarding tour, the follow-up channel, the real bugfixes, and the doc corrections.</li>
+      <li>The live Hugging Face Space (<code>https://tariq15-prohori.static.hf.space</code>) was rebuilt and redeployed from current source after the tour fixes, build hash <code>cfcd322bc9</code> — verified the uploaded <code>prohori.css</code> actually contains the fix before reporting success.</li>
     </ul>
   </div>
 

@@ -2,8 +2,8 @@
 
 Honest, dated record of this session's work against the Phase 1 judge feedback (see
 `docs/feedback_implementation_plan.md` for the prioritized backlog this follows). Every item below is traceable to
-a file in this repo. **Nothing here is committed yet** — it is uncommitted working-tree changes on top of commit
-`7fc5ec1`; `git status` lists the touched files. Nothing was invented for this log.
+a file in this repo. Committed and pushed to `origin/main` as `d69d3b6` and `746fd80`, on top of base commit
+`7fc5ec1`. Nothing was invented for this log.
 
 ## Environment (the blocker the previous verification record flagged)
 
@@ -30,11 +30,11 @@ had ever run. This session:
   "not customer validation" in the artifact itself.
 - **Smoke test** (`--run-seeds --seeds 42 --scale 0.1 --trials 0`) — run before committing to the long multi-seed
   job. It caught both real bugs above (missing matplotlib, the encoding bug) before they could waste a 1.5-hour run.
-- **Multi-seed full evaluation** (`--run-seeds --seeds 42 43 44 --trials 30`) — **in progress at the time of this
-  log**, not finished. Seed 42 completed in ~37 minutes and reproduced **PR-AUC 0.962 exactly**, matching the
-  published seed-42 reference — a real sanity check that the environment and the pipeline reproduce cleanly on a
-  fresh run. Seed 43 was running at last check; seed 44 had not started. `runs/feedback-full/summary.json` will
-  exist only once all three seeds finish; it does not exist yet.
+- **Multi-seed full evaluation** (`--run-seeds --seeds 42 43 44 --trials 30`) — **completed** (`runs/feedback-full/summary.json`). Seed 42 reproduced **PR-AUC 0.9622 exactly**, matching the published seed-42 reference. Across all
+  three seeds: PR-AUC mean **0.9704**, range 0.9622–0.9781. Band metrics: NUDGE+ recall 97.2–99.3%, STEP_UP+
+  precision 70.4–81.1%, HOLD+ precision 86.8–95.3% / recall 88.8–94.0%. Per-scenario STEP_UP+ recall is at or near
+  100% for S1/S3/S6/S8 across all seeds; S5 (fake-seller / pressure scam), already flagged as the weakest case on
+  a single seed, ranges 69.0–94.5% — the multi-seed check confirms it as genuinely weaker, not a one-run artifact.
 
 ## Product features built this session
 
@@ -75,11 +75,16 @@ had ever run. This session:
 
 ## Explicitly still open (not claimed as done)
 
-- The multi-seed run itself (seeds 43, 44, and the aggregated `summary.json`).
 - Any customer or complaint-handler usability study, shadow scoring, or pilot — all partner-gated, per
   `docs/feedback_delivery.md`; none of that access exists.
 - Browser-level (not just structural) verification of the two new UI features.
 - Everything in Tiers 2–4 of `docs/feedback_implementation_plan.md` (impact reframing, integration adapter,
   fairness remediation study, federation threat experiments) — not started this session.
-- **None of this session's changes are committed to git.** They are visible only in the working tree
-  (`git status`) until a commit is made.
+
+## What's committed and deployed
+
+- Commits `d69d3b6` and `746fd80` on `origin/main`: the database doc, the pitch deck and this changelog, the judge
+  onboarding tour, the follow-up channel, the real bugfixes, and the doc corrections.
+- The live Hugging Face Space (`https://tariq15-prohori.static.hf.space`) was rebuilt and redeployed from current
+  source after the tour fixes, build hash `cfcd322bc9` — verified the uploaded `prohori.css` actually contains the
+  fix before reporting success.

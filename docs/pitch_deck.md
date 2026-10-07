@@ -62,9 +62,9 @@ deck does not repeat that mistake. Nothing here is invented.
 ## Slide 6 — Reproducibility: multi-seed, not a lucky run (answers the #1 Phase 1 AI/ML critique)
 
 - Judges asked for proof across multiple simulation seeds, not just seed 42.
-- **Verified today:** re-running the full pipeline on a fresh seed (42) from scratch — new synthetic world, new training, new evaluation — reproduced **PR-AUC 0.962 exactly.**
-- Seeds 43 and 44 are running the same full pipeline now (`python -m tools.feedback_evaluate --run-seeds --seeds 42 43 44 --trials 30`); results land in `runs/feedback-full/summary.json` with mean/range across all three.
-- **Say:** "We're not showing you a single golden number — we're showing you the process that produces it, and we re-ran that process live during this submission window to prove it isn't a fluke."
+- **Completed this session:** the full pipeline (generate → train → evaluate, 30 Optuna trials) re-run end to end on three independent seeds — **PR-AUC mean 0.9704, range 0.9622–0.9781** (`runs/feedback-full/summary.json`). Seed 42 reproduced the published 0.9622 exactly.
+- The one place the range matters: S5 (the fake-seller / pressure-scam scenario), already named as our weakest case on a single seed, ranges 69.0–94.5% STEP_UP+ recall across seeds — multiple seeds confirm it's genuinely weaker, not an artifact of one unlucky run.
+- **Say:** "We're not showing you a single golden number — we re-ran the entire pipeline three times on independent seeds, and the one weak spot we'd already told you about stayed weak. That's what an honest multi-seed check is supposed to find."
 
 ---
 
