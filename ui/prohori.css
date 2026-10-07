@@ -371,8 +371,8 @@ details.why > *:not(summary) { margin-top: 8px; }
 .guide-steps li { margin: 3px 0; }
 .tour-btn { font-size: 15px; }
 .tour-highlight { position: relative; z-index: 86; outline: 2.5px solid var(--upay-yellow); outline-offset: 3px; border-radius: 10px; box-shadow: 0 0 0 4000px rgba(16, 23, 42, .55); }
-.tour { position: fixed; inset: 0; z-index: 85; pointer-events: none; }
-.tour-card { position: fixed; pointer-events: auto; left: 50%; bottom: 28px; transform: translateX(-50%); width: min(380px, 92vw); background: #fff; border-radius: 16px; box-shadow: var(--shadow); border: 1px solid var(--line); padding: 16px 18px; }
+.tour { position: fixed; inset: 0; z-index: 95; pointer-events: none; }
+.tour-card { position: fixed; pointer-events: auto; left: 50%; top: 72px; transform: translateX(-50%); width: min(380px, 92vw); background: #fff; border-radius: 16px; box-shadow: var(--shadow); border: 1px solid var(--line); padding: 16px 18px; }
 .tour-head { display: flex; align-items: center; gap: 8px; }
 .tour-icon { font-size: 20px; }
 .tour-step-no { font-size: 12px; font-weight: 700; color: var(--upay-blue-dark); background: #eaf2fb; border-radius: 999px; padding: 3px 10px; }
