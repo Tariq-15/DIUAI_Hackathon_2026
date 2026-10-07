@@ -23,7 +23,7 @@ from . import plots
 from .baselines import rules_score
 from .explain import customer_message, explainer, reasons_for, shap_matrix
 from .fusion import BANDS, fuse
-from .metrics import band_report, per_scenario_recall, pr_auc, recall_at_fpr, summary
+from .metrics import band_report, per_scenario_recall, pr_auc, recall_at_fpr, summary, wilson_interval
 from .scoring import X_of, load_bundle, score_frame
 from .train import fit_lgbm, load_splits
 
@@ -49,6 +49,13 @@ def fairness(te: pd.DataFrame, customers: pd.DataFrame) -> pd.DataFrame:
             fn = float((lg.r >= 1).mean()) if len(lg) else np.nan
             fs = float((lg.r >= 2).mean()) if len(lg) else np.nan
             rows.append(dict(attribute=col, group=g, legit_txns=len(lg), fraud_txns=len(fr),
+                             false_nudge=int((lg.r >= 1).sum()), false_stepup=int((lg.r >= 2).sum()),
+                             fpr_nudge_ci_low=wilson_interval(int((lg.r >= 1).sum()), len(lg))[0],
+                             fpr_nudge_ci_high=wilson_interval(int((lg.r >= 1).sum()), len(lg))[1],
+                             fpr_stepup_ci_low=wilson_interval(int((lg.r >= 2).sum()), len(lg))[0],
+                             fpr_stepup_ci_high=wilson_interval(int((lg.r >= 2).sum()), len(lg))[1],
+                             minimum_support=len(lg) >= 1000,
+                             intervention_rate=float((sub.r >= 1).mean()),
                              fpr_nudge=round(fn, 5), fpr_stepup=round(fs, 5),
                              fpr_nudge_ratio=round(fn / base_n, 2) if base_n else np.nan,
                              fpr_stepup_ratio=round(fs / base_s, 2) if base_s else np.nan,
@@ -129,6 +136,7 @@ def evaluate(cfg, ablate=True, do_shap=True, verbose=True):
     total_loss = float(np.sum(v_amt))
     cases = fr.groupby("case_id").agg(scenario=("scenario", "first"), max_r=("r", "max"))
     impact = dict(
+        evidence='modeled impact with assumed behavior on synthetic transactions',
         victim_side_txns=int(len(vict)), victim_side_recall_nudge=round(float((vict.r >= 1).mean()), 3),
         victim_side_recall_stepup=round(float((vict.r >= 2).mean()), 3),
         victim_side_recall_hold=round(float((vict.r >= 3).mean()), 3),
@@ -137,6 +145,15 @@ def evaluate(cfg, ablate=True, do_shap=True, verbose=True):
         cases_in_test=int(len(cases)), cases_caught_stepup=round(float((cases.max_r >= 2).mean()), 3),
         cases_caught_nudge=round(float((cases.max_r >= 1).mean()), 3),
     )
+    impact['sensitivity'] = [dict(stop_rate_multiplier=multiplier,
+                                  expected_prevented_tk=round(prevented * multiplier),
+                                  expected_prevented_share=prevented * multiplier / max(total_loss, 1))
+                             for multiplier in (0., .5, 1.)]
+    impact['analyst_sensitivity'] = [dict(copilot_minutes=minutes,
+                                         manual_minutes=cfg['policy']['analyst_minutes']['manual'],
+                                         modeled_hours_saved=int((te.r >= 3).sum()) *
+                                         (cfg['policy']['analyst_minutes']['manual'] - minutes) / 60)
+                                   for minutes in (3, 10, 20)]
     days = te.day.nunique()
     lc = legit.groupby("cust_id").r.max()
     friction = dict(
@@ -215,7 +232,9 @@ def evaluate(cfg, ablate=True, do_shap=True, verbose=True):
             demo.append(rec)
 
     # ---------------- write everything
-    metrics = dict(comparison=comparison, bands=bands, impact=impact, friction=friction,
+    metrics = dict(seed=cfg['seed'], splits=cfg['splits'], evidence='synthetic simulation',
+                   uncertainty_note='Wilson transaction intervals; not customer-cluster adjusted',
+                   comparison=comparison, bands=bands, impact=impact, friction=friction,
                    per_scenario=ps.drop(columns="label").to_dict("records"), per_role=per_role.to_dict("records"),
                    fairness_flags=fair[fair.flag].to_dict("records"), shap_top20=shap_global,
                    ablation=None if abl is None else abl.to_dict("records"),

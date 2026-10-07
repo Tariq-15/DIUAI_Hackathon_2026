@@ -6,6 +6,24 @@ import pandas as pd
 from sklearn.metrics import average_precision_score, precision_recall_curve, roc_auc_score, roc_curve
 
 
+def wilson_interval(successes, total, z=1.959963984540054):
+    """95% binomial interval; undefined for an empty denominator.
+
+    Transactions from the same customer are correlated: these intervals are
+    descriptive, not customer-cluster-adjusted causal evidence.
+    """
+    if not 0 <= successes <= total:
+        raise ValueError("successes must be between zero and total")
+    if total == 0:
+        return [None, None]
+    p = successes / total
+    den = 1 + z * z / total
+    center = (p + z * z / (2 * total)) / den
+    half = z * ((p * (1 - p) / total + z * z / (4 * total * total)) ** .5) / den
+    return [0. if successes == 0 else max(0., center - half),
+            1. if successes == total else min(1., center + half)]
+
+
 def pr_auc(y, s):
     return float(average_precision_score(y, s)) if y.sum() else float("nan")
 
@@ -58,6 +76,10 @@ def band_report(df: pd.DataFrame, band_col="band", y_col="is_fraud", order=("ALL
         tp = int((pred & (y == 1)).sum())
         fp = int((pred & (y == 0)).sum())
         out[f"{b}+"] = dict(alerts=int(pred.sum()), tp=tp, fp=fp, precision=round(tp / max(tp + fp, 1), 4),
+                            fn=int(y.sum()) - tp, tn=int((y == 0).sum()) - fp,
+                            precision_ci=wilson_interval(tp, tp + fp),
+                            recall_ci=wilson_interval(tp, int(y.sum())),
+                            fpr_ci=wilson_interval(fp, int((y == 0).sum())),
                             recall=round(tp / max(int(y.sum()), 1), 4), fpr=round(fp / max(int((y == 0).sum()), 1), 5))
     out["band_counts"] = df[band_col].value_counts().reindex(list(order), fill_value=0).to_dict()
     return out

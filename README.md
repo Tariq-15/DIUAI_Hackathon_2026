@@ -14,6 +14,10 @@
 ![Data](https://img.shields.io/badge/data-100%25%20synthetic-7b8597)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
+[Judge feedback implementation plan](docs/feedback_implementation_plan.md)
+
+[Feedback delivery and measurement protocols](docs/feedback_delivery.md) · Offline studies: `python -m tools.feedback_evaluate --out-root runs/feedback --run-seeds --seeds 42 43 44 --trials 30`. New runs are isolated from the seed-42 reference. Execution and partner validation are pending; see the dated verification record.
+
 **[Open the live demo](https://tariq15-prohori.static.hf.space)** · [Test numbers](docs/test_numbers.md) · [Results](#results) · [Setup](#installation-and-setup) · [API](#api-reference)
 
 AI Hackathon 2026 (DIU CPC × upay) · Track 01: Trust & Risk Intelligence, with our Track 06 work merged in<br>
@@ -45,6 +49,8 @@ Also: [Results](#results) · [How it works in depth](#how-it-works-in-depth) · 
 ---
 
 ## Project overview
+
+**Primary user:** an upay customer about to send money to a potentially fraudulent or mistyped recipient. **Secondary user:** an upay trust/risk operations analyst investigating high-risk transfers and complaints. Merchants and agents are affected counterparties. **Primary track: Track 01 Trust & Risk Intelligence.** Keypad-aware wrong-number prevention and complaint matching support Track 06.
 
 **The problem.** Money leaves an upay wallet the wrong way in two everyday ways:
 
@@ -160,7 +166,7 @@ Test window days 51–60, never used for training or tuning, seed 42:
 | Fraud caught at a 0.5% false-positive rate (rules → Prohori) | 20.0% → **95.0%** |
 | HOLD precision / recall | **86.8% / 91.7%** |
 | Honest transactions with no friction | **98.72%** |
-| Victim money protected (stated stop-rate assumptions) | **95.1%** (Tk 2,401,775 of Tk 2,526,620) |
+| Modeled victim money protected (assumed stop rates; no measured loss prevention) | **95.1%** (Tk 2,401,775 of Tk 2,526,620) |
 | Planted demo scenarios in an acceptable band | **13 / 13** |
 | Federated scam model across 8 divisions, PR-AUC | **0.949** (98.7% of central) |
 | Amount habit: honest transfers asked once / victim-side scam transfers caught | **0.62%** / **21.4%** |

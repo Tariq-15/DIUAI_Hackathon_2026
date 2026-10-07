@@ -1,5 +1,7 @@
 # Prohori (upay Scam Shield) Implementation Plan
 
+> **Feedback update:** The current repository has advanced beyond portions of this original build-out plan. For the judge-feedback-driven next phase, use [feedback_implementation_plan.md](feedback_implementation_plan.md) as the active plan. It records current evidence, separates synthetic assumptions from measured outcomes, and prioritizes validation, evaluation, integration, and fairness/security follow-up.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build "Prohori (প্রহরী)" — a 3-layer scam detection, prevention, and investigation platform for Mobile Financial Services (MFS) in Bangladesh that halts fraudulent transactions *before* funds leave a victim's wallet, warns vulnerable users in plain Bangla/voice, discovers money-mule networks via graph analytics, and empowers risk analysts through an explainable GenAI copilot.

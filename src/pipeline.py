@@ -20,6 +20,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=None)
     ap.add_argument("--scale", type=float, default=None)
+    ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--trials", type=int, default=None, help="Optuna trials (default from config)")
     ap.add_argument("--from", dest="start", default="generate", choices=STAGES)
     ap.add_argument("--to", dest="stop", default="demo", choices=STAGES)
@@ -27,7 +28,7 @@ def main():
     ap.add_argument("--skip-repro", action="store_true", help="skip validation T14")
     ap.add_argument("--no-ablation", action="store_true")
     a = ap.parse_args()
-    cfg = load_config(a.config, scale=a.scale)
+    cfg = load_config(a.config, scale=a.scale, seed=a.seed)
     if a.out_root:
         root = Path(a.out_root)
         for k, sub in (("data_dir", "data/generated"), ("sample_dir", "data/sample"), ("features_dir", "data/features"),

@@ -15,7 +15,7 @@ from functools import lru_cache
 from typing import Literal, Optional
 
 import anyio
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from src.common.config import ROOT
 from . import scamcheck
 from .live import LiveWorld
+from .auth import analyst_identity
 
 @asynccontextmanager
 async def lifespan(_app):
@@ -248,8 +249,9 @@ def alert(alert_id: str, llm: bool = False):
 
 
 @app.post("/api/v1/alerts/{alert_id}/action")
-def action(alert_id: str, body: ActionIn):
-    return _call(world().act, alert_id, body.action, body.analyst, body.note)
+def action(alert_id: str, body: ActionIn, request: Request):
+    actor = analyst_identity(request, body.analyst)
+    return _call(world().act, alert_id, body.action, actor, body.note)
 
 
 @app.get("/api/v1/agent-watch")
