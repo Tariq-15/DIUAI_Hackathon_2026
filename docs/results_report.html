@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prohori — Full Results Report</title>
+<style>
+  :root {
+    --upay-yellow: #ffcc00; --upay-yellow-soft: #fff6cc; --upay-blue: #005bac; --upay-blue-dark: #003a70;
+    --ink: #1d2433; --ink-2: #4a5468; --ink-3: #7b8597; --line: #e3e7ee; --paper: #f6f7fb;
+    --good: #0f8a5f; --bad: #c62828; --wait: #d9a400; --shadow: 0 10px 34px -12px rgba(16, 32, 64, .25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", -apple-system, "Noto Sans Bengali", Arial, sans-serif; color: var(--ink); background: var(--paper); }
+  header.top { background: linear-gradient(160deg, var(--upay-blue-dark), var(--upay-blue)); color: #fff; padding: 36px 8vw 30px; position: relative; }
+  header.top .eyebrow { color: var(--upay-yellow); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; }
+  header.top h1 { margin: 8px 0 6px; font-size: clamp(26px, 3.6vw, 42px); }
+  header.top p { margin: 0; color: #dbe6f5; font-size: 14.5px; max-width: 820px; line-height: 1.55; }
+  header.top .meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  header.top .meta span { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; }
+  header.top .meta code { background: rgba(255,255,255,.18); padding: 1px 6px; border-radius: 5px; }
+  nav.toc { background: #fff; border-bottom: 1px solid var(--line); padding: 10px 8vw; display: flex; gap: 6px; flex-wrap: wrap; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 10px -4px rgba(0,0,0,.08); }
+  nav.toc a { font-size: 12.5px; font-weight: 700; color: var(--upay-blue-dark); text-decoration: none; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+  nav.toc a:hover { background: var(--upay-yellow-soft); border-color: #f0dd8a; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 30px 8vw 80px; }
+  section { margin-bottom: 42px; }
+  h2 { color: var(--upay-blue-dark); font-size: 21px; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  h2 .pill { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: #e7f6ef; color: var(--good); }
+  .sub { color: var(--ink-3); font-size: 13.5px; margin: 0 0 14px; line-height: 1.5; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 10px; font-size: 13.5px; }
+  th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { background: var(--upay-blue-dark); color: #fff; font-weight: 700; font-size: 12.5px; }
+  tr:last-child td { border-bottom: none; }
+  tr.hl td { background: var(--upay-yellow-soft); font-weight: 700; }
+  td.n, th.n { text-align: right; font-family: "Consolas", monospace; }
+  .good { color: var(--good); font-weight: 800; } .bad { color: var(--bad); font-weight: 800; } .num { font-weight: 800; color: var(--upay-blue-dark); }
+  .note { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--ink-2); line-height: 1.55; box-shadow: var(--shadow); margin: 10px 0; }
+  .note.warn { background: #fff3da; border-color: #f0d78a; color: #6b5200; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .stat { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; box-shadow: var(--shadow); }
+  .stat .v { font-size: 22px; font-weight: 800; color: var(--upay-blue-dark); }
+  .stat .l { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+  code { background: var(--paper); border: 1px solid var(--line); padding: 1px 6px; border-radius: 5px; font-size: 12px; color: var(--upay-blue-dark); }
+  .footer { text-align: center; color: var(--ink-3); font-size: 12.5px; margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--line); }
+  @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: 1fr; } table { font-size: 12px; } }
+  @media print { nav.toc { display: none; } section { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">AI Hackathon 2026 · DIU CPC × upay · Track 01 Trust &amp; Risk Intelligence</div>
+  <h1>প্রহরী Prohori — Full Results Report</h1>
+  <p>Every result this project has produced, in one page. Each table is sourced directly from a committed artifact
+    (<code>reports/</code>, <code>runs/</code>) or the README's auto-generated results block — nothing here is
+    estimated or re-derived by hand.</p>
+  <div class="meta">
+    <span>Commit <code>9d5e275</code></span>
+    <span>Test window: days 51–60, never used for training or tuning</span>
+    <span>Data: 683,148 txns, 3,664 fraud (0.54%), validation 14/14 checks pass</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#headline">Headline (seed 42)</a>
+  <a href="#multiseed">Multi-seed</a>
+  <a href="#keypad">Keypad vs edit-distance</a>
+  <a href="#federated">Federated learning</a>
+  <a href="#ablation">Ablation &amp; fairness</a>
+  <a href="#agents">Agent Watch</a>
+  <a href="#planted">Planted scenarios</a>
+  <a href="#tests">Tests &amp; reproducibility</a>
+</nav>
+
+<div class="wrap">
+
+  <section id="headline">
+    <h2>1. Headline results <span class="pill">seed 42 · reference run</span></h2>
+    <p class="sub">Test window days 51–60, read once. Reproduce: <code>python -m src.pipeline</code></p>
+
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="stat"><div class="v">0.962</div><div class="l">PR-AUC (rules baseline: 0.188)</div></div>
+      <div class="stat"><div class="v">95.0%</div><div class="l">fraud caught at 0.5% false-positive rate</div></div>
+      <div class="stat"><div class="v">98.72%</div><div class="l">honest transactions, zero friction</div></div>
+    </div>
+
+    <table>
+      <tr><th>Model</th><th class="n">PR-AUC</th><th class="n">ROC-AUC</th><th class="n">Recall @ 0.5% FPR</th><th class="n">Recall @ 2% FPR</th></tr>
+      <tr><td>rules baseline</td><td class="n">0.188</td><td class="n">0.896</td><td class="n">20.0%</td><td class="n">38.4%</td></tr>
+      <tr><td>logistic regression</td><td class="n">0.899</td><td class="n">0.997</td><td class="n">92.4%</td><td class="n">97.0%</td></tr>
+      <tr><td>XGBoost</td><td class="n">0.961</td><td class="n">0.998</td><td class="n">95.5%</td><td class="n">98.0%</td></tr>
+      <tr><td>LightGBM</td><td class="n">0.962</td><td class="n">0.999</td><td class="n">95.0%</td><td class="n">98.1%</td></tr>
+      <tr><td>Isolation Forest</td><td class="n">0.405</td><td class="n">0.886</td><td class="n">39.1%</td><td class="n">52.0%</td></tr>
+      <tr><td>graph rules</td><td class="n">0.142</td><td class="n">0.788</td><td class="n">20.1%</td><td class="n">33.8%</td></tr>
+      <tr class="hl"><td>Prohori fused score</td><td class="n">0.962</td><td class="n">0.999</td><td class="n">95.0%</td><td class="n">98.1%</td></tr>
+    </table>
+
+    <table>
+      <tr><th>Band reached</th><th class="n">Alerts</th><th class="n">Precision</th><th class="n">Recall</th><th class="n">False-positive rate</th></tr>
+      <tr><td>NUDGE+</td><td class="n">1,551</td><td class="n">46.1%</td><td class="n">97.4%</td><td class="n">1.28%</td></tr>
+      <tr><td>STEP_UP+</td><td class="n">975</td><td class="n">71.5%</td><td class="n">95.0%</td><td class="n">0.42%</td></tr>
+      <tr class="hl"><td>HOLD+</td><td class="n">775</td><td class="n">86.8%</td><td class="n">91.7%</td><td class="n">0.16%</td></tr>
+    </table>
+
+    <table>
+      <tr><th>Scenario</th><th class="n">Fraud txns</th><th class="n">Cases</th><th class="n">NUDGE+</th><th class="n">STEP_UP+</th><th class="n">HOLD</th><th class="n">Cases w/ STEP_UP+ hit</th></tr>
+      <tr><td>S1 — OTP/PIN takeover</td><td class="n">174</td><td class="n">36</td><td class="n">100.0%</td><td class="n">100.0%</td><td class="n">98.9%</td><td class="n">100.0%</td></tr>
+      <tr><td>S2 — collector wallet</td><td class="n">151</td><td class="n">9</td><td class="n">100.0%</td><td class="n">100.0%</td><td class="n">98.0%</td><td class="n">100.0%</td></tr>
+      <tr><td>S3 — mule chain</td><td class="n">66</td><td class="n">11</td><td class="n">98.5%</td><td class="n">98.5%</td><td class="n">92.4%</td><td class="n">100.0%</td></tr>
+      <tr><td>S5 — fake seller</td><td class="n">136</td><td class="n">13</td><td class="n">88.2%</td><td class="n">77.9%</td><td class="n">74.3%</td><td class="n">100.0%</td></tr>
+      <tr><td>S6 — SIM-swap takeover</td><td class="n">70</td><td class="n">12</td><td class="n">100.0%</td><td class="n">100.0%</td><td class="n">100.0%</td><td class="n">100.0%</td></tr>
+      <tr><td>S7 — pressure scam</td><td class="n">93</td><td class="n">34</td><td class="n">97.8%</td><td class="n">93.5%</td><td class="n">84.9%</td><td class="n">97.1%</td></tr>
+      <tr><td>S8 — stolen card</td><td class="n">44</td><td class="n">7</td><td class="n">100.0%</td><td class="n">100.0%</td><td class="n">95.5%</td><td class="n">100.0%</td></tr>
+    </table>
+
+    <div class="note">
+      <b>Customer impact:</b> victim-side scam transactions flagged STEP_UP or higher: <b>90.8%</b> (NUDGE+ 95.4%).
+      Modeled victim money protected under stated stop-rate assumptions: <b>95.1%</b> (Tk 2,401,775 of Tk 2,526,620).
+      Honest customers over 10 test days: 7.3% saw any warning, 2.6% a PIN step-up, 0.9% the strongest (HOLD)
+      warning. Analyst follow-up: 77.5 HOLD alerts/day → 258.3h manual vs 38.8h with the copilot over 10 days
+      (assumed minutes/case — modeled, not measured).
+    </div>
+  </section>
+
+  <section id="multiseed">
+    <h2>2. Multi-seed robustness check <span class="pill">completed 2026-10-07</span></h2>
+    <p class="sub">Full pipeline (generate → train → evaluate, 30 Optuna trials) re-run end to end on three
+      independent seeds, each with its own freshly generated ~600k-row world. <code>python -m tools.feedback_evaluate
+      --run-seeds --seeds 42 43 44 --trials 30</code> · <code>runs/feedback-full/summary.json</code></p>
+
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="stat"><div class="v">0.9704</div><div class="l">mean PR-AUC, n=3</div></div>
+      <div class="stat"><div class="v">0.9622–0.9781</div><div class="l">range across seeds 42/43/44</div></div>
+      <div class="stat"><div class="v good">exact match</div><div class="l">seed 42 reproduced the published 0.9622</div></div>
+    </div>
+
+    <table>
+      <tr><th>Metric</th><th class="n">Mean</th><th class="n">Min</th><th class="n">Max</th></tr>
+      <tr class="hl"><td>PR-AUC</td><td class="n">0.9704</td><td class="n">0.9622</td><td class="n">0.9781</td></tr>
+      <tr><td>NUDGE+ precision</td><td class="n">48.2%</td><td class="n">43.3%</td><td class="n">55.4%</td></tr>
+      <tr><td>NUDGE+ recall</td><td class="n">98.0%</td><td class="n">97.2%</td><td class="n">99.3%</td></tr>
+      <tr><td>NUDGE+ false-positive rate</td><td class="n">1.12%</td><td class="n">0.96%</td><td class="n">1.28%</td></tr>
+      <tr><td>STEP_UP+ precision</td><td class="n">74.3%</td><td class="n">70.4%</td><td class="n">81.1%</td></tr>
+      <tr><td>STEP_UP+ recall</td><td class="n">95.7%</td><td class="n">94.4%</td><td class="n">97.7%</td></tr>
+      <tr><td>STEP_UP+ false-positive rate</td><td class="n">0.35%</td><td class="n">0.27%</td><td class="n">0.42%</td></tr>
+      <tr><td>HOLD+ precision</td><td class="n">89.9%</td><td class="n">86.8%</td><td class="n">95.3%</td></tr>
+      <tr><td>HOLD+ recall</td><td class="n">91.5%</td><td class="n">88.8%</td><td class="n">94.0%</td></tr>
+      <tr><td>HOLD+ false-positive rate</td><td class="n">0.11%</td><td class="n">0.05%</td><td class="n">0.16%</td></tr>
+    </table>
+
+    <table>
+      <tr><th>Scenario</th><th class="n">Mean STEP_UP+ recall</th><th class="n">Min</th><th class="n">Max</th></tr>
+      <tr><td>S1 — OTP/PIN takeover</td><td class="n">99.6%</td><td class="n">99.3%</td><td class="n">100.0%</td></tr>
+      <tr><td>S2 — collector wallet</td><td class="n">98.1%</td><td class="n">95.8%</td><td class="n">100.0%</td></tr>
+      <tr><td>S3 — mule chain</td><td class="n">99.5%</td><td class="n">98.5%</td><td class="n">100.0%</td></tr>
+      <tr style="background:#fdeceb"><td>S5 — fake seller / pressure scam</td><td class="n bad">80.5%</td><td class="n bad">69.0%</td><td class="n">94.5%</td></tr>
+      <tr><td>S6 — SIM-swap takeover</td><td class="n">99.6%</td><td class="n">98.8%</td><td class="n">100.0%</td></tr>
+      <tr><td>S7 — pressure scam</td><td class="n">93.9%</td><td class="n">92.9%</td><td class="n">95.2%</td></tr>
+      <tr><td>S8 — stolen card</td><td class="n">100.0%</td><td class="n">100.0%</td><td class="n">100.0%</td></tr>
+    </table>
+    <div class="note warn">
+      <b>Honest finding, not hidden:</b> S5 (fake-seller / pressure scam) was already named as the weakest planted
+      scenario on a single seed. The multi-seed check <i>confirms</i> it — it stays the widest-ranging, weakest
+      scenario across all three independent runs (69.0–94.5%), not a one-run artifact.
+    </div>
+  </section>
+
+  <section id="keypad">
+    <h2>3. Keypad-aware vs. ordinary edit distance <span class="pill">completed 2026-10-07</span></h2>
+    <p class="sub">Fixed diagnostic matrix (n=3 per cell, 60 cases per model) · baseline: unit-cost Levenshtein,
+      same eligibility/ranking/1.6 cutoff as the keypad check · <code>runs/feedback/recipient_matrix.json</code> ·
+      not a customer study — a small, fixed, transparent comparison.</p>
+
+    <table>
+      <tr><th>Slip kind</th><th>Contact familiarity</th><th class="n">Keypad: correct/n</th><th class="n">Ordinary edit: correct/n</th><th>What happened</th></tr>
+      <tr class="hl"><td>Swap (two digits transposed)</td><td>familiar</td><td class="n good">3 / 3</td><td class="n bad">0 / 3</td><td>Unit-cost Levenshtein scores a swap as distance 2 — above the 1.6 cutoff — so it never suggests at all.</td></tr>
+      <tr><td>One wrong key</td><td>familiar</td><td class="n good">3 / 3</td><td class="n good">3 / 3</td><td>Both catch a single adjacent-key miss equally well.</td></tr>
+      <tr><td>Legitimate similar number</td><td>familiar</td><td class="n bad">0 / 3 (3 false)</td><td class="n bad">0 / 3 (3 false)</td><td>Both models over-suggest here — the shared weak spot, disclosed not hidden.</td></tr>
+      <tr><td>Exact existing contact</td><td>familiar</td><td class="n">0 / 3 (silent)</td><td class="n">0 / 3 (silent)</td><td>Correctly stays silent — no correction needed.</td></tr>
+      <tr><td>Distant / unrelated number</td><td>familiar</td><td class="n">0 / 3 (silent)</td><td class="n">0 / 3 (silent)</td><td>Correctly stays silent — too far to be a plausible slip.</td></tr>
+      <tr><td>One wrong key</td><td><b>unfamiliar</b></td><td class="n bad">0 / 3 (3 false)</td><td class="n">0 / 3 (silent)</td><td>On an unfamiliar recipient, keypad's broader reach produces a false suggestion where ordinary edit distance stays silent.</td></tr>
+    </table>
+    <div class="note">
+      <b>The trade-off, stated plainly:</b> keypad detection catches the single most common real typo (a digit
+      swap) that ordinary edit distance misses entirely — but it also produces more false suggestions on
+      legitimately similar numbers and on unfamiliar recipients. Both are reported; neither is cherry-picked.
+    </div>
+  </section>
+
+  <section id="federated">
+    <h2>4. Federated learning — three results, three privacy budgets</h2>
+
+    <h3 style="font-size:15px;color:var(--upay-blue-dark);margin:18px 0 6px">① Keypad-slip costs (<code>src/fl/ondevice.py</code>)</h3>
+    <table>
+      <tr><th>Simulated phones</th><td>100,000; 6 rounds, half online each round, ≤2 slips/phone/round</td></tr>
+      <tr><th>Privacy</th><td>(ε, δ) = (<b>4.25</b>, 10⁻⁵) over all 6 rounds, Gaussian mechanism, Rényi accounting</td></tr>
+      <tr><th>Accuracy</th><td>L1 error vs true slip pattern <b>0.035</b> (vs 0.626 with no server-side trust)</td></tr>
+      <tr><th>What it learned</th><td>neighbouring key cost 0.61, any other key 0.93; swaps = 35% of slips (true 35%)</td></tr>
+      <tr><th>Leaves the phone</th><td>one noisy, masked vector of 101 counts per round — never the slip itself</td></tr>
+    </table>
+
+    <h3 style="font-size:15px;color:var(--upay-blue-dark);margin:18px 0 6px">② Cross-division scam model (<code>src/fl/fedgbdt.py</code>)</h3>
+    <table>
+      <tr><th>Test window (days 51–60)</th><th class="n">Central LightGBM</th><th class="n">Federated GBDT (8 silos)</th></tr>
+      <tr><td>PR-AUC</td><td class="n">0.962</td><td class="n good">0.949 (98.7% of central)</td></tr>
+      <tr><td>ROC-AUC</td><td class="n">0.9985</td><td class="n">0.9979</td></tr>
+      <tr><td>Recall at 0.5% FPR</td><td class="n">95.0%</td><td class="n">94.6%</td></tr>
+      <tr><td>HOLD+ precision / recall</td><td class="n">86.8% / 91.7%</td><td class="n">85.0% / 88.0%</td></tr>
+      <tr><td>Planted scenarios in an acceptable band</td><td class="n">12 / 12</td><td class="n">12 / 12</td></tr>
+    </table>
+    <div class="note">Written out as a standard LightGBM text model (largest difference from the team's own
+      hand-written tree walk: 2.8e-14) — a drop-in via <code>PROHORI_SCORER=federated</code>. The live demo keeps
+      the central model for its slightly higher HOLD recall.</div>
+
+    <h3 style="font-size:15px;color:var(--upay-blue-dark);margin:18px 0 6px">③ Amount-habit limits (<code>src/fl/amounts.py</code>)</h3>
+    <table>
+      <tr><th></th><th class="n">Send Money</th><th class="n">Mobile recharge</th></tr>
+      <tr><td>Phones (wallets)</td><td class="n">11,015</td><td class="n">10,645</td></tr>
+      <tr><td>Unusual if ≥ … × usual (federated · central)</td><td class="n"><b>16×</b> · 13.5× (≥ Tk 2,000)</td><td class="n"><b>9.5×</b> · 6.7× (≥ Tk 200)</td></tr>
+      <tr><td>… or 24h total ≥ … × usual day</td><td class="n"><b>13.5×</b> · 13.5× (≥ Tk 5,000)</td><td class="n"><b>11.3×</b> · 9.5× (≥ Tk 500)</td></tr>
+      <tr><td>Honest transfers asked once (test window)</td><td class="n">0.62% of 33,933</td><td class="n">0.61% of 23,586</td></tr>
+      <tr><td>Scam transfers caught</td><td class="n">21.4% of 341 victim-side</td><td class="n">no recharge fraud in data</td></tr>
+      <tr><td>Privacy</td><td class="n" colspan="2">(ε, δ) = (<b>1.66</b>, 10⁻⁵) for all four histograms, one release</td></tr>
+    </table>
+  </section>
+
+  <section id="ablation">
+    <h2>5. Ablation &amp; fairness</h2>
+    <div class="grid2">
+      <div class="note">
+        <b>Ablation:</b> removing a feature group and retraining costs the most PR-AUC for counterparty (−0.137),
+        behaviour (−0.026), complaints (−0.016) — full model 0.962. Component view: LightGBM-only 0.962,
+        +IsolationForest 0.962, +graph rules 0.962, fused (all three) 0.962 — fusion weights land entirely on
+        LightGBM on this data; the other two still drive reason codes and the unsupervised-anomaly signal.
+      </div>
+      <div class="note">
+        <b>Fairness</b> (groups with false-positive rate &gt;1.25× overall, ≥1,000 legit txns):
+        age 45–59 (NUDGE ×1.33), age 60+ (NUDGE ×1.12, STEP_UP ×1.65), farmer/rural (NUDGE ×1.99, STEP_UP ×2.22),
+        small business (NUDGE ×1.28, STEP_UP ×1.57), KYC1 (NUDGE ×1.23, STEP_UP ×1.34). None of these attributes
+        are model inputs; monitored in <code>reports/fairness.csv</code>, not corrected with per-group thresholds.
+      </div>
+    </div>
+  </section>
+
+  <section id="agents">
+    <h2>6. Agent Watch</h2>
+    <div class="note">6/9 rogue agent episodes flagged, 1.1 false-alarm agent-days/day across 300 agents. SC-06
+      agent A00044: score 85.8, 10.4× its area's median cash-out volume. Register-compromise test: 3/4 harvested
+      agents flagged, plus 1 other.</div>
+  </section>
+
+  <section id="planted">
+    <h2>7. Planted demo scenarios <span class="pill">13 / 13 in band</span></h2>
+    <table>
+      <tr><th>ID</th><th>Scenario</th><th>Expected</th><th>Actual</th><th class="n">Score</th></tr>
+      <tr><td>SC-01</td><td>SIM-swap takeover of a business owner at 01:40</td><td>HOLD</td><td>HOLD</td><td class="n">100.0</td></tr>
+      <tr><td>SC-02</td><td>Agent-register harvest: OTP takeover, 4 mules in 30s</td><td>STEP_UP</td><td>HOLD</td><td class="n">100.0</td></tr>
+      <tr><td>SC-03</td><td>Collector wallet, 2 days old, 14 strangers in 3h</td><td>STEP_UP</td><td>HOLD</td><td class="n">100.0</td></tr>
+      <tr><td>SC-04</td><td>Mule chain through a 400-day dormant account</td><td>STEP_UP</td><td>HOLD</td><td class="n">98.0</td></tr>
+      <tr><td>SC-05</td><td>'Jail guard' pressure scam, 60+ USSD farmer</td><td>NUDGE</td><td>NUDGE</td><td class="n">30.5</td></tr>
+      <tr><td>SC-06</td><td>Rogue agent: night cash-outs, ~8-10× peer volume</td><td>FLAGGED</td><td>FLAGGED</td><td class="n">85.8</td></tr>
+      <tr><td>SC-07</td><td>Stolen card: 2×25,000 Add Money, cash-out 29,500</td><td>HOLD</td><td>HOLD</td><td class="n">100.0</td></tr>
+      <tr><td>SC-08</td><td>Fake phone seller, 9 advance payments in 3 days</td><td>NUDGE</td><td>HOLD</td><td class="n">88.6</td></tr>
+      <tr><td>SB-01</td><td>Busy shop owner's personal wallet, 12 payers/day</td><td>ALLOW</td><td>ALLOW</td><td class="n">10.6</td></tr>
+      <tr><td>SB-02</td><td>Legit new phone, then usual bill + Tk 2,000</td><td>ALLOW</td><td>ALLOW</td><td class="n">15.3</td></tr>
+      <tr><td>SB-03</td><td>Rent advance, Tk 35,000, new landlord, Friday</td><td>NUDGE</td><td>STEP_UP (cap)</td><td class="n">98.6</td></tr>
+      <tr><td>SB-04</td><td>Student cashes out 4,900, 12 min after parent sends</td><td>ALLOW</td><td>ALLOW</td><td class="n">0.2</td></tr>
+      <tr><td>SB-05</td><td>Remittance family cashes out 29,500 after 48,250 lands</td><td>ALLOW</td><td>ALLOW</td><td class="n">2.4</td></tr>
+    </table>
+  </section>
+
+  <section id="tests">
+    <h2>8. Tests &amp; reproducibility <span class="pill">verified 2026-10-07</span></h2>
+    <div class="grid3">
+      <div class="stat"><div class="v good">61 / 61</div><div class="l">tests passed, 0 failures, 0 errors</div></div>
+      <div class="stat"><div class="v">Python 3.12.10</div><div class="l">captured interpreter version</div></div>
+      <div class="stat"><div class="v">9d5e275</div><div class="l">commit this report describes</div></div>
+    </div>
+    <div class="note">
+      Captured by <code>python -m tools.feedback_verify --out-root runs/feedback/verification</code>: pip freeze,
+      git HEAD, working-tree status, and <code>pytest -q -ra</code> with JUnit XML, all archived under
+      <code>runs/feedback/verification/</code>. Validation (days 46–50) fused PR-AUC 0.967; LightGBM 777 trees;
+      fusion weights {clf: 1.0, anom: 0.0, graph: 0.0}. Full detail: <code>reports/evaluation.md</code>,
+      <code>reports/model_card.md</code>.
+    </div>
+  </section>
+
+  <div class="footer">
+    Synthetic data with injected patterns — read every number above as an upper bound, not a measured real-world
+    outcome. Prohori · AI Hackathon 2026 · Track 01 Trust &amp; Risk Intelligence · <code>docs/database.md</code> ·
+    <code>docs/pitch_deck.html</code> · <code>docs/post_feedback_changelog.html</code>
+  </div>
+</div>
+</body>
+</html>

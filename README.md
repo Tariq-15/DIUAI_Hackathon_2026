@@ -158,6 +158,8 @@ row to open the case with its evidence.
 
 ## Results
 
+One-page report with every table below plus the multi-seed and keypad-diagnostic breakdowns: [`docs/results_report.html`](docs/results_report.html).
+
 Test window days 51–60, never used for training or tuning, seed 42:
 
 | | Value |
